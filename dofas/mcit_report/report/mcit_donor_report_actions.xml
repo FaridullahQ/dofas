@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_mcit_donor_report" model="ir.actions.report">
+        <field name="name">Donor Report</field>
+        <field name="model">mcit.donor.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">mcit_report.report_mcit_donor_report</field>
+        <field name="report_file">mcit_report.report_mcit_donor_report</field>
+        <field name="binding_model_id" ref="model_mcit_donor_report"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

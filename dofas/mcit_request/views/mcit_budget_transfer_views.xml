@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mcit_budget_transfer_form_inherit_request" model="ir.ui.view">
+        <field name="name">mcit.budget.transfer.form.inherit.mcit.request</field>
+        <field name="model">mcit.budget.transfer</field>
+        <field name="inherit_id" ref="mcit_budget.view_mcit_budget_transfer_form"/>
+        <field name="arch" type="xml">
+            <field name="to_line_id" position="after">
+                <field name="spend_request_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

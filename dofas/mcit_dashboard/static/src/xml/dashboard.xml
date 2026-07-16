@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="mcit_dashboard.Dashboard" owl="1">
+        <div class="o_mcit_dashboard">
+
+            <div class="o_mcit_db_bar">
+                <div>
+                    <h2 class="o_mcit_db_title">Grant portfolio dashboard</h2>
+                    <span class="text-muted">Donor funds, budget control and spend</span>
+                    <div t-if="state.data.multi_currency" class="o_mcit_db_fxnote">
+                        <i class="fa fa-info-circle"/> Amounts in <t t-esc="state.data.currency_name"/>,
+                        converted at the <t t-esc="state.data.rate_policy"/> rate.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== FILTER BAR ===================== -->
+            <div class="o_mcit_filters">
+                <div class="o_mcit_fld">
+                    <label>Date from</label>
+                    <input type="date" t-att-value="state.filters.date_from" t-on-change="(ev) => this.onFilterChange('date_from', ev)"/>
+                </div>
+                <div class="o_mcit_fld">
+                    <label>Date to</label>
+                    <input type="date" t-att-value="state.filters.date_to" t-on-change="(ev) => this.onFilterChange('date_to', ev)"/>
+                </div>
+                <div class="o_mcit_fld">
+                    <label>Program</label>
+                    <select t-on-change="(ev) => this.onFilterChange('program_id', ev)">
+                        <option value="">All</option>
+                        <t t-foreach="state.options.programs" t-as="o" t-key="o.id">
+                            <option t-att-value="o.id" t-att-selected="sel('program_id', o.id)" t-esc="o.name"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="o_mcit_fld">
+                    <label>Project</label>
+                    <select t-on-change="(ev) => this.onFilterChange('project_id', ev)">
+                        <option value="">All</option>
+                        <t t-foreach="projects" t-as="o" t-key="o.id">
+                            <option t-att-value="o.id" t-att-selected="sel('project_id', o.id)" t-esc="o.name"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="o_mcit_fld">
+                    <label>Activity</label>
+                    <select t-on-change="(ev) => this.onFilterChange('activity_id', ev)">
+                        <option value="">All</option>
+                        <t t-foreach="activities" t-as="o" t-key="o.id">
+                            <option t-att-value="o.id" t-att-selected="sel('activity_id', o.id)" t-esc="o.name"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="o_mcit_fld">
+                    <label>Grant</label>
+                    <select t-on-change="(ev) => this.onFilterChange('grant_id', ev)">
+                        <option value="">All grants</option>
+                        <t t-foreach="state.options.grants" t-as="o" t-key="o.id">
+                            <option t-att-value="o.id" t-att-selected="sel('grant_id', o.id)" t-esc="o.name"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="o_mcit_fld">
+                    <label>Donor</label>
+                    <select t-on-change="(ev) => this.onFilterChange('donor_id', ev)">
+                        <option value="">All</option>
+                        <t t-foreach="state.options.donors" t-as="o" t-key="o.id">
+                            <option t-att-value="o.id" t-att-selected="sel('donor_id', o.id)" t-esc="o.name"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="o_mcit_fld">
+                    <label>Budget line</label>
+                    <select t-on-change="(ev) => this.onFilterChange('budget_line_id', ev)">
+                        <option value="">All</option>
+                        <t t-foreach="lines" t-as="o" t-key="o.id">
+                            <option t-att-value="o.id" t-att-selected="sel('budget_line_id', o.id)" t-esc="o.name"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="o_mcit_fld" t-if="state.options.zones.length">
+                    <label>Zone</label>
+                    <select t-on-change="(ev) => this.onFilterChange('zone_id', ev)">
+                        <option value="">All zones</option>
+                        <t t-foreach="state.options.zones" t-as="o" t-key="o.id">
+                            <option t-att-value="o.id" t-att-selected="sel('zone_id', o.id)" t-esc="o.name"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="o_mcit_fbtns">
+                    <button class="btn btn-primary o_mcit_apply" t-on-click="() => this.apply()">Apply</button>
+                    <button class="btn btn-link o_mcit_reset" t-on-click="() => this.reset()">Reset</button>
+                </div>
+            </div>
+
+            <div t-if="state.loading" class="o_mcit_db_loading">
+                <i class="fa fa-circle-o-notch fa-spin"/> Loading dashboard…
+            </div>
+
+            <t t-else="">
+                <!-- ===================== KPI CARDS ===================== -->
+                <div class="o_mcit_cards">
+                    <t t-foreach="cards" t-as="cd" t-key="cd.key">
+                        <div class="o_mcit_card" t-attf-style="border-top-color: {{ cd.accent }};">
+                            <div class="o_mcit_card_lbl"><i t-att-class="'fa ' + cd.icon"/> <t t-esc="cd.label"/></div>
+                            <div class="o_mcit_card_val" t-esc="cd.val"/>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- ===================== SPEND OVER TIME ===================== -->
+                <div class="o_mcit_panel">
+                    <div class="o_mcit_panel_title">Spend over time (monthly actual)</div>
+                    <t t-if="!state.data.time_series.length"><div class="text-muted">No posted expenses in range.</div></t>
+                    <div t-else="" class="o_mcit_spark">
+                        <t t-foreach="state.data.time_series" t-as="p" t-key="p_index">
+                            <div class="o_mcit_scol">
+                                <div class="o_mcit_sval" t-esc="fmt(p.value)"/>
+                                <div class="o_mcit_sbar" t-attf-style="height: {{ tsHeight(p.value) }}%;"/>
+                                <div class="o_mcit_sx" t-esc="p.label"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <div class="o_mcit_grid2">
+                    <!-- BUDGET VS ACTUAL BY PROGRAM -->
+                    <div class="o_mcit_panel">
+                        <div class="o_mcit_panel_title">Budget vs actual, by program</div>
+                        <div class="o_mcit_legend">
+                            <span><i class="o_sw" style="background:#1F3A5F"/>Planned</span>
+                            <span><i class="o_sw" style="background:#C9A24B"/>Committed</span>
+                            <span><i class="o_sw" style="background:#1D9E75"/>Actual</span>
+                        </div>
+                        <t t-if="!state.data.programs.length"><div class="text-muted">No data.</div></t>
+                        <t t-foreach="state.data.programs" t-as="p" t-key="p_index">
+                            <div class="o_mcit_prow">
+                                <div class="o_mcit_pl"><span t-esc="p.label"/><span class="text-muted" t-esc="fmt(p.actual)"/></div>
+                                <div class="o_mcit_track"><div t-attf-style="width: {{ progPct(p.planned) }}%; background:#1F3A5F;"/></div>
+                                <div class="o_mcit_track"><div t-attf-style="width: {{ progPct(p.committed) }}%; background:#C9A24B;"/></div>
+                                <div class="o_mcit_track"><div t-attf-style="width: {{ progPct(p.actual) }}%; background:#1D9E75;"/></div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <!-- SPEND BY CATEGORY DONUT -->
+                    <div class="o_mcit_panel">
+                        <div class="o_mcit_panel_title">Spend by category</div>
+                        <t t-if="!state.data.categories.length"><div class="text-muted">No data.</div></t>
+                        <div t-else="" class="o_mcit_donut_wrap">
+                            <svg viewBox="0 0 120 120" class="o_mcit_donut" role="img" aria-label="Spend by category">
+                                <circle cx="60" cy="60" r="54" fill="none" stroke="var(--o-mcit-track,#e9e9e9)" stroke-width="16"/>
+                                <t t-foreach="donutSegments" t-as="s" t-key="s_index">
+                                    <circle cx="60" cy="60" r="54" fill="none" t-att-stroke="s.color" stroke-width="16"
+                                            t-att-stroke-dasharray="s.dash" t-att-stroke-dashoffset="s.offset"
+                                            transform="rotate(-90 60 60)"/>
+                                </t>
+                            </svg>
+                            <div class="o_mcit_donut_legend">
+                                <t t-foreach="donutSegments" t-as="s" t-key="s_index">
+                                    <div class="o_mcit_dl_row">
+                                        <span><i class="o_sw" t-attf-style="background:{{ s.color }}"/><t t-esc="s.label"/></span>
+                                        <span class="text-muted"><t t-esc="fmt(s.value)"/> · <t t-esc="s.pct"/>%</span>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="o_mcit_grid2">
+                    <!-- SPEND BY ZONE -->
+                    <div class="o_mcit_panel" t-if="state.data.zones.length">
+                        <div class="o_mcit_panel_title">Spend by zone / province</div>
+                        <t t-foreach="state.data.zones" t-as="z" t-key="z_index">
+                            <div class="o_mcit_prow">
+                                <div class="o_mcit_pl"><span t-esc="z.label"/><span class="text-muted" t-esc="fmt(z.value)"/></div>
+                                <div class="o_mcit_track"><div t-attf-style="width: {{ zonePct(z.value) }}%; background:#378ADD;"/></div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <!-- ADVANCES -->
+                    <div class="o_mcit_panel" t-if="state.data.advances.length">
+                        <div class="o_mcit_panel_title">Advance tracking</div>
+                        <div class="o_mcit_table_scroll">
+                            <table class="o_mcit_table">
+                                <thead><tr><th>Zone</th><th class="o_r">Sent</th><th class="o_r">Reported</th><th class="o_r">Outstanding</th></tr></thead>
+                                <tbody>
+                                    <t t-foreach="state.data.advances" t-as="a" t-key="a_index">
+                                        <tr>
+                                            <td t-esc="a.label"/>
+                                            <td class="o_r" t-esc="fmt(a.sent)"/>
+                                            <td class="o_r" t-esc="fmt(a.reported)"/>
+                                            <td class="o_r o_util_bad_t" t-esc="fmt(a.outstanding)"/>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOP BUDGET LINES -->
+                <div class="o_mcit_panel">
+                    <div class="o_mcit_panel_title">Top budget lines by utilization</div>
+                    <div class="o_mcit_table_scroll">
+                        <table class="o_mcit_table">
+                            <thead><tr><th>Budget line</th><th>Grant</th><th class="o_r">Planned</th><th class="o_r">Actual</th><th style="width:130px;">Utilization</th></tr></thead>
+                            <tbody>
+                                <t t-foreach="state.data.top_lines" t-as="l" t-key="l_index">
+                                    <tr>
+                                        <td t-esc="l.name"/><td t-esc="l.grant"/>
+                                        <td class="o_r" t-esc="fmt(l.planned)"/><td class="o_r" t-esc="fmt(l.actual)"/>
+                                        <td>
+                                            <div class="o_mcit_ubar">
+                                                <div t-attf-class="o_mcit_ufill {{ toneClass(l.utilization) }}"
+                                                     t-attf-style="width: {{ Math.min(l.utilization, 100) }}%;"/>
+                                            </div>
+                                            <span class="o_mcit_upct" t-esc="pct(l.utilization)"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ALERTS -->
+                <div class="o_mcit_panel">
+                    <div class="o_mcit_panel_title">Alerts &amp; compliance</div>
+                    <t t-if="!state.data.alerts.length"><div class="text-muted">No active alerts.</div></t>
+                    <t t-foreach="state.data.alerts" t-as="a" t-key="a_index">
+                        <div t-attf-class="o_mcit_alert o_mcit_alert_{{ a.level }}">
+                            <i t-att-class="'fa ' + a.icon"/> <span t-esc="a.text"/>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- GRANTS TABLE -->
+                <div class="o_mcit_panel">
+                    <div class="o_mcit_panel_title">Grants in scope</div>
+                    <div class="o_mcit_table_scroll">
+                        <table class="o_mcit_table">
+                            <thead>
+                                <tr><th>Grant</th><th>Donor</th><th class="o_r">Approved</th><th class="o_r">Committed</th>
+                                    <th class="o_r">Actual</th><th class="o_r">Available</th><th class="o_r">Util</th><th>Status</th></tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="state.data.grants" t-as="g" t-key="g.id">
+                                    <tr>
+                                        <td t-esc="g.code"/><td t-esc="g.donor"/>
+                                        <td class="o_r" t-esc="fmt(g.approved)"/><td class="o_r" t-esc="fmt(g.committed)"/>
+                                        <td class="o_r" t-esc="fmt(g.actual)"/><td class="o_r" t-esc="fmt(g.available)"/>
+                                        <td t-attf-class="o_r {{ toneClass(g.utilization) }}_t" t-esc="pct(g.utilization)"/>
+                                        <td><span class="o_mcit_badge" t-esc="g.status"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

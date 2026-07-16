@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mcit_rtemplate_read,template read,model_mcit_report_template,base.group_user,1,0,0,0
+access_mcit_rtemplate_admin,template admin,model_mcit_report_template,mcit_base.group_system_admin,1,1,1,1
+access_mcit_deptrep_read,dept report read,model_mcit_department_report,base.group_user,1,0,0,0
+access_mcit_deptrep_dm,dept report dm,model_mcit_department_report,mcit_base.group_dept_manager,1,1,1,0
+access_mcit_deptrep_admin,dept report admin,model_mcit_department_report,mcit_base.group_system_admin,1,1,1,1
+access_mcit_donorrep_read,donor report read,model_mcit_donor_report,base.group_user,1,0,0,0
+access_mcit_donorrep_do,donor report do,model_mcit_donor_report,mcit_base.group_donor_officer,1,1,1,0
+access_mcit_donorrep_admin,donor report admin,model_mcit_donor_report,mcit_base.group_system_admin,1,1,1,1

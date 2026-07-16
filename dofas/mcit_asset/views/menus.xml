@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_mcit_assets" name="Asset Register"
+              parent="mcit_base.menu_mcit_operations"
+              action="action_mcit_asset" sequence="45"/>
+    <menuitem id="menu_mcit_asset_settings" name="Asset Settings"
+              parent="mcit_base.menu_mcit_config"
+              action="action_mcit_asset_settings" sequence="99"
+              groups="mcit_base.group_system_admin"/>
+</odoo>

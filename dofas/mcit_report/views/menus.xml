@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_mcit_reporting" name="Reporting" parent="mcit_base.menu_mcit_root" sequence="30"/>
+    <menuitem id="menu_mcit_dept_reports" name="Department Reports" parent="menu_mcit_reporting" action="action_mcit_dept_report" sequence="10"/>
+    <menuitem id="menu_mcit_donor_reports" name="Donor Reports" parent="menu_mcit_reporting" action="action_mcit_donor_report" sequence="20"/>
+    <menuitem id="menu_mcit_rtemplates" name="Report Templates" parent="mcit_base.menu_mcit_config" action="action_mcit_rtemplate" sequence="20"/>
+</odoo>

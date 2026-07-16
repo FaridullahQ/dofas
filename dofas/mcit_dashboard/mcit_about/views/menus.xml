@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_mcit_about" name="Help"
+              parent="mcit_base.menu_mcit_root"
+              action="action_mcit_about" sequence="100"
+              groups="mcit_about.group_mcit_about"/>
+</odoo>

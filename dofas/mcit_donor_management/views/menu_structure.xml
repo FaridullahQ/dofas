@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Central information architecture for the whole suite.
+  Re-orders every menu by the real business process and regroups a few items.
+  Loaded by the umbrella (which depends on all modules), so every xmlid exists.
+  Plain <odoo> (noupdate=False) so it re-applies on each upgrade.
+-->
+<odoo>
+
+    <!-- ===================== TOP-LEVEL SECTIONS ===================== -->
+    <record id="mcit_dashboard.menu_mcit_dashboards" model="ir.ui.menu">
+        <field name="sequence">5</field>
+    </record>
+    <record id="mcit_base.menu_mcit_operations" model="ir.ui.menu">
+        <field name="sequence">10</field>
+    </record>
+    <record id="mcit_report.menu_mcit_reporting" model="ir.ui.menu">
+        <field name="sequence">20</field>
+    </record>
+    <record id="mcit_base.menu_mcit_master" model="ir.ui.menu">
+        <field name="sequence">30</field>
+    </record>
+    <record id="mcit_base.menu_mcit_config" model="ir.ui.menu">
+        <field name="sequence">90</field>
+    </record>
+    <record id="mcit_base.menu_mcit_audit" model="ir.ui.menu">
+        <field name="sequence">95</field>
+    </record>
+
+    <!-- ===================== DASHBOARDS ===================== -->
+    <record id="mcit_dashboard.menu_mcit_db_overview" model="ir.ui.menu">
+        <field name="sequence">10</field>
+    </record>
+    <record id="mcit_dashboard.menu_mcit_budget_monitor" model="ir.ui.menu">
+        <field name="sequence">20</field>
+    </record>
+    <record id="mcit_dashboard.menu_mcit_expense_analysis" model="ir.ui.menu">
+        <field name="sequence">30</field>
+    </record>
+    <record id="mcit_dashboard.menu_mcit_commitment_analysis" model="ir.ui.menu">
+        <field name="sequence">40</field>
+    </record>
+    <!-- Advance Tracking moved here (monitoring) from Operations -->
+    <record id="mcit_advance.menu_mcit_advance_tracking" model="ir.ui.menu">
+        <field name="parent_id" ref="mcit_dashboard.menu_mcit_dashboards"/>
+        <field name="sequence">50</field>
+    </record>
+
+    <!-- ===================== OPERATIONS (process order) ===================== -->
+    <record id="mcit_grant.menu_mcit_grants" model="ir.ui.menu">
+        <field name="sequence">10</field>
+    </record>
+    <record id="mcit_budget.menu_mcit_budgets" model="ir.ui.menu">
+        <field name="sequence">20</field>
+    </record>
+    <record id="mcit_fund.menu_mcit_fund_receipts" model="ir.ui.menu">
+        <field name="sequence">30</field>
+    </record>
+    <record id="mcit_request.menu_mcit_spend_request" model="ir.ui.menu">
+        <field name="sequence">40</field>
+    </record>
+    <record id="mcit_expense.menu_mcit_expenses" model="ir.ui.menu">
+        <field name="sequence">50</field>
+    </record>
+    <record id="mcit_advance.menu_mcit_advance" model="ir.ui.menu">
+        <field name="sequence">70</field>
+    </record>
+    <record id="mcit_advance.menu_mcit_liq" model="ir.ui.menu">
+        <field name="sequence">80</field>
+    </record>
+    <record id="mcit_asset.menu_mcit_assets" model="ir.ui.menu">
+        <field name="sequence">90</field>
+    </record>
+    <record id="mcit_closure.menu_mcit_closure" model="ir.ui.menu">
+        <field name="sequence">100</field>
+    </record>
+    <!-- Commitments: advanced encumbrance ledger, kept last -->
+    <record id="mcit_budget.menu_mcit_commitments" model="ir.ui.menu">
+        <field name="sequence">110</field>
+    </record>
+
+    <!-- ===================== REPORTING ===================== -->
+    <record id="mcit_report.menu_mcit_dept_reports" model="ir.ui.menu">
+        <field name="sequence">10</field>
+    </record>
+    <record id="mcit_report.menu_mcit_donor_reports" model="ir.ui.menu">
+        <field name="sequence">20</field>
+    </record>
+
+    <!-- ===================== MASTER DATA ===================== -->
+    <record id="mcit_donor.menu_mcit_donors" model="ir.ui.menu">
+        <field name="sequence">10</field>
+    </record>
+    <!-- Programs / Projects / Activities moved here from Operations -->
+    <record id="mcit_program.menu_mcit_program_root" model="ir.ui.menu">
+        <field name="parent_id" ref="mcit_base.menu_mcit_master"/>
+        <field name="sequence">20</field>
+    </record>
+    <record id="mcit_zone.menu_mcit_zone" model="ir.ui.menu">
+        <field name="sequence">30</field>
+    </record>
+    <record id="mcit_zone.menu_mcit_department" model="ir.ui.menu">
+        <field name="sequence">40</field>
+    </record>
+    <record id="mcit_compliance.menu_mcit_compliance" model="ir.ui.menu">
+        <field name="sequence">50</field>
+    </record>
+
+    <!-- ===================== CONFIGURATION ===================== -->
+    <record id="mcit_base.menu_mcit_config_settings" model="ir.ui.menu">
+        <field name="sequence">10</field>
+    </record>
+    <record id="mcit_report.menu_mcit_rtemplates" model="ir.ui.menu">
+        <field name="sequence">20</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mcit_zone_user,mcit.zone read,model_mcit_zone,base.group_user,1,0,0,0
+access_mcit_zone_finmgr,mcit.zone finance manager,model_mcit_zone,mcit_base.group_finance_manager,1,1,1,0
+access_mcit_zone_admin,mcit.zone admin,model_mcit_zone,mcit_base.group_system_admin,1,1,1,1
+access_mcit_dept_user,mcit.department read,model_mcit_department,base.group_user,1,0,0,0
+access_mcit_dept_finmgr,mcit.department finance manager,model_mcit_department,mcit_base.group_finance_manager,1,1,1,0
+access_mcit_dept_admin,mcit.department admin,model_mcit_department,mcit_base.group_system_admin,1,1,1,1

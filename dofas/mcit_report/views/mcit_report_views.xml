@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Department report -->
+    <record id="view_mcit_dept_report_form" model="ir.ui.view">
+        <field name="name">mcit.department.report.form</field><field name="model">mcit.department.report</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" invisible="state!='draft'"/>
+                    <button name="action_review" string="Review" type="object" invisible="state!='submitted'"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight" invisible="state!='reviewed'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,reviewed,approved"/>
+                </header>
+                <sheet>
+                    <group><group><field name="name"/><field name="grant_id"/><field name="period"/></group>
+                           <group><field name="remaining_budget"/><field name="currency_id" invisible="1"/></group></group>
+                    <notebook>
+                        <page string="Narrative"><field name="narrative"/></page>
+                        <page string="Results"><group><field name="achievements"/><field name="challenges"/><field name="lessons_learned"/><field name="outputs"/><field name="outcomes"/></group></page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter"><field name="message_ids"/></div>
+            </form>
+        </field>
+    </record>
+    <record id="view_mcit_dept_report_tree" model="ir.ui.view">
+        <field name="name">mcit.department.report.tree</field><field name="model">mcit.department.report</field>
+        <field name="arch" type="xml"><tree><field name="name"/><field name="grant_id"/><field name="period"/><field name="state" widget="badge"/></tree></field>
+    </record>
+    <record id="action_mcit_dept_report" model="ir.actions.act_window">
+        <field name="name">Department Reports</field><field name="res_model">mcit.department.report</field><field name="view_mode">tree,form</field>
+    </record>
+    <!-- Donor report -->
+    <record id="view_mcit_donor_report_form" model="ir.ui.view">
+        <field name="name">mcit.donor.report.form</field><field name="model">mcit.donor.report</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" invisible="state!='draft'"/>
+                    <button name="action_review" string="Review" type="object" invisible="state!='submitted'"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight" invisible="state!='reviewed'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,reviewed,approved"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Overdue" bg_color="text-bg-danger" invisible="not is_overdue"/>
+                    <group>
+                        <group><field name="name"/><field name="grant_id"/><field name="donor_id"/><field name="report_type"/><field name="template_id"/></group>
+                        <group><field name="period"/><field name="due_date"/><field name="date_report"/><field name="total_actual"/><field name="currency_id" invisible="1"/><field name="is_overdue"/></group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter"><field name="message_ids"/></div>
+            </form>
+        </field>
+    </record>
+    <record id="view_mcit_donor_report_tree" model="ir.ui.view">
+        <field name="name">mcit.donor.report.tree</field><field name="model">mcit.donor.report</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="is_overdue" decoration-success="state=='approved'">
+                <field name="name"/><field name="donor_id"/><field name="grant_id"/><field name="report_type"/>
+                <field name="due_date"/><field name="is_overdue" optional="show"/><field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+    <record id="action_mcit_donor_report" model="ir.actions.act_window">
+        <field name="name">Donor Reports</field><field name="res_model">mcit.donor.report</field><field name="view_mode">tree,form</field>
+    </record>
+    <!-- Template -->
+    <record id="view_mcit_rtemplate_form" model="ir.ui.view">
+        <field name="name">mcit.report.template.form</field><field name="model">mcit.report.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="donor_id"/>
+                            <field name="report_type"/>
+                            <field name="title" placeholder="e.g. Financial Report"/>
+                            <field name="active"/>
+                        </group>
+                        <group string="Sections to include">
+                            <field name="show_budget"/>
+                            <field name="show_narrative"/>
+                            <field name="show_compliance"/>
+                            <field name="show_procurement"/>
+                            <field name="show_asset"/>
+                            <field name="show_fx"/>
+                            <field name="show_signature"/>
+                        </group>
+                    </group>
+                    <separator string="Header note (printed under the title)"/>
+                    <field name="header_note" nolabel="1" placeholder="Optional donor reference or instructions"/>
+                    <separator string="Footer note (printed at the bottom)"/>
+                    <field name="footer_note" nolabel="1" placeholder="Optional disclaimer"/>
+                    <separator string="Internal layout notes"/>
+                    <field name="note" nolabel="1" placeholder="Notes for your team about this donor's format"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_mcit_rtemplate" model="ir.actions.act_window">
+        <field name="name">Report Templates</field><field name="res_model">mcit.report.template</field><field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="view_mcit_grant_form_reporting" model="ir.ui.view">
+        <field name="name">mcit.grant.form.reporting</field>
+        <field name="model">mcit.grant</field>
+        <field name="inherit_id" ref="mcit_grant.view_mcit_grant_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='reporting']" position="inside">
+                <group>
+                    <field name="reporting_frequency" readonly="1"/>
+                </group>
+                <separator string="Donor Reports"/>
+                <field name="donor_report_ids">
+                    <tree editable="bottom">
+                        <field name="name"/>
+                        <field name="report_type"/>
+                        <field name="period"/>
+                        <field name="due_date"/>
+                        <field name="is_overdue" readonly="1"/>
+                        <field name="state" readonly="1"/>
+                    </tree>
+                </field>
+                <separator string="Department Reports"/>
+                <field name="department_report_ids">
+                    <tree editable="bottom">
+                        <field name="name"/>
+                        <field name="period"/>
+                        <field name="state" readonly="1"/>
+                    </tree>
+                </field>
+            </xpath>
+        </field>
+    </record>
+</odoo>

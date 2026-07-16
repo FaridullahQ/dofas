@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="seq_mcit_budget_transfer" model="ir.sequence">
+        <field name="name">MCIT Internal Budget Transfer</field>
+        <field name="code">mcit.budget.transfer</field>
+        <field name="prefix">BT/%(year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

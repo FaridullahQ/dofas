@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mcit_grant_tree" model="ir.ui.view">
+        <field name="name">mcit.grant.tree</field>
+        <field name="model">mcit.grant</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state=='cancelled'" decoration-success="state=='active'">
+                <field name="grant_number"/>
+                <field name="name"/>
+                <field name="donor_id"/>
+                <field name="funding_model" optional="show"/>
+                <field name="date_start" optional="show"/>
+                <field name="date_end" optional="show"/>
+                <field name="approved_amount" sum="Approved"/>
+                <field name="currency_id" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-info="state=='review'"
+                       decoration-success="state in ('approved','active')"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_mcit_grant_form" model="ir.ui.view">
+        <field name="name">mcit.grant.form</field>
+        <field name="model">mcit.grant</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" invisible="state!='draft'"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight" invisible="state!='review'"/>
+                    <button name="action_activate" string="Activate" type="object" class="oe_highlight" invisible="state!='approved'"/>
+                    <button name="action_reject" string="Reject" type="object" invisible="state not in ('review','approved')"/>
+                    <button name="action_close" string="Close" type="object" invisible="state!='active'"/>
+                    <button name="action_reopen" string="Reopen" type="object" invisible="state!='closed'"/>
+                    <button name="action_cancel" string="Cancel" type="object" invisible="state in ('cancelled','closed')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,review,approved,active,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Grant title"/></h1>
+                    </div>
+                    <notebook>
+                        <page name="general" string="General Information">
+                            <group>
+                                <group>
+                                    <field name="grant_number" placeholder="Example: UNDP-2026-001"/>
+                                    <field name="agreement_number" placeholder="Signed agreement reference"/>
+                                    <field name="donor_id"/>
+                                    <field name="funding_model"/>
+                                    <field name="is_restricted"/>
+                                </group>
+                                <group>
+                                    <field name="company_id" groups="base.group_multi_company"/>
+                                    <field name="currency_id"/>
+                                    <field name="date_start"/>
+                                    <field name="date_end"/>
+                                    <field name="reporting_frequency"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="financial" string="Financial Information">
+                            <group>
+                                <field name="approved_amount" placeholder="Enter approved budget amount"/>
+                                <field name="analytic_account_id"/>
+                            </group>
+                        </page>
+                        <page name="compliance" string="Compliance"/>
+                        <page name="reporting" string="Reporting"/>
+                        <page name="documents" string="Documents">
+                            <field name="attachment_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="mimetype"/>
+                                    <field name="file_size" widget="integer"/>
+                                    <field name="create_uid"/>
+                                    <field name="create_date"/>
+                                </tree>
+                            </field>
+                            <p class="text-muted oe_grey">
+                                Attach files (such as the signed agreement) using the chatter below — they are listed here and counted by the approval gate.
+                            </p>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="view_mcit_grant_search" model="ir.ui.view">
+        <field name="name">mcit.grant.search</field>
+        <field name="model">mcit.grant</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="grant_number"/>
+                <field name="name"/>
+                <field name="donor_id"/>
+                <filter name="active_grants" string="Active" domain="[('state','=','active')]"/>
+                <filter name="draft_grants" string="Draft" domain="[('state','=','draft')]"/>
+                <separator/>
+                <filter name="archived" string="Archived" domain="[('active','=',False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
+                    <filter name="g_model" string="Funding Model" context="{'group_by':'funding_model'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_currency" string="Currency" context="{'group_by':'currency_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_mcit_grant" model="ir.actions.act_window">
+        <field name="name">Grants</field>
+        <field name="res_model">mcit.grant</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

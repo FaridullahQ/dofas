@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_mcit_fund_receipts" name="Fund Receipts"
+              parent="mcit_base.menu_mcit_operations"
+              action="action_mcit_fund_receipt" sequence="30"/>
+    <menuitem id="menu_mcit_donor_funding_request" name="Donor Supplementary Funding"
+              parent="mcit_base.menu_mcit_operations"
+              action="action_mcit_donor_funding_request" sequence="35"
+              groups="mcit_base.group_finance_officer"/>
+</odoo>

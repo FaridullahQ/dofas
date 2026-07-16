@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mcit_donor_read,mcit.donor read,model_mcit_donor,base.group_user,1,0,0,0
+access_mcit_donor_officer,mcit.donor officer,model_mcit_donor,mcit_base.group_donor_officer,1,1,1,0
+access_mcit_donor_admin,mcit.donor admin,model_mcit_donor,mcit_base.group_system_admin,1,1,1,1

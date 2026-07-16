@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Asset Manager is a plain authorization flag. We deliberately do NOT set
+        implied_ids = base.group_user: every internal user already has that group,
+        and implying it would trigger a mass res.users group-rewrite at install,
+        which stalls on environments whose custom res.users.write override clears
+        caches per user. ACLs grant model access; this group only gates the
+        sensitive buttons (Dispose / Mark Lost / move a locked asset).
+    -->
+    <record id="group_asset_manager" model="res.groups">
+        <field name="name">Asset Manager</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+        <field name="comment">Can dispose/mark-lost assets and move assets that are
+            locked to a custodian after transfer.</field>
+    </record>
+</odoo>

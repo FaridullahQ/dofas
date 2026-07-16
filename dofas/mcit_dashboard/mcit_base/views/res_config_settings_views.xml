@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mcit_config_settings" model="ir.ui.view">
+        <field name="name">res.config.settings.mcit</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="MCIT Donor Mgmt" name="mcit_donor_management">
+                    <block title="Analytic Integration" name="mcit_analytic">
+                        <setting string="Default Grant Analytic Plan">
+                            <field name="mcit_default_analytic_plan_id"/>
+                        </setting>
+                    </block>
+                    <block title="Budget Controls" name="mcit_budget">
+                        <setting string="Warning Threshold"><field name="mcit_budget_warn_threshold"/> %</setting>
+                        <setting string="Alert Threshold"><field name="mcit_budget_alert_threshold"/> %</setting>
+                    </block>
+                    <block title="Multi-currency" name="mcit_currency">
+                        <setting string="Currency Rate Policy"><field name="mcit_currency_rate_policy"/></setting>
+                    </block>
+                    <block title="Expense Accounting" name="mcit_expense">
+                        <setting string="Expense Journal"><field name="mcit_expense_journal_id"/></setting>
+                        <setting string="Expense Clearing Account"><field name="mcit_expense_clearing_account_id"/></setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+    <record id="action_mcit_config_settings" model="ir.actions.act_window">
+        <field name="name">MCIT Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'mcit_donor_management'}</field>
+    </record>
+</odoo>

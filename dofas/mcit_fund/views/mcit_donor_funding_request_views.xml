@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mcit_donor_funding_request_tree" model="ir.ui.view">
+        <field name="name">mcit.donor.funding.request.tree</field>
+        <field name="model">mcit.donor.funding.request</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='approved'" decoration-danger="state=='rejected'">
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="donor_id"/>
+                <field name="amount_requested" sum="Total"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mcit_donor_funding_request_form" model="ir.ui.view">
+        <field name="name">mcit.donor.funding.request.form</field>
+        <field name="model">mcit.donor.funding.request</field>
+        <field name="arch" type="xml">
+            <form string="Donor Supplementary Funding Request">
+                <header>
+                    <button name="action_request" string="Send to Donor" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_donor_approve" string="Record Donor Approval" type="object"
+                            class="oe_highlight" invisible="state != 'requested'"
+                            groups="mcit_base.group_finance_officer"/>
+                    <button name="action_donor_reject" string="Record Donor Rejection" type="object"
+                            invisible="state != 'requested'"
+                            groups="mcit_base.group_finance_officer"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state not in ('draft', 'requested')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,requested,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="grant_id"/>
+                            <field name="donor_id"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="amount_requested"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="reason" nolabel="1" placeholder="Why is supplementary funding needed?"/>
+                    </group>
+                    <group invisible="state not in ('requested', 'approved', 'rejected')">
+                        <field name="decision_date" readonly="1"/>
+                        <field name="decision_note" placeholder="Donor's decision, notes, references..."/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mcit_donor_funding_request" model="ir.actions.act_window">
+        <field name="name">Donor Supplementary Funding</field>
+        <field name="res_model">mcit.donor.funding.request</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>
