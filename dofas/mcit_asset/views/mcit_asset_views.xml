@@ -30,25 +30,33 @@
         <field name="name">mcit.asset.form</field>
         <field name="model">mcit.asset</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Asset">
                 <header>
+                    <button name="action_print_voucher" string="Print Voucher" type="object"/>
+                    <button name="action_print_disposal_voucher" string="Print Disposal Voucher"
+                            type="object" invisible="state != 'disposed'"/>
                     <button name="action_set_in_store" string="Move to Store"
                             type="object" invisible="state != 'in_use'"
-                            help="Internal transfer this unit into the Store location."/>
+                            help="Internal transfer this unit into the Store location."
+                            confirm="This will internally transfer the asset into the Store location. Do you want to continue?"/>
                     <button name="action_set_in_use" string="Return to Use"
                             type="object"
                             invisible="state not in ('in_store','transferred')"
-                            help="Internal transfer this unit back to the Custody location."/>
+                            help="Internal transfer this unit back to the Custody location."
+                            confirm="This will internally transfer the asset back to the Custody location. Do you want to continue?"/>
                     <button name="action_transfer" string="Transfer" type="object"
                             invisible="state in ('disposed','lost')"
-                            help="Hand the asset to a custodian and lock it to them."/>
+                            help="Hand the asset to a custodian and lock it to them."
+                            confirm="This will hand the asset to the selected custodian and lock it to them until transferred again. Do you want to continue?"/>
                     <button name="action_dispose" string="Dispose" type="object"
                             class="oe_highlight"
                             groups="mcit_asset.group_asset_manager"
-                            invisible="state in ('disposed','lost')"/>
+                            invisible="state in ('disposed','lost')"
+                            confirm="Disposing this asset will remove it from active use and post a disposal entry. This action cannot be undone. Do you want to continue?"/>
                     <button name="action_mark_lost" string="Mark Lost" type="object"
                             groups="mcit_asset.group_asset_manager"
-                            invisible="state in ('disposed','lost')"/>
+                            invisible="state in ('disposed','lost')"
+                            confirm="Marking this asset as lost is a permanent record of loss and cannot be undone. Do you want to continue?"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="in_use,in_store,transferred,disposed"/>
                 </header>
@@ -67,14 +75,19 @@
                         <button name="action_view_disposal_move" type="object"
                                 class="oe_stat_button" icon="fa-book"
                                 invisible="not disposal_move_id">
-                            <span class="o_stat_text">Disposal<br/>Entry</span>
+                            <span class="o_stat_text">Disposal<br/>Entry
+                            </span>
                         </button>
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
-                        <h1><field name="name" placeholder="e.g. Toyota Hilux 4x4"/></h1>
+                        <h1>
+                            <field name="name" placeholder="e.g. Toyota Hilux 4x4"/>
+                        </h1>
                         <label for="code" class="oe_inline"/>
-                        <h2><field name="code" class="oe_inline"/></h2>
+                        <h2>
+                            <field name="code" class="oe_inline"/>
+                        </h2>
                     </div>
                     <group>
                         <group string="Funding">
@@ -89,6 +102,7 @@
                             <field name="category"/>
                             <field name="acquisition_date"/>
                             <field name="acquisition_cost"/>
+                            <field name="cost_expense_mismatch" invisible="1"/>
                             <field name="quantity"/>
                             <field name="serial_number"
                                    placeholder="VIN / chassis / serial..."/>
@@ -98,6 +112,10 @@
                                    placeholder="e.g. ARCS Herat Branch - Store 2"/>
                         </group>
                     </group>
+                    <div class="alert alert-warning" role="alert" invisible="not cost_expense_mismatch">
+                        <strong>Cost mismatch.</strong> Acquisition Cost differs from the
+                        Source Expense amount. Review before posting.
+                    </div>
                     <notebook>
                         <page string="Inventory" name="inventory">
                             <group>
@@ -150,23 +168,21 @@
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
-                    <field name="activity_ids"/>
                     <field name="message_ids"/>
                 </div>
             </form>
         </field>
     </record>
-
     <record id="view_mcit_asset_search" model="ir.ui.view">
         <field name="name">mcit.asset.search</field>
         <field name="model">mcit.asset</field>
         <field name="arch" type="xml">
-            <search>
+            <search string="Search Assets">
                 <field name="name" string="Asset"
                        filter_domain="['|', ('name','ilike',self), ('code','ilike',self)]"/>
                 <field name="grant_id"/>
                 <field name="custodian_id"/>
-                <field name="serial_number"/>
+                <field name="serial_number" placeholder="Search by serial / VIN / chassis number…"/>
                 <filter name="active_assets" string="Active"
                         domain="[('state','not in',('disposed','lost'))]"/>
                 <filter name="in_use" string="In Use" domain="[('state','=','in_use')]"/>
@@ -183,10 +199,13 @@
                     <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
                     <filter name="g_cust" string="Custodian" context="{'group_by':'custodian_id'}"/>
                 </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="category" icon="fa-tags" select="multi" enable_counters="1"/>
+                </searchpanel>
             </search>
         </field>
     </record>
-
     <record id="action_mcit_asset" model="ir.actions.act_window">
         <field name="name">Asset Register</field>
         <field name="res_model">mcit.asset</field>
@@ -195,7 +214,8 @@
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Register a grant-funded asset</p>
             <p>Track equipment and vehicles bought with donor funds, their custodians,
-               their Inventory location, and their transfer/disposal history.</p>
+                their Inventory location, and their transfer/disposal history.
+            </p>
         </field>
     </record>
 

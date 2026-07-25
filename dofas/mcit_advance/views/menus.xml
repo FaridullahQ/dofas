@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_mcit_advance" name="Advances" parent="mcit_base.menu_mcit_operations"
-              action="action_mcit_advance" sequence="40"/>
-    <menuitem id="menu_mcit_liq" name="Liquidations" parent="mcit_base.menu_mcit_operations"
-              action="action_mcit_liq" sequence="41"/>
+    <menuitem id="menu_mcit_advance_root" name="Advances" parent="mcit_base.menu_mcit_operations" sequence="40"/>
+    <menuitem id="menu_mcit_advance" name="Advances" parent="menu_mcit_advance_root"
+              action="action_mcit_advance" sequence="10"/>
+    <menuitem id="menu_mcit_liq" name="Liquidations" parent="menu_mcit_advance_root"
+              action="action_mcit_liq" sequence="20"/>
     <menuitem id="menu_mcit_advance_tracking" name="Advance Tracking"
-              parent="mcit_base.menu_mcit_operations"
-              action="action_mcit_advance_tracking" sequence="42"/>
+              parent="menu_mcit_advance_root"
+              action="action_mcit_advance_tracking" sequence="30"/>
 </odoo>

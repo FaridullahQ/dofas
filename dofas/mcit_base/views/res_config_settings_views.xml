@@ -23,6 +23,12 @@
                         <setting string="Expense Journal"><field name="mcit_expense_journal_id"/></setting>
                         <setting string="Expense Clearing Account"><field name="mcit_expense_clearing_account_id"/></setting>
                     </block>
+                    <block title="Demo Data" name="mcit_demo">
+                        <setting string="Demo Data"
+                                 help="Generates ~30 interconnected demo records - donors, grants, budgets, the full Acquisition Four-Form flow, expenses, fund receipts, advances, and assets - so you can see every feature working end to end. Turning this off removes everything it created.">
+                            <field name="mcit_demo_data_enabled" widget="boolean_toggle"/>
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>

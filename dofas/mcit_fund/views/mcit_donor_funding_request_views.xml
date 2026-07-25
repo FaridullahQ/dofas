@@ -4,13 +4,16 @@
         <field name="name">mcit.donor.funding.request.tree</field>
         <field name="model">mcit.donor.funding.request</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state=='approved'" decoration-danger="state=='rejected'">
+            <tree decoration-muted="state in ('draft','cancelled')" decoration-info="state=='requested'"
+                  decoration-success="state=='approved'" decoration-danger="state=='rejected'">
                 <field name="name"/>
                 <field name="grant_id"/>
                 <field name="donor_id"/>
                 <field name="amount_requested" sum="Total"/>
                 <field name="currency_id" invisible="1"/>
-                <field name="state" widget="badge"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state in ('draft','cancelled')" decoration-info="state=='requested'"
+                       decoration-success="state=='approved'" decoration-danger="state=='rejected'"/>
             </tree>
         </field>
     </record>
@@ -22,37 +25,46 @@
             <form string="Donor Supplementary Funding Request">
                 <header>
                     <button name="action_request" string="Send to Donor" type="object"
-                            class="oe_highlight" invisible="state != 'draft'"/>
+                            class="oe_highlight" invisible="state != 'draft'"
+                            confirm="Sending this request will notify the donor and lock its details from further edits. Do you want to continue?"/>
                     <button name="action_donor_approve" string="Record Donor Approval" type="object"
                             class="oe_highlight" invisible="state != 'requested'"
-                            groups="mcit_base.group_finance_officer"/>
+                            groups="mcit_base.group_finance_officer"
+                            confirm="This records that the donor has approved the supplementary funding. Make sure the decision date and note are filled in first. Do you want to continue?"/>
                     <button name="action_donor_reject" string="Record Donor Rejection" type="object"
                             invisible="state != 'requested'"
-                            groups="mcit_base.group_finance_officer"/>
+                            groups="mcit_base.group_finance_officer"
+                            confirm="This records that the donor has rejected the supplementary funding request. Do you want to continue?"/>
                     <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state not in ('draft', 'requested')"/>
+                            invisible="state not in ('draft', 'requested')"
+                            confirm="Cancelling this request will stop it permanently, even if it has already been sent to the donor. Do you want to continue?"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,requested,approved"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
-                        <h1><field name="name" readonly="1"/></h1>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
                     </div>
                     <group>
-                        <group>
-                            <field name="grant_id"/>
+                        <group string="Grant &amp; Donor">
+                            <field name="grant_id" placeholder="Select the grant..."
+                                   readonly="state != 'draft'"
+                                   help="The grant whose donor will be asked for supplementary funds."/>
                             <field name="donor_id"/>
                         </group>
-                        <group>
+                        <group string="Amount">
                             <field name="currency_id" invisible="1"/>
-                            <field name="amount_requested"/>
+                            <field name="amount_requested" placeholder="0.00" readonly="state != 'draft'"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
-                    <group>
-                        <field name="reason" nolabel="1" placeholder="Why is supplementary funding needed?"/>
+                    <group string="Justification" col="1">
+                        <field name="reason" nolabel="1" readonly="state != 'draft'"
+                               placeholder="Why is supplementary funding needed? e.g. cover a shortfall on..."/>
                     </group>
-                    <group invisible="state not in ('requested', 'approved', 'rejected')">
+                    <group string="Donor Decision" invisible="state not in ('requested', 'approved', 'rejected')">
                         <field name="decision_date" readonly="1"/>
                         <field name="decision_note" placeholder="Donor's decision, notes, references..."/>
                     </group>
@@ -65,10 +77,40 @@
             </form>
         </field>
     </record>
-
+    <record id="view_mcit_donor_funding_request_search" model="ir.ui.view">
+        <field name="name">mcit.donor.funding.request.search</field>
+        <field name="model">mcit.donor.funding.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Donor Funding Requests">
+                <field name="name" string="Request"
+                       filter_domain="['|',('name','ilike',self),('reason','ilike',self)]"/>
+                <field name="grant_id"/>
+                <field name="donor_id"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="requested" string="Requested" domain="[('state','=','requested')]"/>
+                <filter name="approved" string="Donor Approved" domain="[('state','=','approved')]"/>
+                <filter name="rejected" string="Donor Rejected" domain="[('state','=','rejected')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
+                    <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="donor_id" icon="fa-heart" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
     <record id="action_mcit_donor_funding_request" model="ir.actions.act_window">
         <field name="name">Donor Supplementary Funding</field>
         <field name="res_model">mcit.donor.funding.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_mcit_donor_funding_request_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Ask a donor for supplementary funding</p>
+            <p>Track a request for additional funds on a grant, and record the donor's decision once received.</p>
+        </field>
     </record>
 </odoo>

@@ -6,8 +6,9 @@ class PurchaseOrder(models.Model):
 
     mcit_grant_id = fields.Many2one("mcit.grant", string="Grant",
                                     domain="[('state','=','active')]")
-    mcit_budget_line_id = fields.Many2one("mcit.budget.line", string="Budget Line",
-                                          domain="[('grant_id','=',mcit_grant_id)]")
+    mcit_budget_line_id = fields.Many2one(
+        "mcit.budget.line", string="Budget Line",
+        domain="[('grant_id','=',mcit_grant_id), ('budget_state','=','approved')]")
     mcit_commitment_id = fields.Many2one("mcit.commitment", string="Budget Commitment",
                                          readonly=True, copy=False)
 

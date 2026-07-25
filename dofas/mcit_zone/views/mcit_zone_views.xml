@@ -4,7 +4,7 @@
         <field name="name">mcit.zone.tree</field>
         <field name="model">mcit.zone</field>
         <field name="arch" type="xml">
-            <tree string="Zones / Provinces" default_order="code, name"
+            <tree string="Regions / Provinces" default_order="code, name"
                   decoration-muted="not active" decoration-bf="kind=='hq'">
                 <field name="active" column_invisible="1"/>
                 <field name="code"/>
@@ -23,7 +23,7 @@
         <field name="name">mcit.zone.form</field>
         <field name="model">mcit.zone</field>
         <field name="arch" type="xml">
-            <form string="Zone / Province">
+            <form string="Region / Province">
                 <sheet>
                     <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
                     <field name="active" invisible="1"/>
@@ -34,7 +34,7 @@
                             <field name="child_count" widget="statinfo"
                                    string="Provinces" invisible="kind != 'zone'"/>
                             <field name="child_count" widget="statinfo"
-                                   string="Zones" invisible="kind != 'hq'"/>
+                                   string="Regions" invisible="kind != 'hq'"/>
                         </button>
                         <button name="action_view_departments" type="object"
                                 class="oe_stat_button" icon="fa-building"
@@ -45,7 +45,7 @@
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
-                            <field name="name" placeholder="e.g. Herat Zone"/>
+                            <field name="name" placeholder="e.g. Herat Region / Province"/>
                         </h1>
                         <h3 class="text-muted mt-0">
                             <field name="code" class="oe_inline" placeholder="e.g. HRT"/>
@@ -54,7 +54,7 @@
                     <group>
                         <group string="Classification">
                             <field name="kind"
-                                   help="Headquarters, a regional Zone, or a Province that sits under a zone."/>
+                                   help="Headquarters, a Region, or a Province that sits under a region."/>
                             <field name="parent_id"
                                    help="The parent unit this zone/province reports to (e.g. a province reports to its zone)."/>
                         </group>
@@ -77,14 +77,14 @@
         <field name="model">mcit.zone</field>
         <field name="arch" type="xml">
             <search>
-                <field name="name" string="Zone" filter_domain="['|',('name','ilike',self),('code','ilike',self)]"/>
+                <field name="name" string="Region" filter_domain="['|',('name','ilike',self),('code','ilike',self)]"/>
                 <field name="code"/>
                 <field name="manager_id"/>
                 <field name="budget_holder_id"/>
                 <field name="parent_id"/>
                 <separator/>
                 <filter name="hq" string="Headquarters" domain="[('kind','=','hq')]"/>
-                <filter name="zones" string="Zones" domain="[('kind','=','zone')]"/>
+                <filter name="zones" string="Regions" domain="[('kind','=','zone')]"/>
                 <filter name="provinces" string="Provinces" domain="[('kind','=','province')]"/>
                 <separator/>
                 <filter name="archived" string="Archived" domain="[('active','=',False)]"/>
@@ -101,7 +101,7 @@
         </field>
     </record>
     <record id="action_mcit_zone" model="ir.actions.act_window">
-        <field name="name">Zones / Provinces</field>
+        <field name="name">Regions / Provinces</field>
         <field name="res_model">mcit.zone</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_mcit_zone_search"/>

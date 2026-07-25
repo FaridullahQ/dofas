@@ -1,5 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_mcit_closure_read,closure read,model_mcit_project_closure,base.group_user,1,0,0,0
-access_mcit_closure_fmgr,closure fmgr,model_mcit_project_closure,mcit_base.group_finance_manager,1,1,1,0
-access_mcit_closure_ed,closure ed,model_mcit_project_closure,mcit_base.group_executive_director,1,1,1,0
-access_mcit_closure_admin,closure admin,model_mcit_project_closure,mcit_base.group_system_admin,1,1,1,1

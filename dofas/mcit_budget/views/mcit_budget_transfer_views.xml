@@ -4,13 +4,16 @@
         <field name="name">mcit.budget.transfer.tree</field>
         <field name="model">mcit.budget.transfer</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state=='approved'" decoration-danger="state=='rejected'">
+            <tree decoration-muted="state in ('draft','cancelled')" decoration-info="state=='submitted'"
+                  decoration-success="state=='approved'" decoration-danger="state=='rejected'">
                 <field name="name"/>
                 <field name="from_line_id"/>
                 <field name="to_line_id"/>
                 <field name="amount" sum="Total"/>
                 <field name="currency_id" invisible="1"/>
-                <field name="state" widget="badge"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state in ('draft','cancelled')" decoration-info="state=='submitted'"
+                       decoration-success="state=='approved'" decoration-danger="state=='rejected'"/>
             </tree>
         </field>
     </record>
@@ -22,49 +25,88 @@
             <form string="Internal Budget Transfer">
                 <header>
                     <button name="action_submit" string="Submit" type="object"
-                            class="oe_highlight" invisible="state != 'draft'"/>
+                            class="oe_highlight" invisible="state != 'draft'"
+                            confirm="Submitting this transfer will send it to Finance for approval and lock it from further edits. Do you want to continue?"/>
                     <button name="action_approve" string="Approve" type="object"
                             class="oe_highlight" invisible="state != 'submitted'"
-                            groups="mcit_base.group_finance_manager"/>
+                            groups="mcit_base.group_finance_manager"
+                            confirm="Approving this transfer will move the funds between the selected budget lines immediately. Do you want to continue?"/>
                     <button name="action_reject" string="Reject" type="object"
                             invisible="state != 'submitted'"
-                            groups="mcit_base.group_finance_manager"/>
+                            groups="mcit_base.group_finance_manager"
+                            confirm="Rejecting this transfer will return it to the requester without moving any funds. Do you want to continue?"/>
                     <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state not in ('draft', 'submitted')"/>
+                            invisible="state not in ('draft', 'submitted')"
+                            confirm="Cancelling this transfer will stop it permanently; no funds will be moved. Do you want to continue?"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,approved"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
-                        <h1><field name="name" readonly="1"/></h1>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
                     </div>
                     <group>
-                        <group>
-                            <field name="from_line_id" required="1"/>
-                            <field name="to_line_id"/>
+                        <group string="Movement">
+                            <field name="from_line_id" required="1" readonly="state != 'draft'"
+                                   help="The budget line to draw funds from."/>
+                            <field name="to_line_id" readonly="state != 'draft'"
+                                   help="The budget line receiving the funds."/>
                         </group>
-                        <group>
+                        <group string="Amount">
                             <field name="currency_id" invisible="1"/>
-                            <field name="amount"/>
+                            <field name="amount" placeholder="0.00" readonly="state != 'draft'"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
-                    <group>
-                        <field name="reason" nolabel="1" placeholder="Why is this transfer needed?"/>
+                    <group string="Justification" col="1">
+                        <field name="reason" nolabel="1" readonly="state != 'draft'"
+                               placeholder="Why is this transfer needed? e.g. cover a shortfall on..."/>
                     </group>
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
-                    <field name="activity_ids"/>
                     <field name="message_ids"/>
                 </div>
             </form>
         </field>
     </record>
-
+    <record id="view_mcit_budget_transfer_search" model="ir.ui.view">
+        <field name="name">mcit.budget.transfer.search</field>
+        <field name="model">mcit.budget.transfer</field>
+        <field name="arch" type="xml">
+            <search string="Search Budget Transfers">
+                <field name="name" string="Transfer"
+                       filter_domain="['|',('name','ilike',self),('reason','ilike',self)]"/>
+                <field name="from_line_id"/>
+                <field name="to_line_id"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="submitted" string="Submitted" domain="[('state','=','submitted')]"/>
+                <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state','=','rejected')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_from" string="From Budget Line" context="{'group_by':'from_line_id'}"/>
+                    <filter name="g_to" string="To Budget Line" context="{'group_by':'to_line_id'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
     <record id="action_mcit_budget_transfer" model="ir.actions.act_window">
         <field name="name">Internal Budget Transfers</field>
         <field name="res_model">mcit.budget.transfer</field>
         <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_mcit_budget_transfer_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create an internal budget transfer</p>
+            <p>Move planned budget from one line to another within the same grant/version, subject to Finance Manager
+                approval.
+            </p>
+        </field>
     </record>
 </odoo>

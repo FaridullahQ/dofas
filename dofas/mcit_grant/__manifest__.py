@@ -1,6 +1,6 @@
 {
     "name": "MCIT Donor Mgmt - Grant",
-    "version": "17.0.1.0.0",
+    "version": "17.0.1.2.0",
     "summary": "Grant / donor agreements with analytic accounts and lifecycle.",
     "category": "Accounting/MCIT Donor Management",
     "license": "LGPL-3",

@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class McitDonorFundingRequest(models.Model):
@@ -30,6 +30,12 @@ class McitDonorFundingRequest(models.Model):
     decision_date = fields.Date(readonly=True, copy=False)
     decision_note = fields.Text(copy=False)
     company_id = fields.Many2one(related="grant_id.company_id", store=True, readonly=True)
+
+    @api.constrains("amount_requested")
+    def _check_amount_positive(self):
+        for r in self:
+            if r.amount_requested and r.amount_requested <= 0:
+                raise ValidationError(_("The requested amount must be greater than zero."))
 
     @api.model_create_multi
     def create(self, vals_list):

@@ -1,6 +1,6 @@
 {
     "name": "MCIT Donor Mgmt - Compliance",
-    "version": "17.0.1.0.0",
+    "version": "17.0.1.1.0",
     "summary": "Compliance checklists and mandatory-attachment gating.",
     "category": "Accounting/MCIT Donor Management",
     "license": "LGPL-3", "author": "MCIT",

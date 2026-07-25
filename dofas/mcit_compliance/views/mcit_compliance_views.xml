@@ -51,7 +51,7 @@
         <field name="name">mcit.compliance.checklist.search</field>
         <field name="model">mcit.compliance.checklist</field>
         <field name="arch" type="xml">
-            <search>
+            <search string="Search Compliance Checklists">
                 <field name="name" string="Checklist"
                        filter_domain="['|',('name','ilike',self),('donor_id','ilike',self)]"/>
                 <field name="donor_id"/>
@@ -61,6 +61,9 @@
                 <group expand="0" string="Group By">
                     <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
                 </group>
+                <searchpanel>
+                    <field name="donor_id" icon="fa-heart" select="multi" enable_counters="1"/>
+                </searchpanel>
             </search>
         </field>
     </record>

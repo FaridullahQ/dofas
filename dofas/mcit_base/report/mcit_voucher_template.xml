@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Shared voucher body. Call with t-call and an 'o' record that
+         inherits mcit.voucher.mixin. Kept in mcit_base so every module
+         (expense, fund, request, asset) renders an identical layout -
+         only the record's hook methods change what's shown. -->
+    <template id="report_voucher_document">
+        <div class="page" style="font-family: 'Helvetica Neue', Arial, sans-serif; color:#1a1a1a;">
+
+            <div style="border-top:3px solid #1F3A5F; border-bottom:3px solid #1F3A5F; padding:14px 0; margin-bottom:20px; text-align:center;">
+                <h2 style="margin:0; color:#1F3A5F; letter-spacing:1px;" t-esc="o._voucher_title()"/>
+                <div style="color:#6B7280; font-size:12px; margin-top:4px;" t-esc="o._voucher_subtitle()"/>
+            </div>
+
+            <div style="width:100%; overflow:hidden; font-size:12px; margin-bottom:6px;">
+                <div style="float:left; text-align:left;">
+                    <strong style="color:#E08214;">Voucher No:</strong>
+                    <span t-esc="o._voucher_number()"/>
+                </div>
+                <div style="float:right; text-align:right;">
+                    <strong style="color:#E08214;">Date:</strong>
+                    <span t-esc="o._voucher_date()"/>
+                </div>
+            </div>
+            <div t-if="o._voucher_party_label()" style="font-size:12px; margin-bottom:6px;">
+                <strong style="color:#E08214;" t-esc="o._voucher_party_label()"/>:
+                <span t-esc="o._voucher_party_name()"/>
+            </div>
+            <div t-if="o._voucher_context_line()" style="font-size:12px; color:#6B7280; margin-bottom:14px;">
+                <span t-esc="o._voucher_context_line()"/>
+            </div>
+            <div t-if="not o._voucher_is_posted()" style="font-size:11px; color:#856404; background:#FFF3CD; border:1px solid #FFE69C; border-radius:4px; padding:6px 10px; margin-bottom:14px;">
+                Indicative summary - not a posted general ledger entry.
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:20px;">
+                <thead>
+                    <tr style="background:#F1EFE8;">
+                        <td style="padding:6px 8px; font-weight:bold;">Account</td>
+                        <td style="padding:6px 8px; font-weight:bold;">Description</td>
+                        <td style="padding:6px 8px; font-weight:bold; text-align:right;">Debit</td>
+                        <td style="padding:6px 8px; font-weight:bold; text-align:right;">Credit</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-set="v_lines" t-value="o._voucher_lines()"/>
+                    <t t-set="v_currency" t-value="o._voucher_currency()"/>
+                    <tr t-foreach="v_lines" t-as="vline" style="border-bottom:0.5px solid #E5E7EB;">
+                        <td style="padding:6px 8px;" t-esc="vline['account']"/>
+                        <td style="padding:6px 8px;" t-esc="vline['description']"/>
+                        <td style="padding:6px 8px; text-align:right;">
+                            <t t-if="vline['debit']"><t t-esc="'%.2f' % vline['debit']"/></t>
+                            <t t-else="">-</t>
+                        </td>
+                        <td style="padding:6px 8px; text-align:right;">
+                            <t t-if="vline['credit']"><t t-esc="'%.2f' % vline['credit']"/></t>
+                            <t t-else="">-</t>
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr style="border-top:1.5px solid #1F3A5F; font-weight:bold;">
+                        <td colspan="2" style="padding:6px 8px;">Total</td>
+                        <td style="padding:6px 8px; text-align:right;">
+                            <t t-esc="'%.2f' % sum(l['debit'] for l in v_lines)"/> <t t-esc="v_currency.name"/>
+                        </td>
+                        <td style="padding:6px 8px; text-align:right;">
+                            <t t-esc="'%.2f' % sum(l['credit'] for l in v_lines)"/> <t t-esc="v_currency.name"/>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div style="width:100%; margin-top:40px; overflow:hidden; font-size:11px; color:#6B7280;">
+                <div style="float:left; width:33.33%; text-align:center; padding:0 10px; box-sizing:border-box;">
+                    <div style="height:28px;">&#160;</div>
+                    <div style="border-top:0.5px solid #9CA3AF; padding-top:4px; font-weight:bold; color:#1F3A5F;">Prepared by</div>
+                </div>
+                <div style="float:left; width:33.33%; text-align:center; padding:0 10px; box-sizing:border-box;">
+                    <div style="height:28px;">&#160;</div>
+                    <div style="border-top:0.5px solid #9CA3AF; padding-top:4px; font-weight:bold; color:#1F3A5F;">Reviewed by</div>
+                </div>
+                <div style="float:left; width:33.33%; text-align:center; padding:0 10px; box-sizing:border-box;">
+                    <div style="height:28px;">&#160;</div>
+                    <div style="border-top:0.5px solid #9CA3AF; padding-top:4px; font-weight:bold; color:#1F3A5F;">Approved by</div>
+                </div>
+            </div>
+        </div>
+    </template>
+</odoo>

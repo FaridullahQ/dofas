@@ -17,18 +17,18 @@ class McitAdvance(models.Model):
              "Use this code to track and reference this advance in correspondence and reports.",
     )
     advance_type = fields.Selection(
-        [("zone", "Zone / Province"), ("employee", "Employee / Staff")],
+        [("zone", "Region / Province"), ("employee", "Employee / Staff")],
         required=True,
         default="zone",
         tracking=True,
         help="Select the recipient type:\n"
-             "• Zone / Province – advance issued to a field office or provincial team.\n"
+             "• Region / Province – advance issued to a field office or provincial team.\n"
              "• Employee / Staff – advance issued directly to an individual staff member "
              "who becomes the accountable holder (debtor).",
     )
     zone_id = fields.Many2one(
         "mcit.zone",
-        string="Zone / Province",
+        string="Region / Province",
         tracking=True,
         help="Select the zone or province that will receive and manage this advance. "
              "The zone manager is automatically suggested as the Holder.",
@@ -60,9 +60,10 @@ class McitAdvance(models.Model):
     budget_line_id = fields.Many2one(
         "mcit.budget.line",
         string="Budget Line",
-        domain="[('grant_id','=',grant_id)]",
+        domain="[('grant_id','=',grant_id), ('budget_state','=','approved')]",
         help="The specific budget line within the selected grant that will absorb this advance. "
-             "Only budget lines belonging to the selected grant are shown.",
+             "Only budget lines on an Approved budget version, belonging to the selected grant, "
+             "are shown.",
     )
     company_id = fields.Many2one(
         "res.company",
@@ -121,6 +122,7 @@ class McitAdvance(models.Model):
         string="Liquidations",
         help="Liquidation records submitted by the holder to justify expenses against this advance.",
     )
+    liquidation_count = fields.Integer(compute="_compute_liquidation_count")
     reported_amount = fields.Monetary(
         compute="_compute_amounts",
         store=True,
@@ -194,7 +196,7 @@ class McitAdvance(models.Model):
     def _check_holder(self):
         for a in self:
             if a.advance_type == "zone" and not a.zone_id:
-                raise ValidationError(_("Please select a Zone / Province for a zone advance."))
+                raise ValidationError(_("Please select a Region / Province for a zone advance."))
             if a.advance_type == "employee" and not a.holder_user_id:
                 raise ValidationError(_("Please select the Holder (Debtor) for an employee advance."))
 
@@ -334,4 +336,32 @@ class McitAdvance(models.Model):
             "res_model": "account.move",
             "res_id": self.move_id.id,
             "view_mode": "form",
+        }
+
+    def _compute_liquidation_count(self):
+        for a in self:
+            a.liquidation_count = len(a.liquidation_ids)
+
+    def action_create_liquidation(self):
+        self.ensure_one()
+        if self.state != "issued":
+            raise UserError(_("Only issued advances can be liquidated."))
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("New Liquidation"),
+            "res_model": "mcit.advance.liquidation",
+            "view_mode": "form",
+            "target": "current",
+            "context": {"default_advance_id": self.id},
+        }
+
+    def action_view_liquidations(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Liquidations"),
+            "res_model": "mcit.advance.liquidation",
+            "view_mode": "tree,form",
+            "domain": [("advance_id", "=", self.id)],
+            "context": {"default_advance_id": self.id},
         }

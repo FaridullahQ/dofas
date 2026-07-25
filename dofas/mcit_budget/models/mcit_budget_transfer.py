@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare
 
 
@@ -18,9 +18,11 @@ class McitBudgetTransfer(models.Model):
     name = fields.Char(required=True, default=lambda s: _("New"), copy=False, readonly=True)
     from_line_id = fields.Many2one(
         "mcit.budget.line", string="From Budget Line", tracking=True,
+        domain="[('budget_state', '=', 'approved')]",
         help="Source line to move budget from. Required before submitting.")
     to_line_id = fields.Many2one(
-        "mcit.budget.line", string="To Budget Line", required=True, tracking=True)
+        "mcit.budget.line", string="To Budget Line", required=True, tracking=True,
+        domain="[('budget_state', '=', 'approved')]")
     currency_id = fields.Many2one(related="from_line_id.currency_id", readonly=True)
     amount = fields.Monetary(required=True, currency_field="currency_id", tracking=True)
     reason = fields.Text(required=True)
@@ -37,13 +39,19 @@ class McitBudgetTransfer(models.Model):
                 vals["name"] = self.env["ir.sequence"].next_by_code("mcit.budget.transfer") or _("New")
         return super().create(vals_list)
 
+    @api.constrains("amount")
+    def _check_amount_positive(self):
+        for t in self:
+            if t.amount and t.amount <= 0:
+                raise ValidationError(_("The transfer amount must be greater than zero."))
+
     @api.constrains("from_line_id", "to_line_id")
     def _check_lines(self):
         for t in self.filtered(lambda x: x.from_line_id and x.to_line_id):
             if t.from_line_id == t.to_line_id:
-                raise UserError(_("The source and destination budget lines must be different."))
+                raise ValidationError(_("The source and destination budget lines must be different."))
             if t.from_line_id.budget_id != t.to_line_id.budget_id:
-                raise UserError(_(
+                raise ValidationError(_(
                     "Both budget lines must belong to the same budget (grant/version). "
                     "Cross-grant transfers are not supported."))
 

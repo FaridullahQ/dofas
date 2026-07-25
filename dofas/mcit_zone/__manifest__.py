@@ -1,7 +1,7 @@
 {
     "name": "MCIT Donor Mgmt - Zones & Departments",
-    "version": "17.0.1.2.0",
-    "summary": "Zone/Province and Department dimensions for HQ + field tracking.",
+    "version": "17.0.1.3.0",
+    "summary": "Region/Province and Department dimensions for HQ + field tracking.",
     "category": "Accounting/MCIT Donor Management",
     "license": "LGPL-3",
     "author": "MCIT",

@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mcit_fund_alloc_read,mcit.fund.receipt.allocation read,model_mcit_fund_receipt_allocation,base.group_user,1,0,0,0
+access_mcit_fund_alloc_officer,mcit.fund.receipt.allocation officer,model_mcit_fund_receipt_allocation,mcit_base.group_finance_officer,1,1,1,0
+access_mcit_fund_alloc_mgr,mcit.fund.receipt.allocation finance mgr,model_mcit_fund_receipt_allocation,mcit_base.group_finance_manager,1,1,1,0
+access_mcit_fund_alloc_admin,mcit.fund.receipt.allocation admin,model_mcit_fund_receipt_allocation,mcit_base.group_system_admin,1,1,1,1

@@ -10,6 +10,8 @@ REPORT_TYPES = [
 class McitReportTemplate(models.Model):
     _name = "mcit.report.template"
     _description = "Donor Report Template"
+    _inherit = ["mcit.approval.mixin", "mail.thread"]
+    _order = "create_date desc"
 
     name = fields.Char(required=True)
     donor_id = fields.Many2one("mcit.donor", string="Donor")

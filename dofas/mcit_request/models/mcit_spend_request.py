@@ -6,19 +6,22 @@ from odoo.tools import float_compare
 class McitSpendRequest(models.Model):
     _name = "mcit.spend.request"
     _description = "Acquisition (Four Form)"
-    _inherit = ["mcit.approval.mixin", "mail.thread", "mail.activity.mixin"]
+    _inherit = ["mcit.approval.mixin", "mcit.voucher.mixin", "mail.thread", "mail.activity.mixin"]
     _order = "date_request desc, id desc"
 
     name = fields.Char(required=True, default=lambda s: _("New"), copy=False, readonly=True)
     date_request = fields.Date(default=fields.Date.context_today, tracking=True)
-    zone_id = fields.Many2one("mcit.zone", string="Zone / Province", tracking=True)
+    zone_id = fields.Many2one("mcit.zone", string="Region / Province", tracking=True)
     department_id = fields.Many2one(
         "mcit.department", string="Department",
         domain="[] if not zone_id else ['|', ('zone_id', '=', zone_id), ('zone_id.parent_id', '=', zone_id)]",
-        help="Narrowed to the departments of the selected Zone/Province once one is chosen "
+        help="Narrowed to the departments of the selected Region/Province once one is chosen "
              "(matches whether you picked the province directly or its parent zone).")
-    budget_line_id = fields.Many2one("mcit.budget.line", string="Budget Line",
-                                     required=True, tracking=True)
+    budget_line_id = fields.Many2one(
+        "mcit.budget.line", string="Budget Line", required=True, tracking=True,
+        domain="[('budget_state', '=', 'approved')]",
+        help="Only budget lines on an Approved budget version are selectable - "
+             "a Draft version isn't active yet and a Superseded one is historical.")
     grant_id = fields.Many2one("mcit.grant", related="budget_line_id.grant_id", store=True)
     program_id = fields.Many2one(
         "mcit.program", string="Program", tracking=True,
@@ -54,6 +57,12 @@ class McitSpendRequest(models.Model):
     commitment_id = fields.Many2one("mcit.commitment", string="Reserve", readonly=True, copy=False)
     expense_ids = fields.One2many("mcit.expense", "request_id", string="Expenses")
     expense_count = fields.Integer(compute="_compute_expense_count")
+    budget_transfer_ids = fields.One2many(
+        "mcit.budget.transfer", "spend_request_id", string="Internal Budget Transfers")
+    budget_transfer_count = fields.Integer(compute="_compute_budget_transfer_count")
+    donor_funding_ids = fields.One2many(
+        "mcit.donor.funding.request", "spend_request_id", string="Donor Funding Requests")
+    donor_funding_count = fields.Integer(compute="_compute_donor_funding_count")
     state = fields.Selection(
         [("draft", "Drafted"), ("submitted", "Submitted"),
          ("insufficient_funds", "Insufficient Funds"), ("committed", "Committed"),
@@ -77,6 +86,14 @@ class McitSpendRequest(models.Model):
     def _compute_expense_count(self):
         for r in self:
             r.expense_count = len(r.expense_ids)
+
+    def _compute_budget_transfer_count(self):
+        for r in self:
+            r.budget_transfer_count = len(r.budget_transfer_ids)
+
+    def _compute_donor_funding_count(self):
+        for r in self:
+            r.donor_funding_count = len(r.donor_funding_ids)
 
     @api.onchange("zone_id")
     def _onchange_zone(self):
@@ -224,9 +241,46 @@ class McitSpendRequest(models.Model):
             "default_department_id": self.department_id.id,
             "default_project_id": self.project_id.id,
             "default_activity_id": self.activity_id.id,
+            "default_partner_id": self.vendor_id.id,
         }
         return {"type": "ir.actions.act_window", "res_model": "mcit.expense",
                 "view_mode": "form", "target": "current", "context": ctx}
+
+    # ---------------- voucher printing ----------------
+    def _voucher_title(self):
+        return "Acquisition Commitment Voucher"
+
+    def _voucher_subtitle(self):
+        return "Budget Reservation Reference"
+
+    def _voucher_party_label(self):
+        return "Vendor" if self.vendor_id else False
+
+    def _voucher_party_name(self):
+        return self.vendor_id.name
+
+    def _voucher_context_line(self):
+        parts = [p for p in (self.grant_id.name, self.budget_line_id.name,
+                             self.quotation_ref and _("Quotation: %s") % self.quotation_ref) if p]
+        return " | ".join(parts) if parts else False
+
+    def _voucher_is_posted(self):
+        return False
+
+    def _voucher_lines(self):
+        self.ensure_one()
+        amount = self.approved_amount or self.estimated_amount
+        account_name = ", ".join(self.budget_line_id.account_ids.mapped("display_name")) \
+                       or self.budget_line_id.name
+        return [
+            {"account": account_name, "description": self.name, "debit": amount, "credit": 0.0},
+            {"account": _("Budget Reserve - %s") % self.budget_line_id.name,
+             "description": _("Reservation"), "debit": 0.0, "credit": amount},
+        ]
+
+    def action_print_voucher(self):
+        self.ensure_one()
+        return self.env.ref("mcit_request.action_report_acquisition_voucher").report_action(self)
 
     def action_view_expenses(self):
         self.ensure_one()
@@ -234,6 +288,18 @@ class McitSpendRequest(models.Model):
                 "name": _("Expenses"), "view_mode": "tree,form",
                 "domain": [("request_id", "=", self.id)],
                 "context": {"default_request_id": self.id}}
+
+    def action_view_budget_transfers(self):
+        self.ensure_one()
+        return {"type": "ir.actions.act_window", "res_model": "mcit.budget.transfer",
+                "name": _("Internal Budget Transfers"), "view_mode": "tree,form",
+                "domain": [("spend_request_id", "=", self.id)]}
+
+    def action_view_donor_funding(self):
+        self.ensure_one()
+        return {"type": "ir.actions.act_window", "res_model": "mcit.donor.funding.request",
+                "name": _("Donor Funding Requests"), "view_mode": "tree,form",
+                "domain": [("spend_request_id", "=", self.id)]}
 
     # ---------------- insufficient-funds recovery ----------------
     def action_choose_different_budget_line(self):

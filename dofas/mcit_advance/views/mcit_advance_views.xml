@@ -9,9 +9,9 @@
         <field name="model">mcit.advance</field>
         <field name="arch" type="xml">
             <tree
-                decoration-info="state=='issued'"
-                decoration-success="state=='closed'"
-                decoration-muted="state=='cancelled'">
+                    decoration-info="state=='issued'"
+                    decoration-success="state=='closed'"
+                    decoration-muted="state=='cancelled'">
                 <field name="name"/>
                 <field name="date"/>
                 <field name="advance_type"/>
@@ -39,17 +39,23 @@
         <field name="name">mcit.advance.form</field>
         <field name="model">mcit.advance</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Advance">
                 <header>
                     <button name="action_issue" string="Issue Advance" type="object"
                             class="oe_highlight"
                             invisible="state != 'draft'"
                             groups="mcit_base.group_finance_manager"
-                            help="Disburse the advance to the holder. A journal entry will be posted if ledger booking is enabled."/>
+                            help="Disburse the advance to the holder. A journal entry will be posted if ledger booking is enabled."
+                            confirm="Issuing this advance will disburse cash to the holder and post a journal entry if ledger booking is enabled. Do you want to continue?"/>
                     <button name="action_close" string="Close" type="object"
                             invisible="state != 'issued'"
                             groups="mcit_base.group_finance_manager"
-                            help="Mark this advance as fully settled. All outstanding amounts must be zero first."/>
+                            help="Mark this advance as fully settled. All outstanding amounts must be zero first."
+                            confirm="Closing this advance marks it as fully settled and prevents any further liquidations or returns from being recorded against it. Do you want to continue?"/>
+                    <button name="action_create_liquidation" string="Create Liquidation" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'issued'"
+                            help="Open a new liquidation report for this advance, pre-linked to it."/>
                     <button name="action_cancel" string="Cancel" type="object"
                             invisible="state in ('closed','cancelled')"
                             confirm="Are you sure you want to cancel this advance? This action cannot be undone."/>
@@ -65,6 +71,12 @@
                                 invisible="not move_id"
                                 help="View the accounting journal entry created when this advance was issued.">
                             <span class="o_stat_text">Issuance Entry</span>
+                        </button>
+                        <button name="action_view_liquidations" type="object"
+                                class="oe_stat_button" icon="fa-money"
+                                invisible="liquidation_count == 0"
+                                help="View all liquidations submitted against this advance.">
+                            <field name="liquidation_count" widget="statinfo" string="Liquidations"/>
                         </button>
                     </div>
 
@@ -82,7 +94,7 @@
                         <group string="Recipient &amp; Holder"
                                help="Identifies who receives the advance and who is financially accountable.">
                             <field name="advance_type"
-                                   help="Zone/Province: advance managed by a field office team.&#10;Employee/Staff: advance issued directly to an individual who becomes the debtor."
+                                   help="Region/Province: advance managed by a field office team.&#10;Employee/Staff: advance issued directly to an individual who becomes the debtor."
                                    readonly="state != 'draft'"/>
                             <field name="zone_id"
                                    invisible="advance_type != 'zone'"
@@ -164,7 +176,6 @@
                         </page>
                     </notebook>
                 </sheet>
-
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
@@ -173,6 +184,7 @@
             </form>
         </field>
     </record>
+
 
     <!-- ═══════════════════════════════════════════════════════════════════
          SEARCH VIEW
@@ -187,7 +199,7 @@
                 <field name="holder_user_id"/>
                 <field name="partner_id"/>
                 <field name="grant_id"/>
-                <field name="reference" string="Payment Ref"/>
+                <field name="reference" string="Payment Ref" placeholder="Search by payment reference…"/>
                 <!-- Status Filters -->
                 <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
                 <filter name="issued" string="Issued" domain="[('state','=','issued')]"/>
@@ -197,21 +209,25 @@
                 <filter name="cancelled" string="Cancelled" domain="[('state','=','cancelled')]"/>
                 <separator/>
                 <!-- Type Filters -->
-                <filter name="zone_adv" string="Zone Advances" domain="[('advance_type','=','zone')]"/>
+                <filter name="zone_adv" string="Region Advances" domain="[('advance_type','=','zone')]"/>
                 <filter name="emp_adv" string="Employee Advances" domain="[('advance_type','=','employee')]"/>
                 <!-- Group By -->
                 <group expand="0" string="Group By">
-                    <filter name="g_zone" string="Zone" context="{'group_by':'zone_id'}"/>
+                    <filter name="g_zone" string="Region" context="{'group_by':'zone_id'}"/>
                     <filter name="g_partner" string="Partner" context="{'group_by':'partner_id'}"/>
                     <filter name="g_type" string="Type" context="{'group_by':'advance_type'}"/>
                     <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
                     <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
                     <filter name="g_date" string="Month" context="{'group_by':'date:month'}"/>
                 </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="advance_type" icon="fa-tag" select="one" enable_counters="1"/>
+                    <field name="zone_id" icon="fa-map-marker" select="multi" enable_counters="1"/>
+                </searchpanel>
             </search>
         </field>
     </record>
-
     <!-- ═══════════════════════════════════════════════════════════════════
          PIVOT & GRAPH VIEWS
     ═══════════════════════════════════════════════════════════════════ -->

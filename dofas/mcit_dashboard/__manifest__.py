@@ -1,6 +1,6 @@
 {
     "name": "MCIT Donor Mgmt - Dashboards",
-    "version": "17.0.1.3.1",
+    "version": "17.0.1.2.1",
     "summary": "Community monitoring: OWL portfolio dashboard + pivot/graph views.",
     "category": "Accounting/MCIT Donor Management",
     "license": "LGPL-3", "author": "MCIT",

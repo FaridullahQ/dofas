@@ -1,6 +1,6 @@
 {
     "name": "MCIT Donor Mgmt - Program & Projects",
-    "version": "17.0.1.0.0",
+    "version": "17.0.1.1.0",
     "summary": "Program -> Project -> Component -> Activity hierarchy with activity budgeting.",
     "category": "Accounting/MCIT Donor Management",
     "license": "LGPL-3", "author": "MCIT",

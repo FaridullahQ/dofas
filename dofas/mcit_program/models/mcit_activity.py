@@ -21,8 +21,9 @@ class McitActivity(models.Model):
     grant_id = fields.Many2one(related="project_id.grant_id", store=True)
     company_id = fields.Many2one(related="project_id.company_id", store=True)
     currency_id = fields.Many2one(related="grant_id.currency_id", store=True)
-    budget_line_id = fields.Many2one("mcit.budget.line", string="Budget Line",
-                                     domain="[('grant_id','=',grant_id)]")
+    budget_line_id = fields.Many2one(
+        "mcit.budget.line", string="Budget Line",
+        domain="[('grant_id','=',grant_id), ('budget_state','=','approved')]")
     date_start = fields.Date(required=True)
     date_end = fields.Date(required=True)
     planned_cost = fields.Monetary(currency_field="currency_id")

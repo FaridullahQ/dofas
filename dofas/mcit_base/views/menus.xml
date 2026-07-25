@@ -6,5 +6,11 @@
     <menuitem id="menu_mcit_audit" name="Audit" parent="menu_mcit_root" sequence="90" groups="group_finance_manager"/>
     <menuitem id="menu_mcit_audit_log" name="Audit Log" parent="menu_mcit_audit" action="action_mcit_audit_log" sequence="10"/>
     <menuitem id="menu_mcit_config" name="Configuration" parent="menu_mcit_root" sequence="99" groups="group_system_admin"/>
-    <menuitem id="menu_mcit_config_settings" name="Settings" parent="menu_mcit_config" action="action_mcit_config_settings" sequence="10"/>
+
+    <!-- Defined here, in mcit_base, because this is where the xmlid belongs.
+         The umbrella module may re-sequence/re-parent this later, but must
+         never be the one that originally creates it. -->
+    <menuitem id="setting_label" name="Setting" parent="menu_mcit_config" sequence="9"/>
+
+    <menuitem id="menu_mcit_config_settings" name="Accounting Setup" parent="setting_label" action="action_mcit_config_settings" sequence="10"/>
 </odoo>

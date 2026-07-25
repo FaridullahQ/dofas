@@ -14,6 +14,11 @@ class McitBudgetLine(models.Model):
     company_id = fields.Many2one(related="budget_id.company_id", store=True)
     analytic_account_id = fields.Many2one(related="grant_id.analytic_account_id", store=True)
     currency_id = fields.Many2one(related="budget_id.currency_id", store=True)
+    budget_state = fields.Selection(
+        related="budget_id.state", store=True, string="Budget Version Status",
+        help="Status of the budget version this line belongs to. Only lines on an "
+             "Approved version should be selectable for reserving/spending - a "
+             "Superseded version is historical and a Draft version isn't active yet.")
     name = fields.Char(string="Budget Line", required=True,
                        help="Select the approved budget category under which expenditures will be charged.")
     category = fields.Selection(

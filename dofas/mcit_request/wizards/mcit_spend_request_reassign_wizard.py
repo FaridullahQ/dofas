@@ -16,7 +16,8 @@ class McitSpendRequestReassignWizard(models.TransientModel):
     current_budget_line_id = fields.Many2one(
         related="request_id.budget_line_id", string="Current Budget Line", readonly=True)
     new_budget_line_id = fields.Many2one(
-        "mcit.budget.line", string="New Budget Line", required=True)
+        "mcit.budget.line", string="New Budget Line", required=True,
+        domain="[('budget_state', '=', 'approved')]")
     note = fields.Char(string="Reason")
 
     @api.model

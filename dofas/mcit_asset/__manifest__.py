@@ -1,6 +1,6 @@
 {
     "name": "MCIT Donor Mgmt - Asset Register",
-    "version": "17.0.2.0.2",
+    "version": "17.0.2.0.3",
     "summary": "Grant-funded asset register with real Inventory integration: "
                "store moves, custodian-locked transfers, audited disposal.",
     "description": """
@@ -31,6 +31,8 @@ Feeds the donor Asset report.
         "security/ir.model.access.csv",
         "security/mcit_asset_rules.xml",
         "data/ir_sequence.xml",
+        "report/asset_voucher_report.xml",
+        "report/asset_disposal_voucher_report.xml",
         "wizards/asset_wizard_views.xml",
         "views/mcit_asset_views.xml",
         "views/res_config_settings_views.xml",

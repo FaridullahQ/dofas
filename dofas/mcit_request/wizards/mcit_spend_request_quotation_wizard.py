@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare
 
 
@@ -25,6 +25,11 @@ class McitSpendRequestQuotationWizard(models.TransientModel):
     total_amount = fields.Monetary(
         string="Approved (Quoted) Amount", compute="_compute_total_amount",
         store=True, currency_field="currency_id")
+    variance_amount = fields.Monetary(
+        string="Variance vs. Estimate", compute="_compute_total_amount",
+        store=True, currency_field="currency_id",
+        help="Positive means the quoted price is higher than the original estimate; "
+             "negative means it came in under budget.")
     quotation_ref = fields.Char(
         string="Quotation Reference",
         help="Reference number of the approved supplier quotation(s). "
@@ -34,10 +39,11 @@ class McitSpendRequestQuotationWizard(models.TransientModel):
         help="At least one approved quotation document is required before confirming.")
     note = fields.Text(string="Notes")
 
-    @api.depends("line_ids.quoted_amount")
+    @api.depends("line_ids.quoted_amount", "estimated_amount")
     def _compute_total_amount(self):
         for w in self:
             w.total_amount = sum(w.line_ids.mapped("quoted_amount"))
+            w.variance_amount = w.total_amount - w.estimated_amount
 
     # ============================================================== defaults
     @api.model
@@ -84,6 +90,7 @@ class McitSpendRequestQuotationWizard(models.TransientModel):
         return {"type": "ir.actions.act_window_close"}
 
     def action_discard(self):
+        self.unlink()
         return {"type": "ir.actions.act_window_close"}
 
     def action_stay(self):
@@ -123,3 +130,9 @@ class McitSpendRequestQuotationLine(models.TransientModel):
     def _compute_quoted_amount(self):
         for l in self:
             l.quoted_amount = (l.quantity or 0.0) * (l.quoted_unit_price or 0.0)
+
+    @api.constrains("quoted_unit_price")
+    def _check_quoted_unit_price(self):
+        for l in self:
+            if l.quoted_unit_price < 0:
+                raise ValidationError(_("The quoted unit price cannot be negative."))

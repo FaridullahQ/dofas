@@ -10,4 +10,15 @@
             </field>
         </field>
     </record>
+
+    <record id="view_mcit_budget_transfer_search_inherit_request" model="ir.ui.view">
+        <field name="name">mcit.budget.transfer.search.inherit.mcit.request</field>
+        <field name="model">mcit.budget.transfer</field>
+        <field name="inherit_id" ref="mcit_budget.view_mcit_budget_transfer_search"/>
+        <field name="arch" type="xml">
+            <field name="to_line_id" position="after">
+                <field name="spend_request_id"/>
+            </field>
+        </field>
+    </record>
 </odoo>

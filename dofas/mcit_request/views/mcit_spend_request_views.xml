@@ -1,34 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="view_mcit_spend_request_tree" model="ir.ui.view">
-        <field name="name">mcit.spend.request.tree</field><field name="model">mcit.spend.request</field>
+        <field name="name">mcit.spend.request.tree</field>
+        <field name="model">mcit.spend.request</field>
         <field name="arch" type="xml">
-            <tree decoration-info="state=='committed'" decoration-success="state=='approved'" decoration-warning="state=='insufficient_funds'" decoration-muted="state in ('rejected','cancelled')">
-                <field name="name"/><field name="date_request"/><field name="zone_id"/>
-                <field name="department_id" optional="show"/><field name="budget_line_id"/>
-                <field name="estimated_amount" sum="Estimated"/><field name="approved_amount" sum="Approved" optional="show"/><field name="currency_id" invisible="1"/>
+            <tree decoration-muted="state in ('draft','cancelled')" decoration-info="state=='submitted'"
+                  decoration-warning="state=='insufficient_funds'"
+                  decoration-success="state in ('committed','approved')" decoration-danger="state=='rejected'">
+                <field name="name"/>
+                <field name="date_request"/>
+                <field name="zone_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="budget_line_id"/>
+                <field name="estimated_amount" sum="Estimated"/>
+                <field name="approved_amount" sum="Approved" optional="show"/>
+                <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge"/>
             </tree>
         </field>
     </record>
 
     <record id="view_mcit_spend_request_form" model="ir.ui.view">
-        <field name="name">mcit.spend.request.form</field><field name="model">mcit.spend.request</field>
+        <field name="name">mcit.spend.request.form</field>
+        <field name="model">mcit.spend.request</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Spend Request">
                 <header>
-                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" invisible="state != 'draft'"/>
-                    <button name="action_open_quotation_wizard" string="Confirm Real Price" type="object" invisible="state != 'submitted'"/>
-                    <button name="action_commit" string="Commit &amp; Reserve" type="object" class="oe_highlight" invisible="state != 'submitted' or not approved_amount" groups="mcit_base.group_finance_manager"/>
-                    <button name="action_choose_different_budget_line" string="Choose Different Budget Line" type="object" class="oe_highlight" invisible="state != 'insufficient_funds'"/>
-                    <button name="action_request_budget_transfer" string="Request Internal Transfer" type="object" invisible="state != 'insufficient_funds'"/>
-                    <button name="action_request_donor_funding" string="Request Donor Funding" type="object" invisible="state != 'insufficient_funds'"/>
-                    <button name="action_reset_draft" string="Revise Request" type="object" invisible="state != 'insufficient_funds'"/>
-                    <button name="action_approve" string="Approve" type="object" class="oe_highlight" invisible="state != 'committed'" groups="mcit_base.group_executive_director"/>
-                    <button name="action_create_expense" string="Create Expense" type="object" invisible="state != 'approved'"/>
-                    <button name="action_reject" string="Reject" type="object" invisible="state not in ('submitted','committed')"/>
-                    <button name="action_cancel" string="Cancel" type="object" invisible="state in ('approved','rejected','cancelled')"/>
-                    <button name="action_reset_draft" string="Reset to Draft" type="object" invisible="state not in ('rejected','cancelled')"/>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight"
+                            invisible="state != 'draft'"
+                            confirm="Submitting this request will send it for budget commitment and lock the items from further edits. Do you want to continue?"/>
+                    <button name="action_open_quotation_wizard" string="Confirm Real Price" type="object"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_commit" string="Commit &amp; Reserve" type="object" class="oe_highlight"
+                            invisible="state != 'submitted' or not approved_amount"
+                            groups="mcit_base.group_finance_manager"
+                            confirm="Committing this request will reserve the approved amount against the budget line, reducing what's available for other requests. Do you want to continue?"/>
+                    <button name="action_choose_different_budget_line" string="Choose Different Budget Line"
+                            type="object"
+                            class="oe_highlight" invisible="state != 'insufficient_funds'"/>
+                    <button name="action_request_budget_transfer" string="Request Internal Transfer" type="object"
+                            invisible="state != 'insufficient_funds'"/>
+                    <button name="action_request_donor_funding" string="Request Donor Funding" type="object"
+                            invisible="state != 'insufficient_funds'"/>
+                    <button name="action_reset_draft" string="Revise Request" type="object"
+                            invisible="state != 'insufficient_funds'"
+                            confirm="Revising this request will return it to draft so you can adjust the amount or budget line. Do you want to continue?"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight"
+                            invisible="state != 'committed'"
+                            groups="mcit_base.group_executive_director"
+                            confirm="Approving this request authorizes the reserved funds to be spent and allows an expense to be created against it. Do you want to continue?"/>
+                    <button name="action_create_expense" string="Create Expense" type="object"
+                            invisible="state != 'approved'"/>
+                    <button name="action_print_voucher" string="Print Voucher" type="object"
+                            invisible="state not in ('committed', 'approved')"/>
+                    <button name="action_reject" string="Reject" type="object"
+                            invisible="state not in ('submitted','committed')"
+                            confirm="Rejecting this request will release any reserved budget and return it to the requester. Do you want to continue?"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state in ('approved','rejected','cancelled')"
+                            confirm="Cancelling this request will release any reserved budget back to the budget line and stop it permanently. Do you want to continue?"/>
+                    <button name="action_reset_draft" string="Reset to Draft" type="object"
+                            invisible="state not in ('rejected','cancelled')"
+                            confirm="Resetting this request to draft will allow it to be resubmitted from the beginning. Do you want to continue?"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,submitted,committed,approved"/>
                 </header>
                 <sheet>
@@ -41,27 +74,38 @@
                     </div>
                     <div class="oe_button_box" name="button_box">
                         <field name="commitment_id" invisible="1"/>
-                        <button name="action_view_expenses" type="object" class="oe_stat_button" icon="fa-money" invisible="expense_count == 0">
+                        <button name="action_view_expenses" type="object" class="oe_stat_button" icon="fa-money"
+                                invisible="expense_count == 0">
                             <field name="expense_count" widget="statinfo" string="Expenses"/>
+                        </button>
+                        <button name="action_view_budget_transfers" type="object" class="oe_stat_button"
+                                icon="fa-exchange" invisible="budget_transfer_count == 0">
+                            <field name="budget_transfer_count" widget="statinfo" string="Budget Transfers"/>
+                        </button>
+                        <button name="action_view_donor_funding" type="object" class="oe_stat_button" icon="fa-heart"
+                                invisible="donor_funding_count == 0">
+                            <field name="donor_funding_count" widget="statinfo" string="Donor Funding"/>
                         </button>
                     </div>
                     <div class="oe_title">
-                        <h1><field name="name" readonly="1"/></h1>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
                     </div>
                     <group>
                         <group string="Requesting unit">
-                            <field name="zone_id"/>
-                            <field name="department_id"/>
-                            <field name="budget_holder_id"/>
-                            <field name="requested_by"/>
-                            <field name="date_request"/>
+                            <field name="zone_id" readonly="state != 'draft'"/>
+                            <field name="department_id" readonly="state != 'draft'"/>
+                            <field name="budget_holder_id" readonly="state != 'draft'"/>
+                            <field name="requested_by" readonly="state != 'draft'"/>
+                            <field name="date_request" readonly="state != 'draft'"/>
                         </group>
                         <group string="Budget">
-                            <field name="budget_line_id"/>
+                            <field name="budget_line_id" readonly="state != 'draft'"/>
                             <field name="grant_id"/>
-                            <field name="program_id"/>
-                            <field name="project_id"/>
-                            <field name="activity_id"/>
+                            <field name="program_id" readonly="state != 'draft'"/>
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="activity_id" readonly="state != 'draft'"/>
                             <field name="currency_id" invisible="1"/>
                             <field name="estimated_amount"/>
                             <field name="approved_amount"/>
@@ -73,7 +117,7 @@
                     </group>
                     <notebook>
                         <page string="Items" name="items">
-                            <field name="line_ids">
+                            <field name="line_ids" readonly="state != 'draft'">
                                 <tree editable="bottom">
                                     <field name="name"/>
                                     <field name="quantity"/>
@@ -90,33 +134,48 @@
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">
-                    <field name="message_follower_ids"/><field name="activity_ids"/><field name="message_ids"/>
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
                 </div>
             </form>
         </field>
     </record>
-
     <record id="view_mcit_spend_request_search" model="ir.ui.view">
-        <field name="name">mcit.spend.request.search</field><field name="model">mcit.spend.request</field>
+        <field name="name">mcit.spend.request.search</field>
+        <field name="model">mcit.spend.request</field>
         <field name="arch" type="xml">
-            <search>
-                <field name="name"/><field name="zone_id"/><field name="department_id"/>
-                <field name="budget_line_id"/><field name="grant_id"/><field name="program_id"/><field name="project_id"/>
+            <search string="Search Spend Requests">
+                <field name="name" placeholder="Search by request reference…"/>
+                <field name="zone_id"/>
+                <field name="department_id"/>
+                <field name="budget_line_id"/>
+                <field name="grant_id"/>
+                <field name="program_id"/>
+                <field name="project_id"/>
+                <separator/>
                 <filter name="draft" string="Drafted" domain="[('state','=','draft')]"/>
                 <filter name="submitted" string="Submitted" domain="[('state','=','submitted')]"/>
-                <filter name="insufficient_funds" string="Insufficient Funds" domain="[('state','=','insufficient_funds')]"/>
+                <filter name="insufficient_funds" string="Insufficient Funds"
+                        domain="[('state','=','insufficient_funds')]"/>
                 <filter name="committed" string="Committed" domain="[('state','=','committed')]"/>
                 <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state','=','rejected')]"/>
+                <filter name="cancelled" string="Cancelled" domain="[('state','=','cancelled')]"/>
                 <group expand="0" string="Group By">
-                    <filter name="g_zone" string="Zone" context="{'group_by':'zone_id'}"/>
+                    <filter name="g_zone" string="Region" context="{'group_by':'zone_id'}"/>
+                    <filter name="g_department" string="Department" context="{'group_by':'department_id'}"/>
                     <filter name="g_program" string="Program" context="{'group_by':'program_id'}"/>
                     <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
                     <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
                 </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="zone_id" icon="fa-map-marker" select="multi" enable_counters="1"/>
+                    <field name="program_id" icon="fa-folder" select="multi" enable_counters="1"/>
+                </searchpanel>
             </search>
         </field>
     </record>
-
     <record id="action_mcit_spend_request" model="ir.actions.act_window">
         <field name="name">Acquisitions</field>
         <field name="res_model">mcit.spend.request</field>

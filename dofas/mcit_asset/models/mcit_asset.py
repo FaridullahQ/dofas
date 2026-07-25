@@ -1,5 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools import float_compare
 
 CATEGORY = [
     ("equipment", "Equipment"),
@@ -21,7 +22,7 @@ TERMINAL_STATES = ("disposed", "lost")
 class McitAsset(models.Model):
     _name = "mcit.asset"
     _description = "Grant-Funded Asset"
-    _inherit = ["mcit.approval.mixin", "mail.thread", "mail.activity.mixin"]
+    _inherit = ["mcit.approval.mixin", "mcit.voucher.mixin", "mail.thread", "mail.activity.mixin"]
     _order = "acquisition_date desc, id desc"
     _check_company_auto = True
 
@@ -77,7 +78,12 @@ class McitAsset(models.Model):
     acquisition_cost = fields.Monetary(
         string="Acquisition Cost", currency_field="currency_id", tracking=True,
         help="Purchase value of the asset in the grant currency. Must be "
-             "greater than zero.")
+             "greater than zero. Auto-filled from the Source Expense amount "
+             "when selected, but remains editable.")
+    cost_expense_mismatch = fields.Boolean(
+        string="Cost/Expense Mismatch", compute="_compute_cost_expense_mismatch",
+        help="True when the Acquisition Cost no longer matches the Source "
+             "Expense amount.")
     quantity = fields.Integer(
         string="Quantity", default=1,
         help="Number of identical units this record represents. For "
@@ -229,6 +235,26 @@ class McitAsset(models.Model):
                 a.display_name = "[%s] %s" % (a.code, a.name or "")
             else:
                 a.display_name = a.name or _("New Asset")
+
+    @api.depends("acquisition_cost", "expense_id.amount", "currency_id")
+    def _compute_cost_expense_mismatch(self):
+        for a in self:
+            if a.expense_id and a.expense_id.amount:
+                precision = a.currency_id.rounding if a.currency_id else 0.01
+                a.cost_expense_mismatch = float_compare(
+                    a.acquisition_cost or 0.0, a.expense_id.amount,
+                    precision_rounding=precision) != 0
+            else:
+                a.cost_expense_mismatch = False
+
+    # ============================================================== ONCHANGE
+    @api.onchange("expense_id")
+    def _onchange_expense_id(self):
+        """Auto-fill Acquisition Cost from the Source Expense amount. Stays
+        editable afterwards - _compute_cost_expense_mismatch() will flag it
+        with a soft warning if it's later changed to diverge."""
+        if self.expense_id and self.expense_id.amount:
+            self.acquisition_cost = self.expense_id.amount
 
     # ============================================================ CONSTRAINTS
     @api.constrains("acquisition_cost", "quantity")
@@ -607,3 +633,86 @@ class McitAsset(models.Model):
             "res_id": self.disposal_move_id.id,
             "view_mode": "form",
         }
+
+    # ---------------- voucher printing ----------------
+    def _voucher_title(self):
+        if self.env.context.get("print_disposal_voucher"):
+            return _("Asset Disposal Voucher")
+        return _("Asset Registration Voucher")
+
+    def _voucher_subtitle(self):
+        if self.env.context.get("print_disposal_voucher"):
+            method = dict(self._fields["disposal_method"].selection).get(self.disposal_method)
+            return " | ".join(p for p in (_("Asset Tag: %s") % (self.code or ""), method) if p)
+        return "Asset Tag: %s" % (self.code or "")
+
+    def _voucher_number(self):
+        if self.env.context.get("print_disposal_voucher"):
+            return self.disposal_reference or self.code
+        return self.code
+
+    def _voucher_date(self):
+        if self.env.context.get("print_disposal_voucher"):
+            return self.disposal_date
+        return self.acquisition_date
+
+    def _voucher_context_line(self):
+        if self.env.context.get("print_disposal_voucher"):
+            parts = [p for p in (self.grant_id.name, self.project_id.name) if p]
+            return " | ".join(parts) if parts else False
+        parts = [p for p in (self.grant_id.name, self.project_id.name,
+                             dict(self._fields["category"].selection).get(self.category)) if p]
+        return " | ".join(parts) if parts else False
+
+    def _voucher_is_posted(self):
+        if self.env.context.get("print_disposal_voucher"):
+            return bool(self.disposal_move_id and self.disposal_move_id.state == "posted")
+        return False
+
+    def _voucher_lines(self):
+        self.ensure_one()
+        if self.env.context.get("print_disposal_voucher"):
+            return self._disposal_voucher_lines()
+        source = self.expense_id.name if self.expense_id else self.grant_id.name
+        return [
+            {"account": _("Fixed Assets - %s") % (dict(self._fields["category"].selection).get(self.category) or ""),
+             "description": self.name, "debit": self.acquisition_cost, "credit": 0.0},
+            {"account": _("Funded via %s") % (source or _("Grant")),
+             "description": _("Acquisition cost"), "debit": 0.0, "credit": self.acquisition_cost},
+        ]
+
+    def _disposal_voucher_lines(self):
+        """Reflect the actual posted disposal move when one exists (booking
+        enabled); otherwise fall back to a synthetic, indicative pair of
+        lines mirroring what _book_disposal_entry() would post."""
+        self.ensure_one()
+        if self.disposal_move_id:
+            return [{
+                "account": line.account_id.display_name,
+                "description": line.name or "",
+                "debit": line.debit,
+                "credit": line.credit,
+            } for line in self.disposal_move_id.line_ids]
+        amount = self.disposal_value or 0.0
+        method = dict(self._fields["disposal_method"].selection).get(self.disposal_method) or ""
+        return [
+            {"account": _("Disposal Loss / Write-off"),
+             "description": _("Disposal of %(asset)s (%(method)s)") % {
+                 "asset": self.name, "method": method},
+             "debit": amount, "credit": 0.0},
+            {"account": _("Disposal Proceeds"),
+             "description": _("Proceeds / write-off value"),
+             "debit": 0.0, "credit": amount},
+        ]
+
+    def action_print_voucher(self):
+        self.ensure_one()
+        return self.env.ref("mcit_asset.action_report_asset_voucher").report_action(self)
+
+    def action_print_disposal_voucher(self):
+        self.ensure_one()
+        if self.state != "disposed":
+            raise UserError(_("Only disposed assets can print a Disposal Voucher."))
+        return self.env.ref(
+            "mcit_asset.action_report_asset_disposal_voucher"
+        ).with_context(print_disposal_voucher=True).report_action(self)

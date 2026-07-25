@@ -2,78 +2,218 @@
 <odoo>
     <!-- Department report -->
     <record id="view_mcit_dept_report_form" model="ir.ui.view">
-        <field name="name">mcit.department.report.form</field><field name="model">mcit.department.report</field>
+        <field name="name">mcit.department.report.form</field>
+        <field name="model">mcit.department.report</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Department Report">
                 <header>
-                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" invisible="state!='draft'"/>
-                    <button name="action_review" string="Review" type="object" invisible="state!='submitted'"/>
-                    <button name="action_approve" string="Approve" type="object" class="oe_highlight" invisible="state!='reviewed'"/>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight"
+                            invisible="state!='draft'"
+                            confirm="Submitting this report will send it for review and lock it from further edits. Do you want to continue?"/>
+                    <button name="action_review" string="Review" type="object"
+                            invisible="state!='submitted'"
+                            confirm="Marking this report as reviewed indicates it has passed departmental review and is ready for approval. Do you want to continue?"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight"
+                            invisible="state!='reviewed'"
+                            confirm="Approving this report will finalize it and prevent further changes. Do you want to continue?"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,submitted,reviewed,approved"/>
                 </header>
                 <sheet>
-                    <group><group><field name="name"/><field name="grant_id"/><field name="period"/></group>
-                           <group><field name="remaining_budget"/><field name="currency_id" invisible="1"/></group></group>
+                    <group>
+                        <group>
+                            <field name="name" placeholder="e.g. Q1 2026 Department Report"/>
+                            <field name="grant_id" placeholder="Select the related grant…"/>
+                            <field name="period" placeholder="e.g. Q1 2026"/>
+                        </group>
+                        <group>
+                            <field name="remaining_budget"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
                     <notebook>
-                        <page string="Narrative"><field name="narrative"/></page>
-                        <page string="Results"><group><field name="achievements"/><field name="challenges"/><field name="lessons_learned"/><field name="outputs"/><field name="outcomes"/></group></page>
+                        <page string="Narrative">
+                            <field name="narrative"
+                                   placeholder="Describe progress, activities, and key updates for this period…"/>
+                        </page>
+                        <page string="Results">
+                            <group>
+                                <field name="achievements"
+                                       placeholder="What was achieved during this reporting period?"/>
+                                <field name="challenges" placeholder="What challenges or obstacles were encountered?"/>
+                                <field name="lessons_learned"
+                                       placeholder="What lessons were learned during implementation?"/>
+                                <field name="outputs" placeholder="List the outputs delivered during this period…"/>
+                                <field name="outcomes" placeholder="Describe the outcomes or impact observed…"/>
+                            </group>
+                        </page>
                     </notebook>
                 </sheet>
-                <div class="oe_chatter"><field name="message_ids"/></div>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
             </form>
         </field>
     </record>
+
     <record id="view_mcit_dept_report_tree" model="ir.ui.view">
-        <field name="name">mcit.department.report.tree</field><field name="model">mcit.department.report</field>
-        <field name="arch" type="xml"><tree><field name="name"/><field name="grant_id"/><field name="period"/><field name="state" widget="badge"/></tree></field>
+        <field name="name">mcit.department.report.tree</field>
+        <field name="model">mcit.department.report</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state=='draft'" decoration-info="state in ('submitted','reviewed')"
+                  decoration-success="state=='approved'">
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="period"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
     </record>
+
+    <record id="view_mcit_dept_report_search" model="ir.ui.view">
+        <field name="name">mcit.department.report.search</field>
+        <field name="model">mcit.department.report</field>
+        <field name="arch" type="xml">
+            <search string="Search Department Reports">
+                <field name="name" string="Report" filter_domain="['|',('name','ilike',self),('period','ilike',self)]"/>
+                <field name="grant_id"/>
+                <field name="period"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="submitted" string="Submitted" domain="[('state','=','submitted')]"/>
+                <filter name="reviewed" string="Reviewed" domain="[('state','=','reviewed')]"/>
+                <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="g_period" string="Period" context="{'group_by':'period'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="grant_id" icon="fa-money" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
     <record id="action_mcit_dept_report" model="ir.actions.act_window">
-        <field name="name">Department Reports</field><field name="res_model">mcit.department.report</field><field name="view_mode">tree,form</field>
+        <field name="name">Department Reports</field>
+        <field name="res_model">mcit.department.report</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_mcit_dept_report_search"/>
     </record>
+
     <!-- Donor report -->
     <record id="view_mcit_donor_report_form" model="ir.ui.view">
-        <field name="name">mcit.donor.report.form</field><field name="model">mcit.donor.report</field>
+        <field name="name">mcit.donor.report.form</field>
+        <field name="model">mcit.donor.report</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Donor Report">
                 <header>
-                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" invisible="state!='draft'"/>
-                    <button name="action_review" string="Review" type="object" invisible="state!='submitted'"/>
-                    <button name="action_approve" string="Approve" type="object" class="oe_highlight" invisible="state!='reviewed'"/>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight"
+                            invisible="state!='draft'"
+                            confirm="Submitting this report will send it for review and lock it from further edits. Do you want to continue?"/>
+                    <button name="action_review" string="Review" type="object"
+                            invisible="state!='submitted'"
+                            confirm="Marking this report as reviewed indicates it has passed review and is ready for approval. Do you want to continue?"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight"
+                            invisible="state!='reviewed'"
+                            confirm="Approving this report will finalize it for submission to the donor and prevent further changes. Do you want to continue?"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,submitted,reviewed,approved"/>
                 </header>
                 <sheet>
                     <widget name="web_ribbon" title="Overdue" bg_color="text-bg-danger" invisible="not is_overdue"/>
                     <group>
-                        <group><field name="name"/><field name="grant_id"/><field name="donor_id"/><field name="report_type"/><field name="template_id"/></group>
-                        <group><field name="period"/><field name="due_date"/><field name="date_report"/><field name="total_actual"/><field name="currency_id" invisible="1"/><field name="is_overdue"/></group>
+                        <group>
+                            <field name="name" placeholder="e.g. Q1 2026 UN Financial Report"/>
+                            <field name="grant_id" placeholder="Select the related grant…"/>
+                            <field name="donor_id" placeholder="Select the donor…"/>
+                            <field name="report_type"/>
+                            <field name="template_id" placeholder="Select a report template…"/>
+                        </group>
+                        <group>
+                            <field name="period" placeholder="e.g. Q1 2026"/>
+                            <field name="due_date"/>
+                            <field name="date_report"/>
+                            <field name="total_actual"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="is_overdue"/>
+                        </group>
                     </group>
                 </sheet>
-                <div class="oe_chatter"><field name="message_ids"/></div>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
             </form>
         </field>
     </record>
+
     <record id="view_mcit_donor_report_tree" model="ir.ui.view">
-        <field name="name">mcit.donor.report.tree</field><field name="model">mcit.donor.report</field>
+        <field name="name">mcit.donor.report.tree</field>
+        <field name="model">mcit.donor.report</field>
         <field name="arch" type="xml">
             <tree decoration-danger="is_overdue" decoration-success="state=='approved'">
-                <field name="name"/><field name="donor_id"/><field name="grant_id"/><field name="report_type"/>
-                <field name="due_date"/><field name="is_overdue" optional="show"/><field name="state" widget="badge"/>
+                <field name="name"/>
+                <field name="donor_id"/>
+                <field name="grant_id"/>
+                <field name="report_type"/>
+                <field name="due_date"/>
+                <field name="is_overdue" optional="show"/>
+                <field name="state" widget="badge"/>
             </tree>
         </field>
     </record>
-    <record id="action_mcit_donor_report" model="ir.actions.act_window">
-        <field name="name">Donor Reports</field><field name="res_model">mcit.donor.report</field><field name="view_mode">tree,form</field>
+
+    <record id="view_mcit_donor_report_search" model="ir.ui.view">
+        <field name="name">mcit.donor.report.search</field>
+        <field name="model">mcit.donor.report</field>
+        <field name="arch" type="xml">
+            <search string="Search Donor Reports">
+                <field name="name" string="Report" filter_domain="['|',('name','ilike',self),('period','ilike',self)]"/>
+                <field name="donor_id"/>
+                <field name="grant_id"/>
+                <field name="report_type"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="submitted" string="Submitted" domain="[('state','=','submitted')]"/>
+                <filter name="reviewed" string="Reviewed" domain="[('state','=','reviewed')]"/>
+                <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <separator/>
+                <filter name="overdue" string="Overdue" domain="[('is_overdue','=',True)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
+                    <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="g_type" string="Report Type" context="{'group_by':'report_type'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="donor_id" icon="fa-heart" select="multi" enable_counters="1"/>
+                    <field name="report_type" icon="fa-file-text-o" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
     </record>
+
+    <record id="action_mcit_donor_report" model="ir.actions.act_window">
+        <field name="name">Donor Reports</field>
+        <field name="res_model">mcit.donor.report</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_mcit_donor_report_search"/>
+    </record>
+
     <!-- Template -->
     <record id="view_mcit_rtemplate_form" model="ir.ui.view">
-        <field name="name">mcit.report.template.form</field><field name="model">mcit.report.template</field>
+        <field name="name">mcit.report.template.form</field>
+        <field name="model">mcit.report.template</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Report Template">
                 <sheet>
                     <group>
                         <group>
-                            <field name="name"/>
-                            <field name="donor_id"/>
+                            <field name="name" placeholder="e.g. UN Standard Financial Report"/>
+                            <field name="donor_id" placeholder="Select the donor this template belongs to…"/>
                             <field name="report_type"/>
                             <field name="title" placeholder="e.g. Financial Report"/>
                             <field name="active"/>
@@ -95,11 +235,42 @@
                     <separator string="Internal layout notes"/>
                     <field name="note" nolabel="1" placeholder="Notes for your team about this donor's format"/>
                 </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
             </form>
         </field>
     </record>
+
+    <record id="view_mcit_rtemplate_search" model="ir.ui.view">
+        <field name="name">mcit.report.template.search</field>
+        <field name="model">mcit.report.template</field>
+        <field name="arch" type="xml">
+            <search string="Search Report Templates">
+                <field name="name" string="Template"
+                       filter_domain="['|',('name','ilike',self),('title','ilike',self)]"/>
+                <field name="donor_id"/>
+                <field name="report_type"/>
+                <separator/>
+                <filter name="archived" string="Archived" domain="[('active','=',False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
+                    <filter name="g_type" string="Report Type" context="{'group_by':'report_type'}"/>
+                </group>
+                <searchpanel>
+                    <field name="donor_id" icon="fa-heart" select="multi" enable_counters="1"/>
+                    <field name="report_type" icon="fa-file-text-o" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
     <record id="action_mcit_rtemplate" model="ir.actions.act_window">
-        <field name="name">Report Templates</field><field name="res_model">mcit.report.template</field><field name="view_mode">tree,form</field>
+        <field name="name">Report Templates</field>
+        <field name="res_model">mcit.report.template</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_mcit_rtemplate_search"/>
     </record>
 
     <record id="view_mcit_grant_form_reporting" model="ir.ui.view">
@@ -114,9 +285,9 @@
                 <separator string="Donor Reports"/>
                 <field name="donor_report_ids">
                     <tree editable="bottom">
-                        <field name="name"/>
+                        <field name="name" placeholder="e.g. Q1 2026 UN Financial Report"/>
                         <field name="report_type"/>
-                        <field name="period"/>
+                        <field name="period" placeholder="e.g. Q1 2026"/>
                         <field name="due_date"/>
                         <field name="is_overdue" readonly="1"/>
                         <field name="state" readonly="1"/>
@@ -125,8 +296,8 @@
                 <separator string="Department Reports"/>
                 <field name="department_report_ids">
                     <tree editable="bottom">
-                        <field name="name"/>
-                        <field name="period"/>
+                        <field name="name" placeholder="e.g. Q1 2026 Department Report"/>
+                        <field name="period" placeholder="e.g. Q1 2026"/>
                         <field name="state" readonly="1"/>
                     </tree>
                 </field>

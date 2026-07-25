@@ -1,16 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="view_mcit_closure_form" model="ir.ui.view">
-        <field name="name">mcit.project.closure.form</field><field name="model">mcit.project.closure</field>
+        <field name="name">mcit.project.closure.form</field>
+        <field name="model">mcit.project.closure</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Project Closure">
                 <header>
-                    <button name="action_verify" string="Verify" type="object" class="oe_highlight" invisible="state!='draft'"/>
-                    <button name="action_approve" string="Approve Closure" type="object" class="oe_highlight" invisible="state!='verified'"/>
+                    <button name="action_verify" string="Verify" type="object" class="oe_highlight"
+                            invisible="state!='draft'"
+                            confirm="Verifying this closure confirms all expenses are posted and all reports are approved. Do you want to continue?"/>
+                    <button name="action_approve" string="Approve Closure" type="object" class="oe_highlight"
+                            invisible="state!='verified'"
+                            confirm="Approving this closure will finalize the grant's closure and prevent further changes. Do you want to continue?"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,verified,approved"/>
                 </header>
                 <sheet>
-                    <group><group><field name="name"/><field name="grant_id"/></group></group>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="grant_id"/>
+                        </group>
+                    </group>
                     <group string="Verification">
                         <field name="all_expenses_posted"/>
                         <field name="all_reports_approved"/>
@@ -23,15 +33,61 @@
                         <field name="currency_id" invisible="1"/>
                     </group>
                 </sheet>
-                <div class="oe_chatter"><field name="message_ids"/></div>
+                <chatter/>
             </form>
         </field>
     </record>
+
     <record id="view_mcit_closure_tree" model="ir.ui.view">
-        <field name="name">mcit.project.closure.tree</field><field name="model">mcit.project.closure</field>
-        <field name="arch" type="xml"><tree><field name="name"/><field name="grant_id"/><field name="currency_id" column_invisible="1"/><field name="remaining_balance"/><field name="returned_amount"/><field name="state" widget="badge"/></tree></field>
+        <field name="name">mcit.project.closure.tree</field>
+        <field name="model">mcit.project.closure</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state=='draft'" decoration-info="state=='verified'"
+                  decoration-success="state=='approved'">
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="remaining_balance"/>
+                <field name="returned_amount"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mcit_closure_search" model="ir.ui.view">
+        <field name="name">mcit.project.closure.search</field>
+        <field name="model">mcit.project.closure</field>
+        <field name="arch" type="xml">
+            <search string="Search Project Closures">
+                <field name="name" placeholder="Search by closure reference…"/>
+                <field name="grant_id"/>
+                <separator/>
+                <filter string="Draft" name="filter_draft" domain="[('state','=','draft')]"/>
+                <filter string="Verified" name="filter_verified" domain="[('state','=','verified')]"/>
+                <filter string="Approved" name="filter_approved" domain="[('state','=','approved')]"/>
+                <separator/>
+                <filter string="Expenses Not Posted" name="filter_expenses_pending"
+                        domain="[('all_expenses_posted','=',False)]"/>
+                <filter string="Reports Not Approved" name="filter_reports_pending"
+                        domain="[('all_reports_approved','=',False)]"/>
+                <separator/>
+                <filter string="Amount to Return" name="filter_has_return"
+                        domain="[('returned_amount','&gt;',0)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="groupby_state" context="{'group_by':'state'}"/>
+                    <filter string="Grant" name="groupby_grant" context="{'group_by':'grant_id'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="grant_id" icon="fa-money" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
     </record>
     <record id="action_mcit_closure" model="ir.actions.act_window">
-        <field name="name">Project Closures</field><field name="res_model">mcit.project.closure</field><field name="view_mode">tree,form</field>
+        <field name="name">Grant Closures</field>
+        <field name="res_model">mcit.project.closure</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_mcit_closure_search"/>
     </record>
 </odoo>

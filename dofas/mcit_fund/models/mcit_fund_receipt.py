@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 class McitFundReceipt(models.Model):
     _name = "mcit.fund.receipt"
     _description = "Donor Fund Receipt"
-    _inherit = ["mcit.approval.mixin", "mail.thread", "mail.activity.mixin"]
+    _inherit = ["mcit.approval.mixin", "mcit.voucher.mixin", "mail.thread", "mail.activity.mixin"]
     _order = "received_date desc, id desc"
 
     name = fields.Char(string="Receipt Number", required=True, copy=False, index=True,
@@ -27,8 +27,9 @@ class McitFundReceipt(models.Model):
                                  help="Bank/cash journal the funds are deposited into.")
     receivable_account_id = fields.Many2one(
         "account.account", string="Income / Source Account",
-        domain="[('deprecated','=',False)]",
-        help="The credit account (e.g. a grant-income or donor-payable account).")
+        domain="[('deprecated','=',False), ('account_type','=','asset_cash')]",
+        help="The credit account. Restricted to Bank and Cash type accounts, "
+             "matching the Bank Journal above.")
     currency_id = fields.Many2one("res.currency", required=True,
                                   default=lambda s: s.env.company.currency_id)
     exchange_rate = fields.Float(string="Exchange Rate", digits=(12, 6), default=1.0)
@@ -186,6 +187,24 @@ class McitFundReceipt(models.Model):
             "res_id": self.id,
             "mimetype": "application/pdf",
         })
+
+    # ---------------- voucher printing ----------------
+    def _voucher_title(self):
+        return "Fund Receipt Voucher"
+
+    def _voucher_party_label(self):
+        return "Donor"
+
+    def _voucher_party_name(self):
+        return self.donor_id.name
+
+    def _voucher_context_line(self):
+        parts = [p for p in (self.grant_id.name, self.bank_voucher_ref) if p]
+        return " | ".join(parts) if parts else False
+
+    def action_print_voucher(self):
+        self.ensure_one()
+        return self.env.ref("mcit_fund.action_report_fund_receipt_voucher").report_action(self)
 
     def action_open_send_wizard(self):
         self.ensure_one()

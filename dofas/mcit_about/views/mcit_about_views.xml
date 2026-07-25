@@ -48,6 +48,30 @@
                         <p class="text-muted mt-2 mb-0"><i>Golden rule: reserve &#8594; spend &#8594; report back &#8594; report to donor.</i></p>
                     </div>
 
+                    <separator string="Acquisition (Four-Form) &#8212; step by step"/>
+                    <div class="ms-2 mb-3">
+                        <ol class="mb-0" style="line-height: 1.9;">
+                            <li><b>Drafted</b> &#8212; a Program Officer creates the acquisition: title, budget line
+                                (only lines on an <i>Approved</i> budget version are selectable), estimated cost,
+                                items, and any supporting documents.</li>
+                            <li><b>Submitted</b> &#8212; the assigned Budget Holder submits it for review.</li>
+                            <li><b>Confirm Real Price</b> &#8212; before committing, Finance opens the quotation
+                                wizard: quote each item against a real vendor price, name the vendor, enter the
+                                quotation reference, and attach the approved quotation document. This confirmed
+                                amount &#8212; not the original estimate &#8212; is what gets reserved and, later,
+                                posted to the journal.</li>
+                            <li><b>Committed</b> &#8212; Finance reserves the confirmed amount on the budget line.
+                                <i>Commit &amp; Reserve only becomes available once a real price has been
+                                confirmed.</i> If the line is short, the acquisition moves to
+                                <b>Insufficient Funds</b> instead, with three recovery options: choose a different
+                                budget line, request an internal budget transfer, or request supplementary donor
+                                funding &#8212; each of which sends it back to Finance once resolved.</li>
+                            <li><b>Approved</b> &#8212; the Approving Authority signs off on the committed request.</li>
+                            <li><b>Expense created</b> &#8212; the approved acquisition spawns an expense that
+                                adopts the existing reserve (never reserves twice) and carries the vendor through.</li>
+                        </ol>
+                    </div>
+
                     <separator string="Glossary &#8212; key terms"/>
                     <div class="ms-2">
                         <dl class="row mb-0" style="line-height: 1.6;">
@@ -56,11 +80,13 @@
                             <dt class="col-sm-3">Budget line</dt><dd class="col-sm-9">A planned amount for one category within a grant.</dd>
                             <dt class="col-sm-3">Commitment (Reserve)</dt><dd class="col-sm-9">Money locked against a budget line before it is spent.</dd>
                             <dt class="col-sm-3">Acquisition (Four-Form)</dt><dd class="col-sm-9">The four-step request that reserves budget before an expense is made, confirmed against a real quotation before commitment.</dd>
+                            <dt class="col-sm-3">Internal Budget Transfer</dt><dd class="col-sm-9">Moves planned budget from one line to another within the same grant/version, subject to Finance Manager approval - one way to resolve an Insufficient Funds acquisition.</dd>
+                            <dt class="col-sm-3">Donor Supplementary Funding</dt><dd class="col-sm-9">A tracked request asking a grant's donor for additional funds; Finance still has to action the actual budget increase once the donor approves.</dd>
                             <dt class="col-sm-3">Expense (Voucher)</dt><dd class="col-sm-9">The posted transaction that records actual spending against the budget.</dd>
                             <dt class="col-sm-3">Fund Receipt</dt><dd class="col-sm-9">Money actually received from a donor.</dd>
                             <dt class="col-sm-3">Advance</dt><dd class="col-sm-9">Cash sent to a zone or staff member; the holder owes it until it is reported.</dd>
                             <dt class="col-sm-3">Liquidation</dt><dd class="col-sm-9">Reporting and clearing an advance with justified, posted expenses.</dd>
-                            <dt class="col-sm-3">Zone / Province</dt><dd class="col-sm-9">A field office; an organisational dimension used to track spending.</dd>
+                            <dt class="col-sm-3">Region / Province</dt><dd class="col-sm-9">A field office; an organisational dimension used to track spending. Regions contain Provinces, which contain Departments.</dd>
                             <dt class="col-sm-3">Department</dt><dd class="col-sm-9">A functional unit dimension within the organisation.</dd>
                             <dt class="col-sm-3">Analytic account</dt><dd class="col-sm-9">The behind-the-scenes tracking account that follows a grant's money.</dd>
                             <dt class="col-sm-3">Available</dt><dd class="col-sm-9">Planned minus committed minus actual &#8212; what is still free to spend.</dd>

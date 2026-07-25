@@ -27,10 +27,14 @@
             <form string="Program">
                 <header>
                     <button name="action_activate" string="Activate" type="object" class="oe_highlight"
-                            invisible="state != 'draft'"/>
-                    <button name="action_close" string="Close" type="object" invisible="state != 'active'"/>
+                            invisible="state != 'draft'"
+                            confirm="Activating this program will make it available for use across the system. Do you want to continue?"/>
+                    <button name="action_close" string="Close" type="object"
+                            invisible="state != 'active'"
+                            confirm="Closing this program will finalize it and prevent further changes. Do you want to continue?"/>
                     <button name="action_reset_draft" string="Reset to Draft" type="object"
-                            invisible="state == 'draft'"/>
+                            invisible="state == 'draft'"
+                            confirm="Resetting to draft will revert this program's current status and may impact related projects. Do you want to continue?"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,closed"/>
                 </header>
                 <sheet>
@@ -82,7 +86,7 @@
         <field name="name">mcit.program.search</field>
         <field name="model">mcit.program</field>
         <field name="arch" type="xml">
-            <search>
+            <search string="Search Programs">
                 <field name="name" string="Program" filter_domain="['|',('name','ilike',self),('code','ilike',self)]"/>
                 <field name="code"/>
                 <field name="manager_id"/>
@@ -93,13 +97,17 @@
                 <separator/>
                 <filter name="archived" string="Archived" domain="[('active','=',False)]"/>
                 <group expand="0" string="Group By">
-                    <filter name="g_manager" string="Manager" context="{'group_by':'manager_id'}"/>
                     <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
-                </group>
-                <filter name="archived" string="Archived" domain="[('active','=',False)]"/>
-                <group expand="0" string="Group By">
                     <filter name="g_manager" string="Manager" context="{'group_by':'manager_id'}"/>
+                    <filter name="g_company" string="Company" context="{'group_by':'company_id'}"
+                            groups="base.group_multi_company"/>
                 </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="manager_id" icon="fa-user" select="multi" enable_counters="1"/>
+                    <field name="company_id" icon="fa-building" select="multi" enable_counters="1"
+                           groups="base.group_multi_company"/>
+                </searchpanel>
             </search>
         </field>
     </record>
@@ -143,10 +151,14 @@
             <form string="Project">
                 <header>
                     <button name="action_activate" string="Activate" type="object" class="oe_highlight"
-                            invisible="state != 'draft'"/>
-                    <button name="action_close" string="Close" type="object" invisible="state != 'active'"/>
+                            invisible="state != 'draft'"
+                            confirm="Activating this project will make it available for use across the system. Do you want to continue?"/>
+                    <button name="action_close" string="Close" type="object"
+                            invisible="state != 'active'"
+                            confirm="Closing this project will finalize it and prevent further changes. Do you want to continue?"/>
                     <button name="action_reset_draft" string="Reset to Draft" type="object"
-                            invisible="state == 'draft'"/>
+                            invisible="state == 'draft'"
+                            confirm="Resetting to draft will revert this project's current status and may impact related activities. Do you want to continue?"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,closed"/>
                 </header>
                 <sheet>
@@ -271,11 +283,17 @@
             <form string="Activity">
                 <header>
                     <button name="action_submit" string="Submit" type="object" class="oe_highlight"
-                            invisible="state!='draft'"/>
+                            invisible="state!='draft'"
+                            confirm="Submitting this activity will send it for approval and lock it from further edits. Do you want to continue?"/>
                     <button name="action_approve" string="Approve" type="object" class="oe_highlight"
-                            invisible="state!='submitted'"/>
-                    <button name="action_implement" string="Implement" type="object" invisible="state!='approved'"/>
-                    <button name="action_close" string="Close" type="object" invisible="state!='implemented'"/>
+                            invisible="state!='submitted'"
+                            confirm="Approving this activity will commit its planned cost against the selected budget line. Do you want to continue?"/>
+                    <button name="action_implement" string="Implement" type="object"
+                            invisible="state!='approved'"
+                            confirm="Marking this activity as implemented indicates execution has started and may restrict further changes to its plan. Do you want to continue?"/>
+                    <button name="action_close" string="Close" type="object"
+                            invisible="state!='implemented'"
+                            confirm="Closing this activity will finalize it and prevent further changes. Do you want to continue?"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,approved,implemented,closed"/>
                 </header>
@@ -309,10 +327,7 @@
                     <separator string="Expected outputs"/>
                     <field name="expected_outputs" nolabel="1" placeholder="What this activity will deliver…"/>
                 </sheet>
-                <div class="oe_chatter">
-                    <field name="message_follower_ids"/>
-                    <field name="message_ids"/>
-                </div>
+                <chatter/>
             </form>
         </field>
     </record>

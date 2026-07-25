@@ -9,9 +9,9 @@
         <field name="model">mcit.advance.liquidation</field>
         <field name="arch" type="xml">
             <tree
-                decoration-info="state in ('submitted','approved')"
-                decoration-success="state=='posted'"
-                decoration-muted="state=='cancelled'">
+                    decoration-info="state in ('submitted','approved')"
+                    decoration-success="state=='posted'"
+                    decoration-muted="state=='cancelled'">
                 <field name="name"/>
                 <field name="advance_id"/>
                 <field name="holder_user_id" optional="show"/>
@@ -35,22 +35,25 @@
         <field name="name">mcit.advance.liquidation.form</field>
         <field name="model">mcit.advance.liquidation</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Advance Liquidation">
                 <header>
                     <button name="action_submit" string="Submit for Approval" type="object"
                             class="oe_highlight"
                             invisible="state != 'draft'"
-                            help="Submit this liquidation to the Finance Manager for review. Ensure all justified expenses are added and the total does not exceed your advance balance."/>
+                            help="Submit this liquidation to the Finance Manager for review. Ensure all justified expenses are added and the total does not exceed your advance balance."
+                            confirm="Submitting this liquidation will send it to the Finance Manager for review and lock it from further edits. Do you want to continue?"/>
                     <button name="action_approve" string="Approve" type="object"
                             class="oe_highlight"
                             invisible="state != 'submitted'"
                             groups="mcit_base.group_finance_manager"
-                            help="Approve the justified expenses. The liquidation can then be posted to the accounting ledger."/>
+                            help="Approve the justified expenses. The liquidation can then be posted to the accounting ledger."
+                            confirm="Approving this liquidation confirms the justified expenses are valid and ready to be posted to the ledger. Do you want to continue?"/>
                     <button name="action_post" string="Post to Ledger" type="object"
                             class="oe_highlight"
                             invisible="state != 'approved'"
                             groups="mcit_base.group_finance_manager"
-                            help="Post a journal entry: Dr Clearing Account / Cr Advance Receivable (with partner), reducing the holder's outstanding debt."/>
+                            help="Post a journal entry: Dr Clearing Account / Cr Advance Receivable (with partner), reducing the holder's outstanding debt."
+                            confirm="Posting this liquidation will create a journal entry and reduce the holder's outstanding advance debt. Do you want to continue?"/>
                     <button name="action_reset_draft" string="Reset to Draft" type="object"
                             invisible="state not in ('submitted','approved')"
                             confirm="Reset to Draft? The holder will need to resubmit for approval."/>
@@ -94,7 +97,7 @@
                                    help="Accounting partner — used on the journal entry lines to reduce the holder's advance receivable balance to zero. Derived from the linked advance."
                                    readonly="1"/>
                             <field name="zone_id"
-                                   help="Zone or province from the linked advance."
+                                   help="Region or province from the linked advance."
                                    readonly="1"/>
                             <field name="date"
                                    help="Date the expenses were incurred or this report was prepared."
@@ -118,7 +121,7 @@
                     <div invisible="amount &lt;= advance_available or not advance_id"
                          style="margin-bottom:12px;">
                         <div class="alert alert-danger" role="alert">
-                            <i class="fa fa-exclamation-triangle"/> 
+                            <i class="fa fa-exclamation-triangle"/>
                             <strong>Over advance ceiling:</strong>
                             The total expenses exceed the available balance on this advance.
                             Remove some expenses or adjust the amounts before submitting.
@@ -147,7 +150,6 @@
             </form>
         </field>
     </record>
-
     <!-- ═══════════════════════════════════════════════════════════════════
          SEARCH VIEW
     ═══════════════════════════════════════════════════════════════════ -->
@@ -156,32 +158,35 @@
         <field name="model">mcit.advance.liquidation</field>
         <field name="arch" type="xml">
             <search string="Search Liquidations">
-                <field name="name" string="Reference"/>
+                <field name="name" string="Reference" placeholder="Search by liquidation reference…"/>
                 <field name="advance_id"/>
                 <field name="holder_user_id"/>
                 <field name="zone_id"/>
                 <filter name="my_liquidations" string="My Liquidations"
                         domain="[('holder_user_id','=',uid)]"/>
                 <separator/>
-                <filter name="draft"     string="Draft"     domain="[('state','=','draft')]"/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
                 <filter name="submitted" string="Submitted" domain="[('state','=','submitted')]"/>
-                <filter name="approved"  string="Approved"  domain="[('state','=','approved')]"/>
-                <filter name="posted"    string="Posted"    domain="[('state','=','posted')]"/>
+                <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="posted" string="Posted" domain="[('state','=','posted')]"/>
                 <filter name="cancelled" string="Cancelled" domain="[('state','=','cancelled')]"/>
                 <separator/>
                 <filter name="pending_review" string="Pending Finance Review"
                         domain="[('state','in',('submitted','approved'))]"/>
                 <group expand="0" string="Group By">
-                    <filter name="g_holder"  string="Holder"   context="{'group_by':'holder_user_id'}"/>
-                    <filter name="g_advance" string="Advance"  context="{'group_by':'advance_id'}"/>
-                    <filter name="g_zone"    string="Zone"     context="{'group_by':'zone_id'}"/>
-                    <filter name="g_state"   string="Status"   context="{'group_by':'state'}"/>
-                    <filter name="g_date"    string="Month"    context="{'group_by':'date:month'}"/>
+                    <filter name="g_holder" string="Holder" context="{'group_by':'holder_user_id'}"/>
+                    <filter name="g_advance" string="Advance" context="{'group_by':'advance_id'}"/>
+                    <filter name="g_zone" string="Region" context="{'group_by':'zone_id'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_date" string="Month" context="{'group_by':'date:month'}"/>
                 </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="zone_id" icon="fa-map-marker" select="multi" enable_counters="1"/>
+                </searchpanel>
             </search>
         </field>
     </record>
-
     <!-- ═══════════════════════════════════════════════════════════════════
          ACTION
     ═══════════════════════════════════════════════════════════════════ -->

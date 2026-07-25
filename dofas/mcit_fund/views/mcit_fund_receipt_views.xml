@@ -22,12 +22,16 @@
         <field name="name">mcit.fund.receipt.form</field>
         <field name="model">mcit.fund.receipt</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Fund Receipt">
                 <header>
                     <button name="action_post" string="Post" type="object"
-                            class="oe_highlight" invisible="state!='draft'"/>
+                            class="oe_highlight" invisible="state!='draft'"
+                            confirm="Posting this receipt will create a journal entry and lock it from further edits. Do you want to continue?"/>
                     <button name="action_print_thanks" string="Print Thank-You Letter"
                             type="object" class="btn-secondary" icon="fa-file-pdf-o"
+                            invisible="state!='posted'"/>
+                    <button name="action_print_voucher" string="Print Voucher"
+                            type="object" class="btn-secondary" icon="fa-file-text-o"
                             invisible="state!='posted'"/>
                     <button name="action_open_send_wizard" string="Send Email"
                             type="object" class="btn-secondary" icon="fa-envelope-o"
@@ -73,12 +77,15 @@
                     <div class="alert alert-success" role="alert"
                          invisible="state=='posted' or not voucher_attached">
                         <strong>Voucher attached.</strong>
-                        <field name="attachment_count" class="oe_inline"/> document(s) attached. You may post this receipt.
+                        <field name="attachment_count" class="oe_inline"/>
+                        document(s) attached. You may post this receipt.
                     </div>
 
                     <div class="oe_title">
                         <label for="name"/>
-                        <h1><field name="name" readonly="1"/></h1>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
                     </div>
                     <group>
                         <group string="Donor &amp; Grant">
@@ -109,14 +116,13 @@
             </form>
         </field>
     </record>
-
     <record id="view_mcit_fund_receipt_search" model="ir.ui.view">
         <field name="name">mcit.fund.receipt.search</field>
         <field name="model">mcit.fund.receipt</field>
         <field name="arch" type="xml">
-            <search>
-                <field name="name"/>
-                <field name="bank_voucher_ref"/>
+            <search string="Search Fund Receipts">
+                <field name="name" placeholder="Search by receipt reference…"/>
+                <field name="bank_voucher_ref" placeholder="Search by bank voucher reference…"/>
                 <field name="donor_id"/>
                 <field name="grant_id"/>
                 <filter name="posted" string="Posted" domain="[('state','=','posted')]"/>
@@ -126,10 +132,13 @@
                     <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
                     <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
                 </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="donor_id" icon="fa-heart" select="multi" enable_counters="1"/>
+                </searchpanel>
             </search>
         </field>
     </record>
-
     <record id="action_mcit_fund_receipt" model="ir.actions.act_window">
         <field name="name">Fund Receipts</field>
         <field name="res_model">mcit.fund.receipt</field>

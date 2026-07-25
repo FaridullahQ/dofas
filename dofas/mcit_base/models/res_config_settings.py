@@ -16,3 +16,5 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.mcit_expense_journal_id", readonly=False)
     mcit_expense_clearing_account_id = fields.Many2one(
         related="company_id.mcit_expense_clearing_account_id", readonly=False)
+    mcit_demo_data_enabled = fields.Boolean(
+        related="company_id.mcit_demo_data_enabled", readonly=False)

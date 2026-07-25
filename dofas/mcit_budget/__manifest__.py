@@ -1,6 +1,6 @@
 {
     "name": "MCIT Donor Mgmt - Budget",
-    "version": "17.0.1.2.0",
+    "version": "17.0.1.4.0",
     "summary": "Versioned grant budgets, the concurrency-safe encumbrance engine, and internal budget transfers.",
     "category": "Accounting/MCIT Donor Management",
     "license": "LGPL-3",

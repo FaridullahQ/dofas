@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_mcit_grants" name="Grants" parent="mcit_base.menu_mcit_operations"
+    <menuitem id="menu_mcit_funding_root" name="Funding" parent="mcit_base.menu_mcit_operations" sequence="30"/>
+    <menuitem id="menu_mcit_grants" name="Grants" parent="menu_mcit_funding_root"
               action="action_mcit_grant" sequence="10"/>
 </odoo>

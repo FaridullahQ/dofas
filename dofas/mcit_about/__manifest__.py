@@ -1,6 +1,6 @@
 {
     "name": "MCIT Donor Mgmt - About & Help",
-    "version": "17.0.1.0.1",
+    "version": "17.0.1.1.0",
     "summary": "Optional About & Help menu: company info, overall flow and glossary.",
     "description": "Adds an 'About & Help' page (company details, the end-to-end process "
                    "flow and a glossary of terms). The menu is shown only when enabled "

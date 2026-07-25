@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <menuitem id="menu_mcit_closure" name="Project Closure" parent="mcit_base.menu_mcit_operations" action="action_mcit_closure" sequence="60" groups="mcit_base.group_finance_manager"/>
-</odoo>

@@ -4,7 +4,7 @@ from odoo.exceptions import UserError
 
 class McitProjectClosure(models.Model):
     _name = "mcit.project.closure"
-    _description = "Project / Grant Closure"
+    _description = "Grant Closure"
     _inherit = ["mcit.approval.mixin", "mail.thread"]
     _order = "create_date desc"
 
@@ -12,8 +12,8 @@ class McitProjectClosure(models.Model):
     grant_id = fields.Many2one("mcit.grant", required=True)
     company_id = fields.Many2one(related="grant_id.company_id", store=True)
     currency_id = fields.Many2one(related="grant_id.currency_id", store=True)
-    all_expenses_posted = fields.Boolean(compute="_compute_checks")
-    all_reports_approved = fields.Boolean(compute="_compute_checks")
+    all_expenses_posted = fields.Boolean(compute="_compute_checks", store=True)
+    all_reports_approved = fields.Boolean(compute="_compute_checks", store=True)
     received_total = fields.Monetary(compute="_compute_balance", currency_field="currency_id")
     actual_total = fields.Monetary(compute="_compute_balance", currency_field="currency_id")
     remaining_balance = fields.Monetary(compute="_compute_balance", currency_field="currency_id")

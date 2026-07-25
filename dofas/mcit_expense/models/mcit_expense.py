@@ -6,7 +6,7 @@ from odoo.tools import float_compare
 class McitExpense(models.Model):
     _name = "mcit.expense"
     _description = "Grant Expense"
-    _inherit = ["mcit.approval.mixin", "mail.thread", "mail.activity.mixin"]
+    _inherit = ["mcit.approval.mixin", "mcit.voucher.mixin", "mail.thread", "mail.activity.mixin"]
     _order = "date desc, id desc"
 
     name = fields.Char(string="Description", required=True, copy=False,
@@ -15,9 +15,11 @@ class McitExpense(models.Model):
                                domain="[('state','=','active')]",
                                help="The active grant this expense is charged against.")
     donor_id = fields.Many2one(related="grant_id.donor_id", store=True)
-    budget_line_id = fields.Many2one("mcit.budget.line", string="Budget Line", required=True,
-                                     tracking=True, domain="[('grant_id','=',grant_id)]",
-                                     help="Select the approved budget category to charge.")
+    budget_line_id = fields.Many2one(
+        "mcit.budget.line", string="Budget Line", required=True,
+        tracking=True, domain="[('grant_id','=',grant_id), ('budget_state','=','approved')]",
+        help="Select the approved budget category to charge. Only lines on an "
+             "Approved budget version are selectable.")
     partner_id = fields.Many2one("res.partner", string="Supplier")
     date = fields.Date(string="Expense Date", required=True, default=fields.Date.context_today)
     company_id = fields.Many2one("res.company", required=True, default=lambda s: s.env.company)
@@ -169,3 +171,21 @@ class McitExpense(models.Model):
         self.ensure_one()
         return {"type": "ir.actions.act_window", "res_model": "account.move",
                 "res_id": self.move_id.id, "view_mode": "form"}
+
+    # ---------------- voucher printing ----------------
+    def _voucher_title(self):
+        return "Expense Voucher"
+
+    def _voucher_party_label(self):
+        return "Supplier" if self.partner_id else False
+
+    def _voucher_party_name(self):
+        return self.partner_id.name
+
+    def _voucher_context_line(self):
+        parts = [p for p in (self.grant_id.name, self.budget_line_id.name) if p]
+        return " | ".join(parts) if parts else False
+
+    def action_print_voucher(self):
+        self.ensure_one()
+        return self.env.ref("mcit_expense.action_report_expense_voucher").report_action(self)

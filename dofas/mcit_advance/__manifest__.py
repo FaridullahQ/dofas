@@ -1,7 +1,7 @@
 {
     "name": "MCIT Donor Mgmt - Advances & Liquidation",
-    "version": "17.0.1.2.1",
-    "summary": "Zone/employee cash advances with liquidation and outstanding tracking.",
+    "version": "17.0.1.3.0",
+    "summary": "Region/employee cash advances with liquidation and outstanding tracking.",
     "description": "HQ issues advances to zones/provinces or staff (who become debtors), tracks "
                    "sent / reported / outstanding / cash balance, and clears them through a "
                    "reviewed liquidation of justified expenses. Optionally posts journal entries.",

@@ -1,6 +1,6 @@
 {
     "name": "MCIT Donor Mgmt - Acquisitions (Four Form)",
-    "version": "17.0.1.4.1",
+    "version": "17.0.1.6.0",
     "summary": "Four-step pre-acquisition request that reserves budget before expenses, with "
                "insufficient-funds recovery (reassign line, internal transfer, donor funding).",
     "description": "Implements the 'Four Form' workflow: Programs drafts an acquisition, the budget "
@@ -18,6 +18,7 @@
     "data": [
         "security/ir.model.access.csv",
         "data/ir_sequence.xml",
+        "report/acquisition_voucher_report.xml",
         "views/mcit_spend_request_views.xml",
         "views/mcit_expense_views.xml",
         "views/mcit_budget_transfer_views.xml",

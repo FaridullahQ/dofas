@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mcit_fund_receipt_form_allocation" model="ir.ui.view">
+        <field name="name">mcit.fund.receipt.form.allocation</field>
+        <field name="model">mcit.fund.receipt</field>
+        <field name="inherit_id" ref="mcit_fund.view_mcit_fund_receipt_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group" position="after">
+                <group string="Program Allocation">
+                    <field name="allocation_ids" nolabel="1" colspan="2"
+                           readonly="state=='posted'">
+                        <tree editable="bottom">
+                            <field name="grant_id" column_invisible="1"/>
+                            <field name="currency_id" column_invisible="1"/>
+                            <field name="program_id"/>
+                            <field name="project_id"/>
+                            <field name="amount" sum="Allocated"/>
+                        </tree>
+                    </field>
+                    <field name="allocated_amount" invisible="1"/>
+                    <field name="unallocated_amount" invisible="1"/>
+                    <field name="is_fully_allocated" invisible="1"/>
+                    <div class="alert alert-info" role="alert" colspan="2"
+                         invisible="not allocation_ids or is_fully_allocated">
+                        <field name="unallocated_amount" class="oe_inline"/>
+                        of this receipt is not yet allocated to a program.
+                    </div>
+                    <div class="alert alert-success" role="alert" colspan="2"
+                         invisible="not allocation_ids or not is_fully_allocated">
+                        <strong>Fully allocated.</strong>
+                        The full receipt amount is accounted for across the programs above.
+                    </div>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
