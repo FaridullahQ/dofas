@@ -2,6 +2,15 @@
 <odoo>
     <menuitem id="menu_mcit_about" name="Help"
               parent="mcit_base.menu_mcit_root"
-              action="action_mcit_about" sequence="100"
+              sequence="100"
               groups="mcit_about.group_mcit_about"/>
+    <menuitem id="menu_mcit_user_guide" name="User Guide"
+              parent="menu_mcit_about"
+              action="action_mcit_about" sequence="10"/>
+    <menuitem id="menu_mcit_faq" name="FAQs"
+              parent="menu_mcit_about"
+              action="action_mcit_faq" sequence="20"/>
+    <menuitem id="menu_mcit_support_contact" name="Support Contact"
+              parent="menu_mcit_about"
+              action="action_mcit_support_contact" sequence="30"/>
 </odoo>

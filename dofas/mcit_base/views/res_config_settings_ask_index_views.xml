@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_ask_index" model="ir.ui.view">
+        <field name="name">res.config.settings.form.mcit.ask.index</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Ask DoFAS Index" string="Ask DoFAS Index" name="mcit_ask_index">
+                    <block title="Ask DoFAS Assistant" name="mcit_ask_index_block">
+                        <setting string="Keep the Ask DoFAS Index up to date"
+                                 help="Keeps a searchable index of grants, budgets, expenses and reports ready for the 'Ask DoFAS' assistant to query.">
+                            <field name="mcit_ask_dofas_index_enabled" widget="boolean_toggle"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_mcit_ask_index" model="ir.actions.act_window">
+        <field name="name">Ask DoFAS Index</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'mcit_ask_index'}</field>
+    </record>
+</odoo>

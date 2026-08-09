@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mcit_rag_chunk_list" model="ir.ui.view">
+        <field name="name">mcit.rag.chunk.list</field>
+        <field name="model">mcit.rag.chunk</field>
+        <field name="arch" type="xml">
+            <tree create="0" edit="0" delete="1">
+                <field name="res_model"/>
+                <field name="res_id"/>
+                <field name="res_name"/>
+                <field name="company_id"/>
+                <field name="indexed_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mcit_rag_chunk_form" model="ir.ui.view">
+        <field name="name">mcit.rag.chunk.form</field>
+        <field name="model">mcit.rag.chunk</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <sheet>
+                    <group>
+                        <field name="res_model"/>
+                        <field name="res_id"/>
+                        <field name="res_name"/>
+                        <field name="company_id"/>
+                        <field name="indexed_date"/>
+                    </group>
+                    <field name="chunk_text" readonly="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mcit_rag_chunk" model="ir.actions.act_window">
+        <field name="name">DoFAS RAG Index</field>
+        <field name="res_model">mcit.rag.chunk</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

@@ -1,16 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <menuitem id="menu_mcit_root" name="DoFAS" sequence="50"/>
-    <menuitem id="menu_mcit_operations" name="Operations" parent="menu_mcit_root" sequence="10"/>
-    <menuitem id="menu_mcit_master" name="Master Data" parent="menu_mcit_root" sequence="20"/>
-    <menuitem id="menu_mcit_audit" name="Audit" parent="menu_mcit_root" sequence="90" groups="group_finance_manager"/>
-    <menuitem id="menu_mcit_audit_log" name="Audit Log" parent="menu_mcit_audit" action="action_mcit_audit_log" sequence="10"/>
-    <menuitem id="menu_mcit_config" name="Configuration" parent="menu_mcit_root" sequence="99" groups="group_system_admin"/>
 
-    <!-- Defined here, in mcit_base, because this is where the xmlid belongs.
-         The umbrella module may re-sequence/re-parent this later, but must
-         never be the one that originally creates it. -->
-    <menuitem id="setting_label" name="Setting" parent="menu_mcit_config" sequence="9"/>
+    <!-- Deprecated: children have been redistributed into the new top-level
+         groups below (Funding &amp; Grants, Budget &amp; Financial Control,
+         Procurement &amp; Assets, Advances &amp; Liquidations). Kept (inactive)
+         so any stray external references don't break. -->
+    <menuitem id="menu_mcit_operations" name="Operations" parent="menu_mcit_root" sequence="10" active="0"/>
 
-    <menuitem id="menu_mcit_config_settings" name="Accounting Setup" parent="setting_label" action="action_mcit_config_settings" sequence="10"/>
+    <menuitem id="menu_mcit_procurement" name="Procurement &amp; Assets" parent="menu_mcit_root" sequence="40"/>
+    <menuitem id="menu_mcit_master" name="Master Data" parent="menu_mcit_root" sequence="60"/>
+
+    <menuitem id="menu_mcit_audit" name="Audit &amp; Compliance" parent="menu_mcit_root" sequence="80" groups="group_finance_manager"/>
+    <menuitem id="menu_mcit_audit_log" name="Audit Reports" parent="menu_mcit_audit" action="action_mcit_audit_log" sequence="10"/>
+
+    <menuitem id="menu_mcit_config" name="Configuration" parent="menu_mcit_root" sequence="90" groups="group_system_admin"/>
+
+    <!-- Deprecated wrapper: Accounting Setup / Inventory Setup / Report Templates
+         now sit directly under Configuration to match the flat menu spec. -->
+    <menuitem id="setting_label" name="Setting" parent="menu_mcit_config" sequence="9" active="0"/>
+
+    <menuitem id="menu_mcit_system_settings" name="System Settings" parent="menu_mcit_config"
+              action="base_setup.action_general_configuration" sequence="10"/>
+    <menuitem id="menu_mcit_config_settings" name="Accounting Setup" parent="menu_mcit_config"
+              action="action_mcit_config_settings" sequence="20"/>
+    <menuitem id="menu_mcit_ask_index" name="Ask DoFAS Index" parent="menu_mcit_config"
+              action="action_mcit_ask_index" sequence="40"/>
 </odoo>

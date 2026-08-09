@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="faq_1" model="mcit.faq">
+        <field name="sequence">10</field>
+        <field name="question">What is the difference between a Commitment and an Expense?</field>
+        <field name="answer">A Commitment reserves money on a budget line before it is spent (e.g. once an Acquisition is committed). An Expense is the actual posted payment; it turns the reserved amount into real, booked cost.</field>
+    </record>
+    <record id="faq_2" model="mcit.faq">
+        <field name="sequence">20</field>
+        <field name="question">How do I request money for something not yet in the budget?</field>
+        <field name="answer">If a budget line is short, an Acquisition moves to Insufficient Funds and offers three recovery paths: pick a different budget line, request an Internal Budget Transfer, or request Donor Supplementary Funding.</field>
+    </record>
+    <record id="faq_3" model="mcit.faq">
+        <field name="sequence">30</field>
+        <field name="question">What happens when I clear an Advance?</field>
+        <field name="answer">You report justified expenses against the advance through a Liquidation. Any unspent balance is returned or reimbursed, and Advance Tracking shows what is still outstanding by employee, department or position.</field>
+    </record>
+    <record id="faq_4" model="mcit.faq">
+        <field name="sequence">40</field>
+        <field name="question">Where do I see how much of a grant's budget is still available?</field>
+        <field name="answer">Use Dashboards &gt; Budget Monitoring for a live planned/committed/actual/available view by grant, or Reporting &gt; Financial Reports &gt; Budget vs Actual for a category-level comparison.</field>
+    </record>
+    <record id="faq_5" model="mcit.faq">
+        <field name="sequence">50</field>
+        <field name="question">Who can close a grant?</field>
+        <field name="answer">Grant Closure (under Funding &amp; Grants) is restricted to Finance Managers. It verifies outstanding liquidations and computes any funds to be returned to the donor before the grant is marked closed.</field>
+    </record>
+</odoo>

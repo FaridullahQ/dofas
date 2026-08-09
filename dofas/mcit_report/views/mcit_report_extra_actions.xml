@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================= Financial Reports: Budget vs Actual ================= -->
+    <record id="view_mcit_budget_vs_actual_pivot" model="ir.ui.view">
+        <field name="name">mcit.budget.line.pivot.vs.actual</field>
+        <field name="model">mcit.budget.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Budget vs Actual">
+                <field name="category" type="row"/>
+                <field name="planned_amount" type="measure"/>
+                <field name="actual_amount" type="measure"/>
+                <field name="available_amount" type="measure"/>
+                <field name="utilization" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="view_mcit_budget_vs_actual_graph" model="ir.ui.view">
+        <field name="name">mcit.budget.line.graph.vs.actual</field>
+        <field name="model">mcit.budget.line</field>
+        <field name="arch" type="xml">
+            <graph string="Budget vs Actual" type="bar">
+                <field name="category" type="row"/>
+                <field name="planned_amount" type="measure"/>
+                <field name="actual_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+    <record id="action_mcit_budget_vs_actual" model="ir.actions.act_window">
+        <field name="name">Budget vs Actual</field>
+        <field name="res_model">mcit.budget.line</field>
+        <field name="view_mode">graph,pivot,tree</field>
+    </record>
+
+    <!-- ================= Program &amp; Department Reports: Project/Activity ================= -->
+    <record id="view_mcit_project_activity_report_pivot" model="ir.ui.view">
+        <field name="name">mcit.activity.pivot.report</field>
+        <field name="model">mcit.activity</field>
+        <field name="arch" type="xml">
+            <pivot string="Project/Activity Report">
+                <field name="project_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="planned_cost" type="measure"/>
+                <field name="expected_beneficiaries" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="action_mcit_project_activity_report" model="ir.actions.act_window">
+        <field name="name">Project/Activity Reports</field>
+        <field name="res_model">mcit.activity</field>
+        <field name="view_mode">pivot,tree,graph</field>
+    </record>
+
+    <!-- ================= Compliance Reports ================= -->
+    <record id="view_mcit_compliance_report_tree" model="ir.ui.view">
+        <field name="name">mcit.compliance.checklist.line.tree.report</field>
+        <field name="model">mcit.compliance.checklist.line</field>
+        <field name="arch" type="xml">
+            <tree string="Compliance Reports" create="0" edit="0">
+                <field name="checklist_id"/>
+                <field name="name"/>
+                <field name="required"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_mcit_compliance_report_pivot" model="ir.ui.view">
+        <field name="name">mcit.compliance.checklist.line.pivot.report</field>
+        <field name="model">mcit.compliance.checklist.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Compliance Reports">
+                <field name="checklist_id" type="row"/>
+                <field name="required" type="col"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="action_mcit_compliance_report" model="ir.actions.act_window">
+        <field name="name">Compliance Reports</field>
+        <field name="res_model">mcit.compliance.checklist.line</field>
+        <field name="view_mode">pivot,tree</field>
+    </record>
+</odoo>

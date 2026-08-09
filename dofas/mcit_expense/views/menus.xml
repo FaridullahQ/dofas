@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_mcit_expenses" name="Expenses" parent="mcit_base.menu_mcit_operations" action="action_mcit_expense" sequence="16"/>
+    <menuitem id="menu_mcit_expenses" name="Expenses" parent="mcit_budget.menu_mcit_budget_root" action="action_mcit_expense" sequence="40"/>
 </odoo>

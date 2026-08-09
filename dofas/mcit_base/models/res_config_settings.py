@@ -18,3 +18,5 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.mcit_expense_clearing_account_id", readonly=False)
     mcit_demo_data_enabled = fields.Boolean(
         related="company_id.mcit_demo_data_enabled", readonly=False)
+    mcit_ask_dofas_index_enabled = fields.Boolean(
+        related="company_id.mcit_ask_dofas_index_enabled", readonly=False)

@@ -35,6 +35,10 @@ class ResCompany(models.Model):
              "every feature in action. Switching this off removes everything it "
              "created, and only what it created; nothing you've entered yourself "
              "is touched.")
+    mcit_ask_dofas_index_enabled = fields.Boolean(
+        string="Ask DoFAS Index Enabled", default=False,
+        help="Keeps a searchable index (grants, budgets, expenses, reports) ready "
+             "for the 'Ask DoFAS' assistant to query. Off by default.")
 
     def write(self, vals):
         if "mcit_demo_data_enabled" in vals:

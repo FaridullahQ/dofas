@@ -13,8 +13,10 @@
         "security/mcit_about_groups.xml",
         "security/ir.model.access.csv",
         "views/mcit_about_views.xml",
+        "views/mcit_faq_views.xml",
         "views/res_config_settings_views.xml",
         "views/menus.xml",
+        "data/mcit_faq_data.xml",
     ],
     "installable": True,
 }
