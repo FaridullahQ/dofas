@@ -142,11 +142,11 @@ class McitGrant(models.Model):
                 raise UserError(_("Only approved grants can be activated."))
         return self._transition("active", "activate")
 
-    def action_reject(self):
+    def action_reject(self, reason=False):
         for g in self:
             if g.state not in ("review", "approved"):
                 raise UserError(_("This grant cannot be rejected in its current state."))
-        return self._transition("draft", "reject")
+        return self._transition("draft", "reject", comment=reason)
 
     def action_close(self):
         for g in self:
@@ -160,5 +160,5 @@ class McitGrant(models.Model):
                 raise UserError(_("Only closed grants can be reopened."))
         return self._transition("active", "reopen")
 
-    def action_cancel(self):
-        return self._transition("cancelled", "cancel")
+    def action_cancel(self, reason=False):
+        return self._transition("cancelled", "cancel", comment=reason)

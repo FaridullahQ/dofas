@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_mcit_audit_log_user,mcit.audit.log user,model_mcit_audit_log,base.group_user,1,0,1,0
 access_mcit_audit_log_admin,mcit.audit.log admin,model_mcit_audit_log,group_system_admin,1,0,1,0
+access_mcit_reason_wizard_user,mcit.reason.wizard user,model_mcit_reason_wizard,base.group_user,1,1,1,1

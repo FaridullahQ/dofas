@@ -36,12 +36,10 @@
                             confirm="Posting this expense will book the journal entry and record it as an actual cost against the budget line. Do you want to continue?"/>
                     <button name="action_print_voucher" string="Print Voucher" type="object"
                             invisible="state!='posted'"/>
-                    <button name="action_reject" string="Reject" type="object"
-                            invisible="state!='submitted'"
-                            confirm="Rejecting this expense will return it to the requester without affecting the budget line. Do you want to continue?"/>
-                    <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state in ('posted','cancelled')"
-                            confirm="Cancelling this expense will release any encumbrance on the budget line and stop it permanently. Do you want to continue?"/>
+                    <button name="action_reject_wizard" string="Reject" type="object"
+                            invisible="state!='submitted'"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state in ('posted','cancelled')"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,posted"/>
                 </header>
                 <sheet>

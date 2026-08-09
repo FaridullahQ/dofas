@@ -54,13 +54,11 @@
                             groups="mcit_base.group_finance_manager"
                             help="Post a journal entry: Dr Clearing Account / Cr Advance Receivable (with partner), reducing the holder's outstanding debt."
                             confirm="Posting this liquidation will create a journal entry and reduce the holder's outstanding advance debt. Do you want to continue?"/>
-                    <button name="action_reset_draft" string="Reset to Draft" type="object"
-                            invisible="state not in ('submitted','approved')"
-                            confirm="Reset to Draft? The holder will need to resubmit for approval."/>
-                    <button name="action_cancel" string="Cancel" type="object"
+                    <button name="action_reset_draft_wizard" string="Reset to Draft" type="object"
+                            invisible="state not in ('submitted','approved')"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
                             invisible="state in ('posted','cancelled')"
-                            groups="mcit_base.group_finance_manager"
-                            confirm="Cancel this liquidation? This will release the claimed amount back to the advance's available balance."/>
+                            groups="mcit_base.group_finance_manager"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,posted"/>
                 </header>
 

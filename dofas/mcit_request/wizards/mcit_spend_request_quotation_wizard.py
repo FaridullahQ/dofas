@@ -76,6 +76,11 @@ class McitSpendRequestQuotationWizard(models.TransientModel):
         self.attachment_ids.write({
             "res_model": "mcit.spend.request", "res_id": self.request_id.id,
         })
+        for line in self.line_ids:
+            line.request_line_id.write({
+                "quoted_unit_price": line.quoted_unit_price,
+                "quoted_amount": line.quoted_amount,
+            })
         self.request_id.write({
             "approved_amount": self.total_amount,
             "quotation_ref": self.quotation_ref,

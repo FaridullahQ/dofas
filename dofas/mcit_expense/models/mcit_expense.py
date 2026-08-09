@@ -104,16 +104,16 @@ class McitExpense(models.Model):
                 e.commitment_id.action_consume()
         return self._transition("posted", "post")
 
-    def action_reject(self):
+    def action_reject(self, reason=False):
         self._release()
-        return self._transition("draft", "reject")
+        return self._transition("draft", "reject", comment=reason)
 
-    def action_cancel(self):
+    def action_cancel(self, reason=False):
         for e in self:
             if e.state == "posted":
                 raise UserError(_("Posted expenses cannot be cancelled; reverse the entry."))
         self._release()
-        return self._transition("cancelled", "cancel")
+        return self._transition("cancelled", "cancel", comment=reason)
 
     def _release(self):
         for e in self:

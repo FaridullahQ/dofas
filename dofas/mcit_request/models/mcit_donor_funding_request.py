@@ -26,8 +26,8 @@ class McitDonorFundingRequest(models.Model):
                 "cur": self.currency_id.name or ""})
         return res
 
-    def action_donor_reject(self):
-        res = super().action_donor_reject()
+    def action_donor_reject(self, reason=False):
+        res = super().action_donor_reject(reason=reason)
         if self.spend_request_id:
             self.spend_request_id.message_post(body=_(
                 "Donor rejected supplementary funding request %s.") % self.name)

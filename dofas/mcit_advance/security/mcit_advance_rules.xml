@@ -148,4 +148,35 @@
         <field name="perm_unlink" eval="False"/>
     </record>
 
+    <!-- ═══════════════════════════════════════════════════════════
+         DONOR OFFICER — scoped to Managed Donors, via grant_id.donor_id.
+         System Admin implicitly inherits group_donor_officer, hence the
+         explicit unrestricted bypass rules below.
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="rule_mcit_advance_donor_officer_scope" model="ir.rule">
+        <field name="name">mcit.advance — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_mcit_advance"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('grant_id.donor_id', 'in', user.mcit_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_mcit_advance_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">mcit.advance — System Admin unrestricted</field>
+        <field name="model_id" ref="model_mcit_advance"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_mcit_liq_donor_officer_scope" model="ir.rule">
+        <field name="name">mcit.advance.liquidation — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_mcit_advance_liquidation"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('advance_id.grant_id.donor_id', 'in', user.mcit_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_mcit_liq_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">mcit.advance.liquidation — System Admin unrestricted</field>
+        <field name="model_id" ref="model_mcit_advance_liquidation"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
 </odoo>

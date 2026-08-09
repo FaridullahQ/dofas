@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_employee_form_inherit_mcit_advance" model="ir.ui.view">
+        <field name="name">hr.employee.form.inherit.mcit.advance</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <field name="mcit_advance_count" invisible="1"/>
+                <button name="action_view_mcit_advances" type="object"
+                        class="oe_stat_button" icon="fa-money"
+                        invisible="mcit_advance_count == 0">
+                    <field name="mcit_advance_count" widget="statinfo" string="Advances"/>
+                </button>
+            </div>
+        </field>
+    </record>
+</odoo>

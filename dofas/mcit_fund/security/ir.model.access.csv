@@ -3,12 +3,18 @@ access_mcit_fund_read,mcit.fund.receipt read,model_mcit_fund_receipt,base.group_
 access_mcit_fund_officer,mcit.fund.receipt officer,model_mcit_fund_receipt,mcit_base.group_finance_officer,1,1,1,0
 access_mcit_fund_mgr,mcit.fund.receipt finance mgr,model_mcit_fund_receipt,mcit_base.group_finance_manager,1,1,1,0
 access_mcit_fund_admin,mcit.fund.receipt admin,model_mcit_fund_receipt,mcit_base.group_system_admin,1,1,1,1
+access_mcit_fund_donor_officer,mcit.fund.receipt donor officer,model_mcit_fund_receipt,mcit_base.group_donor_officer,1,1,1,0
 access_mcit_fund_send_wizard_officer,mcit.fund.receipt.send.wizard officer,model_mcit_fund_receipt_send_wizard,mcit_base.group_finance_officer,1,1,1,1
 access_mcit_fund_send_wizard_mgr,mcit.fund.receipt.send.wizard finance mgr,model_mcit_fund_receipt_send_wizard,mcit_base.group_finance_manager,1,1,1,1
 access_mcit_fund_send_wizard_admin,mcit.fund.receipt.send.wizard admin,model_mcit_fund_receipt_send_wizard,mcit_base.group_system_admin,1,1,1,1
+access_mcit_fund_send_wizard_donor_officer,mcit.fund.receipt.send.wizard donor officer,model_mcit_fund_receipt_send_wizard,mcit_base.group_donor_officer,1,1,1,1
 access_mcit_dfr_read,mcit.donor.funding.request read,model_mcit_donor_funding_request,base.group_user,1,0,0,0
 access_mcit_dfr_prog,mcit.donor.funding.request program officer,model_mcit_donor_funding_request,mcit_base.group_program_officer,1,1,1,0
 access_mcit_dfr_proj,mcit.donor.funding.request project manager,model_mcit_donor_funding_request,mcit_base.group_project_manager,1,1,1,0
 access_mcit_dfr_officer,mcit.donor.funding.request officer,model_mcit_donor_funding_request,mcit_base.group_finance_officer,1,1,1,0
 access_mcit_dfr_mgr,mcit.donor.funding.request finance mgr,model_mcit_donor_funding_request,mcit_base.group_finance_manager,1,1,1,0
 access_mcit_dfr_admin,mcit.donor.funding.request admin,model_mcit_donor_funding_request,mcit_base.group_system_admin,1,1,1,1
+access_mcit_dfr_send_wizard_officer,mcit.donor.funding.request.send.wizard officer,model_mcit_donor_funding_request_send_wizard,mcit_base.group_finance_officer,1,1,1,1
+access_mcit_dfr_send_wizard_mgr,mcit.donor.funding.request.send.wizard finance mgr,model_mcit_donor_funding_request_send_wizard,mcit_base.group_finance_manager,1,1,1,1
+access_mcit_dfr_send_wizard_admin,mcit.donor.funding.request.send.wizard admin,model_mcit_donor_funding_request_send_wizard,mcit_base.group_system_admin,1,1,1,1
+

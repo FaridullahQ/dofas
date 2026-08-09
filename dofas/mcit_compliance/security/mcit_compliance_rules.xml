@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         COMPLIANCE CHECKLIST — Donor Officer scoping.
+         Per client decision: general checklists (donor_id empty, apply
+         to all donors) stay visible to Donor Officers for reference, but
+         only checklists belonging to one of their Managed Donors can be
+         created/edited/deleted - editing a general checklist affects every
+         donor org-wide and stays a Compliance Officer action.
+         System Admin implicitly inherits group_donor_officer, hence the
+         explicit unrestricted bypass below.
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="rule_mcit_checklist_donor_officer_read" model="ir.rule">
+        <field name="name">mcit.compliance.checklist — Donor Officer read general + own</field>
+        <field name="model_id" ref="model_mcit_compliance_checklist"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">
+            ['|', ('donor_id', '=', False), ('donor_id', 'in', user.mcit_donor_ids.ids)]
+        </field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_mcit_checklist_donor_officer_write" model="ir.rule">
+        <field name="name">mcit.compliance.checklist — Donor Officer write own only</field>
+        <field name="model_id" ref="model_mcit_compliance_checklist"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('donor_id', 'in', user.mcit_donor_ids.ids)]</field>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_mcit_checklist_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">mcit.compliance.checklist — System Admin unrestricted</field>
+        <field name="model_id" ref="model_mcit_compliance_checklist"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Lines follow the same split, via their parent checklist's donor_id -->
+    <record id="rule_mcit_checklist_line_donor_officer_read" model="ir.rule">
+        <field name="name">mcit.compliance.checklist.line — Donor Officer read general + own</field>
+        <field name="model_id" ref="model_mcit_compliance_checklist_line"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">
+            ['|', ('checklist_id.donor_id', '=', False), ('checklist_id.donor_id', 'in', user.mcit_donor_ids.ids)]
+        </field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_mcit_checklist_line_donor_officer_write" model="ir.rule">
+        <field name="name">mcit.compliance.checklist.line — Donor Officer write own only</field>
+        <field name="model_id" ref="model_mcit_compliance_checklist_line"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('checklist_id.donor_id', 'in', user.mcit_donor_ids.ids)]</field>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_mcit_checklist_line_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">mcit.compliance.checklist.line — System Admin unrestricted</field>
+        <field name="model_id" ref="model_mcit_compliance_checklist_line"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+</odoo>

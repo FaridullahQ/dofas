@@ -30,14 +30,12 @@
                     <button name="action_approve" string="Approve" type="object"
                             class="oe_highlight" invisible="state != 'submitted'"
                             groups="mcit_base.group_finance_manager"
-                            confirm="Approving this transfer will move the funds between the selected budget lines immediately. Do you want to continue?"/>
-                    <button name="action_reject" string="Reject" type="object"
+                            confirm="Approving this transfer will shift spendable budget between the selected lines immediately. Each line's Planned amount stays as originally approved; the effect is recorded separately as Transferred In / Transferred Out. Do you want to continue?"/>
+                    <button name="action_reject_wizard" string="Reject" type="object"
                             invisible="state != 'submitted'"
-                            groups="mcit_base.group_finance_manager"
-                            confirm="Rejecting this transfer will return it to the requester without moving any funds. Do you want to continue?"/>
-                    <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state not in ('draft', 'submitted')"
-                            confirm="Cancelling this transfer will stop it permanently; no funds will be moved. Do you want to continue?"/>
+                            groups="mcit_base.group_finance_manager"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state not in ('draft', 'submitted')"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,approved"/>
                 </header>
@@ -51,8 +49,10 @@
                         <group string="Movement">
                             <field name="from_line_id" required="1" readonly="state != 'draft'"
                                    help="The budget line to draw funds from."/>
+                            <field name="from_line_available" invisible="not from_line_id"/>
                             <field name="to_line_id" readonly="state != 'draft'"
                                    help="The budget line receiving the funds."/>
+                            <field name="to_line_available" invisible="not to_line_id"/>
                         </group>
                         <group string="Amount">
                             <field name="currency_id" invisible="1"/>
@@ -104,8 +104,10 @@
         <field name="search_view_id" ref="view_mcit_budget_transfer_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Create an internal budget transfer</p>
-            <p>Move planned budget from one line to another within the same grant/version, subject to Finance Manager
-                approval.
+            <p>Shift spendable budget from one line to another within the same grant/version,
+                subject to Finance Manager approval. Each line's originally approved Planned
+                amount is never changed - the movement is tracked separately as Transferred
+                In / Transferred Out on the two lines.
             </p>
         </field>
     </record>

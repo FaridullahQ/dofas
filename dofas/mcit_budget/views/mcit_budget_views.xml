@@ -39,6 +39,9 @@
                             <field name="account_ids" widget="many2many_tags" options="{'no_create': True}"/>
                             <field name="currency_id" column_invisible="1"/>
                             <field name="planned_amount" sum="Planned"/>
+                            <field name="transferred_in_amount" sum="Transferred In" optional="show"/>
+                            <field name="transferred_out_amount" sum="Transferred Out" optional="show"/>
+                            <field name="effective_planned_amount" sum="Net Planned" optional="show"/>
                             <field name="committed_amount" sum="Committed"/>
                             <field name="actual_amount" sum="Actual"/>
                             <field name="available_amount" sum="Available"/>

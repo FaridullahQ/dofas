@@ -39,8 +39,22 @@ class McitAdvance(models.Model):
         tracking=True,
         help="The person financially responsible for this advance. "
              "They are obligated to liquidate the full amount through justified expenses "
-             "or return the unused cash.",
+             "or return the unused cash. For an Employee/Staff advance this is normally "
+             "derived automatically from Employee below (kept as its own field because "
+             "record-rule and liquidation-ownership checks need a real login to compare "
+             "against, which an hr.employee record doesn't guarantee).",
     )
+    employee_id = fields.Many2one(
+        "hr.employee", string="Employee", tracking=True,
+        help="The staff member who holds and is accountable for this advance. "
+             "Selecting an employee automatically fills in the Holder (their linked "
+             "user, if any) and the debtor Partner below, and surfaces their "
+             "Department and Position for reporting.",
+    )
+    department_id = fields.Many2one(
+        related="employee_id.department_id", store=True, string="Department")
+    job_id = fields.Many2one(
+        related="employee_id.job_id", store=True, string="Position")
     # ── NEW: Partner field for charging / accounting purposes ──────────────────
     partner_id = fields.Many2one(
         "res.partner",
@@ -135,26 +149,51 @@ class McitAdvance(models.Model):
         currency_field="currency_id",
         tracking=True,
         help="Amount of unspent cash physically returned by the holder to HQ. "
-             "Enter this when the holder returns leftover funds.",
+             "Enter this directly, or use the Settle Advance action to record it "
+             "together with a real journal entry and a mandatory receipt/slip.",
+    )
+    reimbursed_amount = fields.Monetary(
+        string="Cash Reimbursed to Holder",
+        currency_field="currency_id",
+        tracking=True,
+        help="Amount paid back to the holder because they spent more than this "
+             "advance and covered the difference themselves. Only meaningful when "
+             "Allow Liquidation Above Advance is enabled below. Set via the "
+             "Settle Advance action together with a real journal entry and a "
+             "mandatory payment slip.",
+    )
+    allow_over_liquidation = fields.Boolean(
+        string="Allow Liquidation Above Advance", default=False, tracking=True,
+        help="Off by default, matching the normal rule that a holder cannot justify "
+             "more than what they were given. Switch on for the (unusual but valid) "
+             "case where the holder may legitimately spend more than the advance and "
+             "front the difference themselves - e.g. an acquisition whose confirmed "
+             "price can end up a little higher than the advance issued for it - which "
+             "is then paid back to them via Settle Advance instead of being blocked.",
     )
     outstanding_amount = fields.Monetary(
         compute="_compute_amounts",
         store=True,
         currency_field="currency_id",
-        help="Amount still to be accounted for: Amount Sent − Reported − Returned. "
-             "Must reach zero before the advance can be closed.",
+        help="Amount still to be accounted for: Amount Sent + Reimbursed − Reported − "
+             "Returned. Positive means the holder still holds cash or hasn't justified "
+             "everything; negative means the holder is owed a reimbursement for having "
+             "spent more than the advance (only possible when Allow Liquidation Above "
+             "Advance is on). Must reach exactly zero before the advance can be closed.",
     )
     cash_balance = fields.Monetary(
         compute="_compute_amounts",
         store=True,
         currency_field="currency_id",
-        help="Remaining cash in the holder's hands: Amount Sent − Reported − Returned. "
-             "Equivalent to Outstanding Amount; a positive value means the holder still holds cash.",
+        help="Remaining cash in the holder's hands: Amount Sent + Reimbursed − Reported "
+             "− Returned. Equivalent to Outstanding Amount; positive means the holder "
+             "still holds cash, negative means they are owed a reimbursement.",
     )
 
     # ── Compute ───────────────────────────────────────────────────────────────
 
-    @api.depends("amount", "returned_amount", "liquidation_ids.amount", "liquidation_ids.state")
+    @api.depends("amount", "returned_amount", "reimbursed_amount",
+                "liquidation_ids.amount", "liquidation_ids.state")
     def _compute_amounts(self):
         for a in self:
             reported = sum(
@@ -163,8 +202,9 @@ class McitAdvance(models.Model):
                 ).mapped("amount")
             )
             a.reported_amount = reported
-            a.outstanding_amount = a.amount - reported - a.returned_amount
-            a.cash_balance = a.amount - reported - a.returned_amount
+            balance = a.amount + a.reimbursed_amount - reported - a.returned_amount
+            a.outstanding_amount = balance
+            a.cash_balance = balance
 
     # ── Onchange helpers ──────────────────────────────────────────────────────
 
@@ -175,6 +215,19 @@ class McitAdvance(models.Model):
             self.holder_user_id = self.zone_id.manager_id
         if self.holder_user_id and not self.partner_id:
             self.partner_id = self.holder_user_id.partner_id
+
+    @api.onchange("employee_id")
+    def _onchange_employee(self):
+        """Derive the Holder (login) and debtor Partner from the selected
+        employee. Both stay editable afterwards in case the employee has no
+        linked user or a different partner should be charged."""
+        if self.employee_id:
+            if self.employee_id.user_id:
+                self.holder_user_id = self.employee_id.user_id
+            partner = (self.employee_id.user_id.partner_id
+                      if self.employee_id.user_id else False)
+            if partner:
+                self.partner_id = partner
 
     @api.onchange("holder_user_id")
     def _onchange_holder_user(self):
@@ -187,18 +240,19 @@ class McitAdvance(models.Model):
         """Clear type-specific fields when switching advance type."""
         if self.advance_type == "zone":
             self.holder_user_id = False
+            self.employee_id = False
         elif self.advance_type == "employee":
             self.zone_id = False
 
     # ── Constraints ───────────────────────────────────────────────────────────
 
-    @api.constrains("advance_type", "zone_id", "holder_user_id")
+    @api.constrains("advance_type", "zone_id", "employee_id")
     def _check_holder(self):
         for a in self:
             if a.advance_type == "zone" and not a.zone_id:
                 raise ValidationError(_("Please select a Region / Province for a zone advance."))
-            if a.advance_type == "employee" and not a.holder_user_id:
-                raise ValidationError(_("Please select the Holder (Debtor) for an employee advance."))
+            if a.advance_type == "employee" and not a.employee_id:
+                raise ValidationError(_("Please select the Employee for an employee advance."))
 
     @api.constrains("amount")
     def _check_amount_positive(self):
@@ -206,11 +260,13 @@ class McitAdvance(models.Model):
             if a.amount < 0:
                 raise ValidationError(_("The advance amount cannot be negative."))
 
-    @api.constrains("returned_amount")
+    @api.constrains("returned_amount", "reimbursed_amount")
     def _check_returned_amount(self):
         for a in self:
             if a.returned_amount < 0:
                 raise ValidationError(_("The returned cash amount cannot be negative."))
+            if a.reimbursed_amount < 0:
+                raise ValidationError(_("The reimbursed cash amount cannot be negative."))
             if a.returned_amount > a.amount:
                 raise ValidationError(_(
                     "Returned cash (%(ret)s) cannot exceed the total Amount Sent (%(sent)s)."
@@ -231,6 +287,11 @@ class McitAdvance(models.Model):
                 vals["name"] = (
                     self.env["ir.sequence"].next_by_code("mcit.advance") or _("New")
                 )
+            # Auto-fill holder/partner from employee if not provided
+            if vals.get("employee_id") and not vals.get("holder_user_id"):
+                employee = self.env["hr.employee"].browse(vals["employee_id"])
+                if employee.user_id:
+                    vals["holder_user_id"] = employee.user_id.id
             # Auto-fill partner from user if not provided
             if vals.get("holder_user_id") and not vals.get("partner_id"):
                 user = self.env["res.users"].browse(vals["holder_user_id"])
@@ -258,25 +319,35 @@ class McitAdvance(models.Model):
         for a in self:
             if a.state != "issued":
                 raise UserError(_("Only issued advances can be closed."))
-            if a.outstanding_amount > 0:
-                raise UserError(_(
-                    "Advance '%(name)s' still has %(amount).2f %(currency)s outstanding. "
-                    "Please liquidate all expenses or record the returned cash first."
-                ) % {
-                    "name": a.name,
-                    "amount": a.outstanding_amount,
-                    "currency": a.currency_id.name or "",
-                })
+            if a.currency_id.compare_amounts(a.outstanding_amount, 0.0) != 0:
+                if a.outstanding_amount > 0:
+                    raise UserError(_(
+                        "Advance '%(name)s' still has %(amount).2f %(currency)s outstanding. "
+                        "Please liquidate all expenses or record the returned cash first."
+                    ) % {
+                        "name": a.name,
+                        "amount": a.outstanding_amount,
+                        "currency": a.currency_id.name or "",
+                    })
+                else:
+                    raise UserError(_(
+                        "Advance '%(name)s' still owes the holder %(amount).2f %(currency)s "
+                        "in reimbursement. Use Settle Advance to pay it back first."
+                    ) % {
+                        "name": a.name,
+                        "amount": -a.outstanding_amount,
+                        "currency": a.currency_id.name or "",
+                    })
         return self._transition("closed", "close")
 
-    def action_cancel(self):
+    def action_cancel(self, reason=False):
         for a in self:
             if a.state == "issued" and a.liquidation_ids:
                 raise UserError(_(
                     "Cannot cancel advance '%(name)s' because it already has liquidation records. "
                     "Cancel or delete the liquidations first."
                 ) % {"name": a.name})
-        return self._transition("cancelled", "cancel")
+        return self._transition("cancelled", "cancel", comment=reason)
 
     # ── Journal entry helpers ─────────────────────────────────────────────────
 
@@ -352,6 +423,23 @@ class McitAdvance(models.Model):
             "res_model": "mcit.advance.liquidation",
             "view_mode": "form",
             "target": "current",
+            "context": {"default_advance_id": self.id},
+        }
+
+    def action_open_settlement_wizard(self):
+        self.ensure_one()
+        if self.state != "issued":
+            raise UserError(_("Only issued advances can be settled."))
+        if self.currency_id.compare_amounts(self.outstanding_amount, 0.0) == 0:
+            raise UserError(_(
+                "There is nothing to settle - Outstanding is already zero. "
+                "You can Close this advance directly."))
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Settle Advance"),
+            "res_model": "mcit.advance.settlement.wizard",
+            "view_mode": "form",
+            "target": "new",
             "context": {"default_advance_id": self.id},
         }
 

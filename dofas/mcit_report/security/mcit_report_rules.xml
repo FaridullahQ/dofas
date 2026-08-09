@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Department Report: donor scoping via grant_id.donor_id -->
+    <record id="rule_mcit_deptrep_donor_officer_scope" model="ir.rule">
+        <field name="name">mcit.department.report — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_mcit_department_report"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('grant_id.donor_id', 'in', user.mcit_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_mcit_deptrep_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">mcit.department.report — System Admin unrestricted</field>
+        <field name="model_id" ref="model_mcit_department_report"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Donor Report: donor scoping via its own stored donor_id -->
+    <record id="rule_mcit_donorrep_donor_officer_scope" model="ir.rule">
+        <field name="name">mcit.donor.report — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_mcit_donor_report"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('donor_id', 'in', user.mcit_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_mcit_donorrep_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">mcit.donor.report — System Admin unrestricted</field>
+        <field name="model_id" ref="model_mcit_donor_report"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Report Template: same general-or-own read / own-only write split as
+         Compliance Checklist, since templates can also be donor-agnostic. -->
+    <record id="rule_mcit_rtemplate_donor_officer_read" model="ir.rule">
+        <field name="name">mcit.report.template — Donor Officer read general + own</field>
+        <field name="model_id" ref="model_mcit_report_template"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">
+            ['|', ('donor_id', '=', False), ('donor_id', 'in', user.mcit_donor_ids.ids)]
+        </field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_mcit_rtemplate_donor_officer_write" model="ir.rule">
+        <field name="name">mcit.report.template — Donor Officer write own only</field>
+        <field name="model_id" ref="model_mcit_report_template"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('donor_id', 'in', user.mcit_donor_ids.ids)]</field>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_mcit_rtemplate_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">mcit.report.template — System Admin unrestricted</field>
+        <field name="model_id" ref="model_mcit_report_template"/>
+        <field name="groups" eval="[(4, ref('mcit_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+</odoo>

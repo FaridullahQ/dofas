@@ -8,7 +8,7 @@ CODE_RE = re.compile(r"^[A-Z0-9][A-Z0-9\-_/]{1,23}$")
 class McitProgram(models.Model):
     _name = "mcit.program"
     _description = "Program"
-    _inherit = ["mail.thread"]
+    _inherit = ["mail.thread", "mcit.reason.action.mixin"]
     _order = "name"
 
     name = fields.Char(required=True, help="Program name, e.g. Health Program.")
@@ -85,5 +85,7 @@ class McitProgram(models.Model):
                 proj.write({"state": "closed"})
             prog.write({"state": "closed"})
 
-    def action_reset_draft(self):
+    def action_reset_draft(self, reason=False):
         self.write({"state": "draft"})
+        if reason:
+            self.message_post(body=_("Reason: %s") % reason)

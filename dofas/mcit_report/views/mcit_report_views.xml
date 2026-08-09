@@ -60,12 +60,14 @@
         <field name="name">mcit.department.report.tree</field>
         <field name="model">mcit.department.report</field>
         <field name="arch" type="xml">
-            <tree decoration-muted="state=='draft'" decoration-info="state in ('submitted','reviewed')"
-                  decoration-success="state=='approved'">
+            <tree decoration-muted="state=='draft'" decoration-info="state=='submitted'"
+                  decoration-warning="state=='reviewed'" decoration-success="state=='approved'">
                 <field name="name"/>
                 <field name="grant_id"/>
                 <field name="period"/>
-                <field name="state" widget="badge"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state=='draft'" decoration-info="state=='submitted'"
+                       decoration-warning="state=='reviewed'" decoration-success="state=='approved'"/>
             </tree>
         </field>
     </record>
@@ -153,14 +155,18 @@
         <field name="name">mcit.donor.report.tree</field>
         <field name="model">mcit.donor.report</field>
         <field name="arch" type="xml">
-            <tree decoration-danger="is_overdue" decoration-success="state=='approved'">
+            <tree decoration-muted="state=='draft'" decoration-info="state=='submitted'"
+                  decoration-warning="state=='reviewed'" decoration-success="state=='approved'"
+                  decoration-danger="is_overdue">
                 <field name="name"/>
                 <field name="donor_id"/>
                 <field name="grant_id"/>
                 <field name="report_type"/>
                 <field name="due_date"/>
                 <field name="is_overdue" optional="show"/>
-                <field name="state" widget="badge"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state=='draft'" decoration-info="state=='submitted'"
+                       decoration-warning="state=='reviewed'" decoration-success="state=='approved'"/>
             </tree>
         </field>
     </record>

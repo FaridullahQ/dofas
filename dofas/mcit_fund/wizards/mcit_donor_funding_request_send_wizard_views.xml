@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mcit_donor_funding_request_send_wizard_form" model="ir.ui.view">
+        <field name="name">mcit.donor.funding.request.send.wizard.form</field>
+        <field name="model">mcit.donor.funding.request.send.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send Funding Request Email">
+                <field name="funding_request_id" invisible="1"/>
+                <div class="row">
+                    <div class="col-8">
+                        <group>
+                            <field name="email_to"/>
+                            <field name="subject"/>
+                        </group>
+                        <field name="body"/>
+                        <group>
+                            <field name="attachment_ids" widget="many2many_binary"
+                                   string="Attachments (optional)"/>
+                        </group>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 bg-light rounded">
+                            <h6>Request details</h6>
+                            <field name="donor_id" readonly="1" nolabel="1" class="d-block"/>
+                            <field name="grant_id" readonly="1" nolabel="1" class="d-block"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="amount_requested" readonly="1" nolabel="1" class="d-block"/>
+                        </div>
+                    </div>
+                </div>
+                <footer>
+                    <button name="action_send" string="Send" type="object"
+                            class="oe_highlight"/>
+                    <button name="action_discard" string="Discard" type="object"
+                            class="btn-secondary"/>
+                    <button name="action_stay" string="Stay Here" type="object"
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -10,6 +10,7 @@
                 <field name="grant_id"/>
                 <field name="donor_id"/>
                 <field name="amount_requested" sum="Total"/>
+                <field name="amount_approved" sum="Confirmed" optional="show"/>
                 <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge"
                        decoration-muted="state in ('draft','cancelled')" decoration-info="state=='requested'"
@@ -27,21 +28,51 @@
                     <button name="action_request" string="Send to Donor" type="object"
                             class="oe_highlight" invisible="state != 'draft'"
                             confirm="Sending this request will notify the donor and lock its details from further edits. Do you want to continue?"/>
+                    <button name="action_open_send_wizard" string="Send Email" type="object"
+                            class="btn-secondary" icon="fa-envelope-o"
+                            invisible="state != 'requested'"/>
                     <button name="action_donor_approve" string="Record Donor Approval" type="object"
                             class="oe_highlight" invisible="state != 'requested'"
                             groups="mcit_base.group_finance_officer"
-                            confirm="This records that the donor has approved the supplementary funding. Make sure the decision date and note are filled in first. Do you want to continue?"/>
-                    <button name="action_donor_reject" string="Record Donor Rejection" type="object"
+                            confirm="This records that the donor has approved the supplementary funding. Make sure the Amount Confirmed, decision date and note are filled in, and the bank receipt is attached, first. Do you want to continue?"/>
+                    <button name="action_donor_reject_wizard" string="Record Donor Rejection" type="object"
                             invisible="state != 'requested'"
-                            groups="mcit_base.group_finance_officer"
-                            confirm="This records that the donor has rejected the supplementary funding request. Do you want to continue?"/>
-                    <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state not in ('draft', 'requested')"
-                            confirm="Cancelling this request will stop it permanently, even if it has already been sent to the donor. Do you want to continue?"/>
+                            groups="mcit_base.group_finance_officer"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state not in ('draft', 'requested')"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,requested,approved"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="email_sent" invisible="1"/>
+                        <div class="oe_stat_button" invisible="not email_sent">
+                            <i class="fa fa-fw fa-envelope"/>
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Emailed</span>
+                                <field name="email_sent_date" widget="date"
+                                       class="o_stat_text" readonly="1"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- bank receipt attachment gate -->
+                    <field name="bank_receipt_attached" invisible="1"/>
+                    <field name="attachment_count" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'requested' or bank_receipt_attached">
+                        <strong>Bank receipt required.</strong>
+                        Attach the donor's bank receipt in the chatter (paperclip icon below)
+                        and confirm the Amount Confirmed before recording the donor's approval.
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="state != 'requested' or not bank_receipt_attached">
+                        <strong>Bank receipt attached.</strong>
+                        <field name="attachment_count" class="oe_inline"/>
+                        document(s) attached. Confirm the Amount Confirmed, then you may
+                        record the donor's approval.
+                    </div>
+
                     <div class="oe_title">
                         <h1>
                             <field name="name" readonly="1"/>
@@ -65,6 +96,7 @@
                                placeholder="Why is supplementary funding needed? e.g. cover a shortfall on..."/>
                     </group>
                     <group string="Donor Decision" invisible="state not in ('requested', 'approved', 'rejected')">
+                        <field name="amount_approved" readonly="state != 'requested'"/>
                         <field name="decision_date" readonly="1"/>
                         <field name="decision_note" placeholder="Donor's decision, notes, references..."/>
                     </group>

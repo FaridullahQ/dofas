@@ -22,3 +22,7 @@ access_req_reassignwiz_prog,acquisition reassign wizard program officer,model_mc
 access_req_reassignwiz_proj,acquisition reassign wizard project manager,model_mcit_spend_request_reassign_wizard,mcit_base.group_project_manager,1,1,1,1
 access_req_reassignwiz_finmgr,acquisition reassign wizard finance manager,model_mcit_spend_request_reassign_wizard,mcit_base.group_finance_manager,1,1,1,1
 access_req_reassignwiz_admin,acquisition reassign wizard admin,model_mcit_spend_request_reassign_wizard,mcit_base.group_system_admin,1,1,1,1
+access_req_splitwiz_finmgr,acquisition split wizard finance manager,model_mcit_spend_request_split_wizard,mcit_base.group_finance_manager,1,1,1,1
+access_req_splitwiz_admin,acquisition split wizard admin,model_mcit_spend_request_split_wizard,mcit_base.group_system_admin,1,1,1,1
+access_req_splitwizline_finmgr,acquisition split wizard line finance manager,model_mcit_spend_request_split_wizard_line,mcit_base.group_finance_manager,1,1,1,1
+access_req_splitwizline_admin,acquisition split wizard line admin,model_mcit_spend_request_split_wizard_line,mcit_base.group_system_admin,1,1,1,1

@@ -180,7 +180,14 @@ class McitAdvanceLiquidation(models.Model):
     def _check_amount_within_advance(self):
         """
         Core financial control: a liquidation cannot claim more than
-        the advance's remaining available balance.
+        the advance's remaining available balance - UNLESS the advance has
+        Allow Liquidation Above Advance switched on (off by default; see
+        mcit.advance), in which case the holder may have legitimately spent
+        more than the advance and fronted the difference themselves. That
+        difference is not a validation bypass in the dark: it still has to
+        clear Finance's normal Submit → Approve → Post review on this same
+        liquidation, and the excess is paid back to the holder afterwards
+        through Settle Advance, not silently absorbed.
 
         Formula (conservative, per-liquidation):
             Allowed = Advance.amount
@@ -194,7 +201,7 @@ class McitAdvanceLiquidation(models.Model):
         precision = 0.01
         for liq in self:
             adv = liq.advance_id
-            if not adv:
+            if not adv or adv.allow_over_liquidation:
                 continue
             siblings = adv.liquidation_ids.filtered(
                 lambda l: l.id != liq.id and l.state not in ("cancelled",)
@@ -210,7 +217,12 @@ class McitAdvanceLiquidation(models.Model):
                     "  • Already claimed:     %(claimed).2f %(cur)s\n"
                     "  • Available ceiling:   %(ceil).2f %(cur)s\n"
                     "  • This liquidation:    %(this).2f %(cur)s\n\n"
-                    "Reduce the justified expenses or correct the advance amount."
+                    "Reduce the justified expenses or correct the advance amount. If the "
+                    "holder genuinely spent more than the advance and covered the "
+                    "difference themselves, switch on 'Allow Liquidation Above Advance' "
+                    "on the advance first - the excess is then paid back via Settle "
+                    "Advance, still subject to the normal Finance review on this "
+                    "liquidation."
                 ) % {
                     "liq": liq.name or _("New"),
                     "adv": adv.name,
@@ -292,17 +304,17 @@ class McitAdvanceLiquidation(models.Model):
                 liq.move_id = liq._create_liquidation_move().id
         return self._transition("posted", "post")
 
-    def action_reset_draft(self):
-        return self._transition("draft", "reset")
+    def action_reset_draft(self, reason=False):
+        return self._transition("draft", "reset", comment=reason)
 
-    def action_cancel(self):
+    def action_cancel(self, reason=False):
         for liq in self:
             if liq.state == "posted":
                 raise UserError(_(
                     "Cannot cancel a posted liquidation. "
                     "Reverse the journal entry first if required."
                 ))
-        return self._transition("cancelled", "cancel")
+        return self._transition("cancelled", "cancel", comment=reason)
 
     # ── Journal entry ─────────────────────────────────────────────────────────
 

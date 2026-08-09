@@ -29,8 +29,17 @@ class McitBudgetLine(models.Model):
     account_ids = fields.Many2many("account.account", string="Cost Accounts",
                                    help="GL accounts whose postings consume this line.")
     commitment_ids = fields.One2many("mcit.commitment", "budget_line_id", string="Commitments")
+    incoming_transfer_ids = fields.One2many(
+        "mcit.budget.transfer", "to_line_id", string="Incoming Transfers")
+    outgoing_transfer_ids = fields.One2many(
+        "mcit.budget.transfer", "from_line_id", string="Outgoing Transfers")
     planned_amount = fields.Monetary(string="Planned", currency_field="currency_id",
-                                     help="Enter approved budget amount for this line.")
+                                     help="The originally approved budget amount for this line. "
+                                          "This never changes because of an internal transfer - "
+                                          "only a direct edit to the line (while its budget is in "
+                                          "Draft) changes it. See Transferred In / Transferred Out "
+                                          "for the effect of transfers, and Net Planned for the "
+                                          "resulting spendable ceiling.")
     # Stored so they are aggregatable in Pivot/Graph (read_group needs real SQL
     # columns; a non-stored compute has none -> "Cannot convert field ... to SQL").
     # Recompute is driven by @api.depends on the commitments below. Because every
@@ -41,6 +50,21 @@ class McitBudgetLine(models.Model):
     # a stale stored value.
     committed_amount = fields.Monetary(compute="_compute_amounts", store=True, currency_field="currency_id")
     actual_amount = fields.Monetary(compute="_compute_amounts", store=True, currency_field="currency_id")
+    transferred_in_amount = fields.Monetary(
+        string="Transferred In", compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Cumulative total moved INTO this line by approved internal budget transfers "
+             "(mcit.budget.transfer). A ledger total, not netted against Transferred Out or "
+             "against transfers later reversed - a reversal is booked as its own transfer in "
+             "the opposite direction, so both the original and the reversal stay visible here.")
+    transferred_out_amount = fields.Monetary(
+        string="Transferred Out", compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Cumulative total moved OUT of this line by approved internal budget transfers. "
+             "Same ledger convention as Transferred In.")
+    effective_planned_amount = fields.Monetary(
+        string="Net Planned", compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Planned + Transferred In - Transferred Out: the actual ceiling this line can "
+             "commit/spend against. Planned itself is left untouched by transfers so it always "
+             "shows the originally approved figure; this field shows the effect of transfers.")
     available_amount = fields.Monetary(compute="_compute_amounts", store=True, currency_field="currency_id")
     utilization = fields.Float(string="Utilisation (%)", compute="_compute_amounts", store=True)
 
@@ -68,12 +92,19 @@ class McitBudgetLine(models.Model):
             result[line.id] = spend
         return result
 
-    @api.depends("planned_amount", "commitment_ids.amount", "commitment_ids.state")
+    @api.depends("planned_amount", "commitment_ids.amount", "commitment_ids.state",
+                "incoming_transfer_ids.amount", "incoming_transfer_ids.state",
+                "outgoing_transfer_ids.amount", "outgoing_transfer_ids.state")
     def _compute_amounts(self):
         actuals = self._read_actuals()
         for line in self:
             company = line.company_id or self.env.company
             committed = sum(line.commitment_ids.filtered(lambda c: c.state == "confirmed").mapped("amount"))
+            transferred_in = sum(line.incoming_transfer_ids.filtered(
+                lambda t: t.state == "approved").mapped("amount"))
+            transferred_out = sum(line.outgoing_transfer_ids.filtered(
+                lambda t: t.state == "approved").mapped("amount"))
+            effective_planned = line.planned_amount + transferred_in - transferred_out
             actual_company = actuals.get(line.id, 0.0)
             if company.currency_id and line.currency_id and company.currency_id != line.currency_id:
                 actual = company.currency_id._convert(actual_company, line.currency_id, company,
@@ -82,8 +113,11 @@ class McitBudgetLine(models.Model):
                 actual = actual_company
             line.committed_amount = committed
             line.actual_amount = actual
-            line.available_amount = line.planned_amount - committed - actual
-            line.utilization = (100.0 * (committed + actual) / line.planned_amount) if line.planned_amount else 0.0
+            line.transferred_in_amount = transferred_in
+            line.transferred_out_amount = transferred_out
+            line.effective_planned_amount = effective_planned
+            line.available_amount = effective_planned - committed - actual
+            line.utilization = (100.0 * (committed + actual) / effective_planned) if effective_planned else 0.0
 
     @api.constrains("planned_amount")
     def _check_within_grant(self):
@@ -106,14 +140,24 @@ class McitBudgetLine(models.Model):
         # The aggregates are stored; invalidating clears the cache but a read would
         # then fetch the DB column rather than recompute. Recompute explicitly so the
         # guard uses a live figure derived under the row lock, not a stale snapshot.
-        self.invalidate_recordset(["committed_amount", "actual_amount", "available_amount"])
+        self.invalidate_recordset([
+            "committed_amount", "actual_amount", "transferred_in_amount",
+            "transferred_out_amount", "effective_planned_amount", "available_amount"])
         self._compute_amounts()
         return self.available_amount
 
-    def reserve(self, amount, source_ref=False):
+    def reserve(self, amount, source_ref=False, **extra_vals):
         """Concurrency-safe hard stop: lock the line, recompute live, refuse if
         insufficient, then encumber. An action (not a constraint) so it can
-        serialise concurrent posters on the same line."""
+        serialise concurrent posters on the same line.
+
+        `extra_vals` is an open extension point (Open/Closed Principle):
+        downstream modules that mcit_budget knows nothing about - e.g.
+        mcit_request tagging the commitment with `spend_request_id` so it can
+        split a single reserve across several calls to this method, one per
+        budget line - can pass extra fields to store on the created
+        mcit.commitment without this method having to import or reference
+        those models."""
         self.ensure_one()
         rounding = self.currency_id.rounding
         available = self.get_available_locked()
@@ -126,8 +170,10 @@ class McitBudgetLine(models.Model):
         if company.currency_id and self.currency_id and company.currency_id != self.currency_id:
             company_amount = self.currency_id._convert(amount, company.currency_id, company,
                                                        fields.Date.context_today(self))
-        return self.env["mcit.commitment"].create({
+        vals = {
             "budget_line_id": self.id, "amount": amount,
             "company_amount": company_amount, "source_ref": source_ref or False,
             "state": "confirmed",
-        })
+        }
+        vals.update(extra_vals)
+        return self.env["mcit.commitment"].create(vals)

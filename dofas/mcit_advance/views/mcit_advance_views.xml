@@ -16,8 +16,11 @@
                 <field name="date"/>
                 <field name="advance_type"/>
                 <field name="zone_id" optional="show"/>
-                <field name="holder_user_id" optional="show"/>
-                <field name="partner_id" optional="show"/>
+                <field name="holder_user_id" optional="hide"/>
+                <field name="employee_id" optional="show"/>
+                <field name="department_id" optional="show"/>
+                <field name="job_id" string="Position" optional="show"/>
+                <field name="partner_id" optional="hide"/>
                 <field name="grant_id" optional="hide"/>
                 <field name="amount" sum="Sent"/>
                 <field name="reported_amount" sum="Reported"/>
@@ -50,15 +53,19 @@
                     <button name="action_close" string="Close" type="object"
                             invisible="state != 'issued'"
                             groups="mcit_base.group_finance_manager"
-                            help="Mark this advance as fully settled. All outstanding amounts must be zero first."
+                            help="Mark this advance as fully settled. Outstanding must be exactly zero first."
                             confirm="Closing this advance marks it as fully settled and prevents any further liquidations or returns from being recorded against it. Do you want to continue?"/>
+                    <button name="action_open_settlement_wizard" string="Settle Advance" type="object"
+                            class="oe_highlight" icon="fa-exchange"
+                            invisible="state != 'issued' or not outstanding_amount"
+                            groups="mcit_base.group_finance_manager"
+                            help="Record the holder returning unused cash, or being reimbursed for having spent more than the advance - with a real journal entry through a chosen bank/cash journal, backed by a required slip."/>
                     <button name="action_create_liquidation" string="Create Liquidation" type="object"
                             class="oe_highlight"
                             invisible="state != 'issued'"
                             help="Open a new liquidation report for this advance, pre-linked to it."/>
-                    <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state in ('closed','cancelled')"
-                            confirm="Are you sure you want to cancel this advance? This action cannot be undone."/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state in ('closed','cancelled')"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,issued,closed"/>
                 </header>
 
@@ -104,10 +111,16 @@
                                    readonly="state != 'draft'"/>
                             <field name="holder_user_id"
                                    invisible="advance_type != 'employee'"
-                                   required="advance_type == 'employee'"
-                                   placeholder="Search for a staff member…"
-                                   help="The employee who will hold and be accountable for this advance. Selecting a user automatically fills in their partner record."
+                                   help="Derived automatically from Employee below when it has a linked user; kept editable in case it doesn't or a different login should be the record-rule holder."
                                    readonly="state != 'draft'"/>
+                            <field name="employee_id"
+                                   invisible="advance_type != 'employee'"
+                                   required="advance_type == 'employee'"
+                                   placeholder="Search for an employee…"
+                                   help="The employee who will hold and be accountable for this advance. Selecting one automatically fills in their Holder (linked user) and debtor Partner, and surfaces their Department/Position for reporting."
+                                   readonly="state != 'draft'"/>
+                            <field name="department_id" invisible="advance_type != 'employee'" readonly="1"/>
+                            <field name="job_id" invisible="advance_type != 'employee'" readonly="1"/>
                             <field name="partner_id"
                                    placeholder="Select or confirm the debtor partner…"
                                    help="The partner (contact/employee) linked in the accounting ledger for this advance. For employee advances this is pre-filled from the selected user. This partner will appear on the journal entry lines."
@@ -146,12 +159,17 @@
                         <field name="reported_amount"
                                help="Total value of approved/posted liquidations — expenses already justified and accepted by finance."/>
                         <field name="returned_amount"
-                               help="Cash physically returned by the holder. Enter the amount received back at HQ."
+                               help="Cash physically returned by the holder. Enter directly, or use Settle Advance for a version backed by a real journal entry and a required slip."
                                readonly="state == 'closed' or state == 'cancelled'"/>
+                        <field name="reimbursed_amount"
+                               help="Cash paid back to the holder for having spent more than the advance (only relevant when Allow Liquidation Above Advance is on). Set via Settle Advance."
+                               readonly="1"/>
                         <field name="outstanding_amount"
-                               help="Balance still unaccounted for: Amount Sent − Reported − Returned. Must reach zero to close the advance."/>
+                               help="Amount Sent + Reimbursed − Reported − Returned. Positive: still to account for. Negative: the holder is owed a reimbursement. Must reach exactly zero to close."/>
                         <field name="cash_balance"
-                               help="Estimated cash remaining with the holder. Positive means the holder still holds funds to justify or return."/>
+                               help="Same as Outstanding, shown as the cash currently in the holder's hands."/>
+                        <field name="allow_over_liquidation"
+                               readonly="state != 'draft'"/>
                     </group>
 
                     <!-- Tabs -->
@@ -196,6 +214,9 @@
             <search string="Search Advances">
                 <field name="name" string="Reference" filter_domain="[('name','ilike',self)]"/>
                 <field name="zone_id"/>
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <field name="job_id" string="Position"/>
                 <field name="holder_user_id"/>
                 <field name="partner_id"/>
                 <field name="grant_id"/>
@@ -214,6 +235,9 @@
                 <!-- Group By -->
                 <group expand="0" string="Group By">
                     <filter name="g_zone" string="Region" context="{'group_by':'zone_id'}"/>
+                    <filter name="g_employee" string="Employee" context="{'group_by':'employee_id'}"/>
+                    <filter name="g_department" string="Department" context="{'group_by':'department_id'}"/>
+                    <filter name="g_job" string="Position" context="{'group_by':'job_id'}"/>
                     <filter name="g_partner" string="Partner" context="{'group_by':'partner_id'}"/>
                     <filter name="g_type" string="Type" context="{'group_by':'advance_type'}"/>
                     <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
@@ -223,6 +247,7 @@
                 <searchpanel>
                     <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
                     <field name="advance_type" icon="fa-tag" select="one" enable_counters="1"/>
+                    <field name="department_id" icon="fa-building" select="multi" enable_counters="1"/>
                     <field name="zone_id" icon="fa-map-marker" select="multi" enable_counters="1"/>
                 </searchpanel>
             </search>
@@ -236,11 +261,15 @@
         <field name="model">mcit.advance</field>
         <field name="arch" type="xml">
             <pivot string="Advance Tracking">
+                <field name="department_id" type="row"/>
+                <field name="employee_id" type="row"/>
+                <field name="job_id" type="row"/>
                 <field name="zone_id" type="row"/>
                 <field name="partner_id" type="row"/>
                 <field name="amount" type="measure"/>
                 <field name="reported_amount" type="measure"/>
                 <field name="returned_amount" type="measure"/>
+                <field name="reimbursed_amount" type="measure"/>
                 <field name="outstanding_amount" type="measure"/>
             </pivot>
         </field>
@@ -281,6 +310,26 @@
         <field name="view_mode">pivot,graph,tree</field>
         <field name="domain">[('state','=','issued')]</field>
         <field name="context">{'search_default_g_zone': 1}</field>
+    </record>
+
+    <record id="action_mcit_employee_advance" model="ir.actions.act_window">
+        <field name="name">Employee Advances</field>
+        <field name="res_model">mcit.advance</field>
+        <field name="view_mode">tree,form,pivot,graph</field>
+        <field name="domain">[('advance_type', '=', 'employee')]</field>
+        <field name="context">{'default_advance_type': 'employee', 'search_default_g_department': 1}</field>
+        <field name="search_view_id" ref="view_mcit_advance_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No employee advances found
+            </p>
+            <p>
+                Every employee with an advance in progress or completed, grouped by
+                department by default - their Position and Department come straight
+                from their Employee record, alongside the advance amount, what
+                they've justified so far, and what's still outstanding.
+            </p>
+        </field>
     </record>
 
 </odoo>

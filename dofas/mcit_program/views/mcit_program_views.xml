@@ -32,9 +32,8 @@
                     <button name="action_close" string="Close" type="object"
                             invisible="state != 'active'"
                             confirm="Closing this program will finalize it and prevent further changes. Do you want to continue?"/>
-                    <button name="action_reset_draft" string="Reset to Draft" type="object"
-                            invisible="state == 'draft'"
-                            confirm="Resetting to draft will revert this program's current status and may impact related projects. Do you want to continue?"/>
+                    <button name="action_reset_draft_wizard" string="Reset to Draft" type="object"
+                            invisible="state == 'draft'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,closed"/>
                 </header>
                 <sheet>
@@ -156,9 +155,8 @@
                     <button name="action_close" string="Close" type="object"
                             invisible="state != 'active'"
                             confirm="Closing this project will finalize it and prevent further changes. Do you want to continue?"/>
-                    <button name="action_reset_draft" string="Reset to Draft" type="object"
-                            invisible="state == 'draft'"
-                            confirm="Resetting to draft will revert this project's current status and may impact related activities. Do you want to continue?"/>
+                    <button name="action_reset_draft_wizard" string="Reset to Draft" type="object"
+                            invisible="state == 'draft'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,closed"/>
                 </header>
                 <sheet>
@@ -272,7 +270,9 @@
                 <field name="date_end"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="planned_cost" sum="Planned"/>
-                <field name="state" widget="badge"/>
+                <field name="state" widget="badge"
+                       decoration-info="state=='draft'" decoration-warning="state=='submitted'"
+                       decoration-success="state in ('approved','implemented')" decoration-muted="state=='closed'"/>
             </tree>
         </field>
     </record>

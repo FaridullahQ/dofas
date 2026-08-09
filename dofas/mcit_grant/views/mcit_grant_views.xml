@@ -36,18 +36,16 @@
                     <button name="action_activate" string="Activate" type="object" class="oe_highlight"
                             invisible="state!='approved'"
                             confirm="Activating this grant will make it available for budgeting, projects, and expenses to be recorded against it. Do you want to continue?"/>
-                    <button name="action_reject" string="Reject" type="object"
-                            invisible="state not in ('review','approved')"
-                            confirm="Rejecting this grant will return it to draft for corrections. Do you want to continue?"/>
+                    <button name="action_reject_wizard" string="Reject" type="object"
+                            invisible="state not in ('review','approved')"/>
                     <button name="action_close" string="Close" type="object"
                             invisible="state!='active'"
                             confirm="Closing this grant will prevent any further budgeting, projects, or expenses from being recorded against it. Do you want to continue?"/>
                     <button name="action_reopen" string="Reopen" type="object"
                             invisible="state!='closed'"
                             confirm="Reopening this grant will make it active again and allow new activity to be recorded against it. Do you want to continue?"/>
-                    <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state in ('cancelled','closed')"
-                            confirm="Cancelling this grant will stop it permanently and cannot be undone from here. Do you want to continue?"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state in ('cancelled','closed')"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,review,approved,active,closed"/>
                 </header>
                 <sheet>
