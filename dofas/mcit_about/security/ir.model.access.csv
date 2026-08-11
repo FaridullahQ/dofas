@@ -1,4 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_mcit_about_user,mcit.about user,model_mcit_about,base.group_user,1,1,1,0
-access_mcit_faq_user,mcit.faq user,model_mcit_faq,base.group_user,1,0,0,0
-access_mcit_faq_admin,mcit.faq admin,model_mcit_faq,mcit_base.group_system_admin,1,1,1,1

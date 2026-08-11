@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_budget_root" name="Budget &amp; Financial Control" parent="arcs_base.menu_arcs_root" sequence="20"/>
+    <menuitem id="menu_arcs_budgets" name="Budgets" parent="menu_arcs_budget_root" action="action_arcs_budget" sequence="10"/>
+    <menuitem id="menu_arcs_budget_transfers" name="Internal Budget Transfers" parent="menu_arcs_budget_root" action="action_arcs_budget_transfer" sequence="20" groups="arcs_base.group_finance_officer"/>
+    <menuitem id="menu_arcs_commitments" name="Commitments" parent="menu_arcs_budget_root" action="action_arcs_commitment" sequence="30" groups="arcs_base.group_finance_manager"/>
+</odoo>

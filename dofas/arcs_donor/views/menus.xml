@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_donors" name="Donors" parent="arcs_base.menu_arcs_master"
+              action="action_arcs_donor" sequence="10" groups="arcs_base.group_donor_officer"/>
+</odoo>

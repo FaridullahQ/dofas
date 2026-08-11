@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_dashboards" name="Dashboards" parent="arcs_base.menu_arcs_root" sequence="5"/>
+    <menuitem id="menu_arcs_budget_monitor" name="Budget Monitoring" parent="menu_arcs_dashboards" action="action_arcs_budget_monitor" sequence="10"/>
+    <menuitem id="menu_arcs_expense_analysis" name="Expenditure Analysis" parent="menu_arcs_dashboards" action="action_arcs_expense_analysis" sequence="20"/>
+    <menuitem id="menu_arcs_commitment_analysis" name="Commitment Analysis" parent="menu_arcs_dashboards" action="action_arcs_commitment_analysis" sequence="30"/>
+</odoo>

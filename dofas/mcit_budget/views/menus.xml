@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <menuitem id="menu_mcit_budget_root" name="Budget &amp; Financial Control" parent="mcit_base.menu_mcit_root" sequence="30"/>
-    <menuitem id="menu_mcit_budgets" name="Budgets" parent="menu_mcit_budget_root" action="action_mcit_budget" sequence="10"/>
-    <menuitem id="menu_mcit_budget_transfers" name="Internal Budget Transfers" parent="menu_mcit_budget_root" action="action_mcit_budget_transfer" sequence="20" groups="mcit_base.group_finance_officer"/>
-    <menuitem id="menu_mcit_commitments" name="Commitments" parent="menu_mcit_budget_root" action="action_mcit_commitment" sequence="30" groups="mcit_base.group_finance_manager"/>
-</odoo>

@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_program_read,program read,model_arcs_program,base.group_user,1,0,0,0
+access_arcs_program_po,program po,model_arcs_program,arcs_base.group_program_officer,1,1,1,1
+access_arcs_project_read,project read,model_arcs_project,base.group_user,1,0,0,0
+access_arcs_project_po,project po,model_arcs_project,arcs_base.group_program_officer,1,1,1,0
+access_arcs_project_pm,project pm,model_arcs_project,arcs_base.group_project_manager,1,1,1,0
+access_arcs_project_admin,project admin,model_arcs_project,arcs_base.group_system_admin,1,1,1,1
+access_arcs_component_read,component read,model_arcs_project_component,base.group_user,1,0,0,0
+access_arcs_component_po,component po,model_arcs_project_component,arcs_base.group_program_officer,1,1,1,1
+access_arcs_activity_read,activity read,model_arcs_activity,base.group_user,1,0,0,0
+access_arcs_activity_pm,activity pm,model_arcs_activity,arcs_base.group_project_manager,1,1,1,1
+access_arcs_activity_dm,activity dm,model_arcs_activity,arcs_base.group_dept_manager,1,1,1,0
+access_arcs_lifecycle_close_wizard,arcs.lifecycle.close.wizard,model_arcs_lifecycle_close_wizard,base.group_user,1,1,1,0

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_about_form" model="ir.ui.view">
+        <field name="name">arcs.about.form</field>
+        <field name="model">arcs.about</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <div class="row mb-4">
+                        <div class="col-md-3 text-center">
+                            <field name="company_logo" widget="image" class="oe_avatar" options="{'size': [120, 120]}"/>
+                        </div>
+                        <div class="col-md-9">
+                            <h1 class="mb-1"><field name="company_name" readonly="1" class="oe_inline"/></h1>
+                            <p class="text-muted mb-2">
+                                ARCS Donor Management Suite &#8212; version
+                                <field name="suite_version" readonly="1" class="oe_inline"/>
+                            </p>
+                            <group col="1" class="mt-2">
+                                <field name="company_email" readonly="1" widget="email"/>
+                                <field name="company_phone" readonly="1"/>
+                                <field name="company_website" readonly="1" widget="url"/>
+                                <field name="company_address" readonly="1"/>
+                            </group>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border" role="status">
+                        A donor, grant, fund and budget management system for headquarters and
+                        zones/provinces &#8212; tracking every amount from a donor agreement through
+                        to the final report, so nothing leaves the system without a request and an
+                        approval.
+                    </div>
+
+                    <separator string="How the system works (overall flow)"/>
+                    <div class="ms-2 mb-3">
+                        <ol class="mb-0" style="line-height: 1.9;">
+                            <li><b>Grant (the MoU)</b> &#8212; open the donor award; it is the source of all funds.</li>
+                            <li><b>Budget</b> &#8212; register the approved amounts by category.</li>
+                            <li><b>Fund receipts</b> &#8212; record the money actually received.</li>
+                            <li><b>Acquisition (four-form)</b> &#8212; reserve budget on a line before spending.</li>
+                            <li><b>Expense (voucher)</b> &#8212; post the actual payment; reserved money becomes real cost.</li>
+                            <li><b>Advance</b> &#8212; send cash to a zone or staff member, who becomes a debtor.</li>
+                            <li><b>Liquidation</b> &#8212; report and clear the advance with justified expenses.</li>
+                            <li><b>Donor report</b> &#8212; generate and send the budget-vs-actual report.</li>
+                            <li><b>Close</b> &#8212; finish liquidations and close the grant.</li>
+                        </ol>
+                        <p class="text-muted mt-2 mb-0"><i>Golden rule: reserve &#8594; spend &#8594; report back &#8594; report to donor.</i></p>
+                    </div>
+
+                    <separator string="Acquisition (Four-Form) &#8212; step by step"/>
+                    <div class="ms-2 mb-3">
+                        <ol class="mb-0" style="line-height: 1.9;">
+                            <li><b>Drafted</b> &#8212; a Program Officer creates the acquisition: title, budget line
+                                (only lines on an <i>Approved</i> budget version are selectable), estimated cost,
+                                items, and any supporting documents.</li>
+                            <li><b>Submitted</b> &#8212; the assigned Budget Holder submits it for review.</li>
+                            <li><b>Confirm Real Price</b> &#8212; before committing, Finance opens the quotation
+                                wizard: quote each item against a real vendor price, name the vendor, enter the
+                                quotation reference, and attach the approved quotation document. This confirmed
+                                amount &#8212; not the original estimate &#8212; is what gets reserved and, later,
+                                posted to the journal.</li>
+                            <li><b>Committed</b> &#8212; Finance reserves the confirmed amount on the budget line.
+                                <i>Commit &amp; Reserve only becomes available once a real price has been
+                                confirmed.</i> If the line is short, the acquisition moves to
+                                <b>Insufficient Funds</b> instead, with three recovery options: choose a different
+                                budget line, request an internal budget transfer, or request supplementary donor
+                                funding &#8212; each of which sends it back to Finance once resolved.</li>
+                            <li><b>Approved</b> &#8212; the Approving Authority signs off on the committed request.</li>
+                            <li><b>Expense created</b> &#8212; the approved acquisition spawns an expense that
+                                adopts the existing reserve (never reserves twice) and carries the vendor through.</li>
+                        </ol>
+                    </div>
+
+                    <separator string="Glossary &#8212; key terms"/>
+                    <div class="ms-2">
+                        <dl class="row mb-0" style="line-height: 1.6;">
+                            <dt class="col-sm-3">MoU</dt><dd class="col-sm-9">Memorandum of Understanding &#8212; the signed donor agreement that starts a grant.</dd>
+                            <dt class="col-sm-3">Grant</dt><dd class="col-sm-9">A donor-funded award tracked end to end; the source of budget.</dd>
+                            <dt class="col-sm-3">Budget line</dt><dd class="col-sm-9">A planned amount for one category within a grant.</dd>
+                            <dt class="col-sm-3">Commitment (Reserve)</dt><dd class="col-sm-9">Money locked against a budget line before it is spent.</dd>
+                            <dt class="col-sm-3">Acquisition (Four-Form)</dt><dd class="col-sm-9">The four-step request that reserves budget before an expense is made, confirmed against a real quotation before commitment.</dd>
+                            <dt class="col-sm-3">Internal Budget Transfer</dt><dd class="col-sm-9">Moves planned budget from one line to another within the same grant/version, subject to Finance Manager approval - one way to resolve an Insufficient Funds acquisition.</dd>
+                            <dt class="col-sm-3">Donor Supplementary Funding</dt><dd class="col-sm-9">A tracked request asking a grant's donor for additional funds; Finance still has to action the actual budget increase once the donor approves.</dd>
+                            <dt class="col-sm-3">Expense (Voucher)</dt><dd class="col-sm-9">The posted transaction that records actual spending against the budget.</dd>
+                            <dt class="col-sm-3">Fund Receipt</dt><dd class="col-sm-9">Money actually received from a donor.</dd>
+                            <dt class="col-sm-3">Advance</dt><dd class="col-sm-9">Cash sent to a zone or staff member; the holder owes it until it is reported.</dd>
+                            <dt class="col-sm-3">Liquidation</dt><dd class="col-sm-9">Reporting and clearing an advance with justified, posted expenses.</dd>
+                            <dt class="col-sm-3">Region / Province</dt><dd class="col-sm-9">A field office; an organisational dimension used to track spending. Regions contain Provinces, which contain Departments.</dd>
+                            <dt class="col-sm-3">Department</dt><dd class="col-sm-9">A functional unit dimension within the organisation.</dd>
+                            <dt class="col-sm-3">Analytic account</dt><dd class="col-sm-9">The behind-the-scenes tracking account that follows a grant's money.</dd>
+                            <dt class="col-sm-3">Available</dt><dd class="col-sm-9">Planned minus committed minus actual &#8212; what is still free to spend.</dd>
+                            <dt class="col-sm-3">Utilization</dt><dd class="col-sm-9">Committed plus actual, as a percentage of the budget.</dd>
+                            <dt class="col-sm-3">Donor Report</dt><dd class="col-sm-9">The budget-vs-actual report produced for, and sent to, the donor.</dd>
+                        </dl>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_arcs_about" model="ir.actions.act_window">
+        <field name="name">User Guide</field>
+        <field name="res_model">arcs.about</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+</odoo>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_compliance_report_tree" model="ir.ui.view">
+        <field name="name">arcs.grant.tree.compliance.report</field>
+        <field name="model">arcs.grant</field>
+        <field name="arch" type="xml">
+            <tree string="Compliance Reports" create="false" edit="false" delete="false"
+                  decoration-danger="not agreement_attached" decoration-success="agreement_attached">
+                <field name="name"/>
+                <field name="donor_id"/>
+                <field name="funding_model"/>
+                <field name="is_restricted" widget="boolean_toggle"/>
+                <field name="agreement_attached" string="Signed Agreement Attached" widget="boolean_toggle"/>
+                <field name="attachment_count" optional="show"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_compliance_report_search" model="ir.ui.view">
+        <field name="name">arcs.grant.search.compliance.report</field>
+        <field name="model">arcs.grant</field>
+        <field name="arch" type="xml">
+            <search string="Search Compliance Reports">
+                <field name="name"/>
+                <field name="donor_id"/>
+                <filter name="missing_agreement" string="Missing Signed Agreement"
+                        domain="[('agreement_attached','=',False)]"/>
+                <filter name="restricted" string="Restricted Funding"
+                        domain="[('is_restricted','=',True)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
+                    <filter name="g_funding" string="Funding Model" context="{'group_by':'funding_model'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_arcs_compliance_report" model="ir.actions.act_window">
+        <field name="name">Compliance Reports</field>
+        <field name="res_model">arcs.grant</field>
+        <field name="view_mode">tree</field>
+        <field name="search_view_id" ref="view_arcs_compliance_report_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No grants to report on yet</p>
+            <p>
+                Every grant's compliance status at a glance: whether the signed agreement
+                is attached, its funding model, and whether it carries restricted funding.
+                Use the filters to surface grants missing their signed agreement.
+            </p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_expense_form_program" model="ir.ui.view">
+        <field name="name">arcs.expense.form.program</field>
+        <field name="model">arcs.expense</field>
+        <field name="inherit_id" ref="arcs_expense.view_arcs_expense_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='budget_line_id']" position="after">
+                <field name="project_id"/>
+                <field name="activity_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

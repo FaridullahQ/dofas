@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_spend_request_reassign_wizard_form" model="ir.ui.view">
+        <field name="name">arcs.spend.request.reassign.wizard.form</field>
+        <field name="model">arcs.spend.request.reassign.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Choose a Different Budget Line">
+                <field name="request_id" invisible="1"/>
+                <group>
+                    <field name="current_budget_line_id"/>
+                    <field name="new_budget_line_id"/>
+                    <field name="note"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Reassign &amp; Resubmit" type="object"
+                            class="oe_highlight"/>
+                    <button special="cancel" string="Cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

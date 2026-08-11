@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_grant_tree" model="ir.ui.view">
+        <field name="name">arcs.grant.tree</field>
+        <field name="model">arcs.grant</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state in ('draft','closed','cancelled')" decoration-info="state=='review'"
+                  decoration-success="state in ('approved','active')">
+                <field name="grant_number"/>
+                <field name="name"/>
+                <field name="donor_id"/>
+                <field name="funding_model" optional="show"/>
+                <field name="date_start" optional="show"/>
+                <field name="date_end" optional="show"/>
+                <field name="approved_amount" sum="Approved"/>
+                <field name="currency_id" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state in ('draft','closed','cancelled')"
+                       decoration-info="state=='review'"
+                       decoration-success="state in ('approved','active')"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_arcs_grant_form" model="ir.ui.view">
+        <field name="name">arcs.grant.form</field>
+        <field name="model">arcs.grant</field>
+        <field name="arch" type="xml">
+            <form string="Grant">
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight"
+                            invisible="state!='draft'"
+                            confirm="Submitting this grant will send it for review and lock its details from further edits. Do you want to continue?"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight"
+                            invisible="state!='review'"
+                            confirm="Approving this grant confirms its terms and budget are correct and ready for activation. Do you want to continue?"/>
+                    <button name="action_activate" string="Activate" type="object" class="oe_highlight"
+                            invisible="state!='approved'"
+                            confirm="Activating this grant will make it available for budgeting, projects, and expenses to be recorded against it. Do you want to continue?"/>
+                    <button name="action_reject_wizard" string="Reject" type="object"
+                            invisible="state not in ('review','approved')"/>
+                    <button name="action_close" string="Close" type="object"
+                            invisible="state!='active'"
+                            confirm="Closing this grant will prevent any further budgeting, projects, or expenses from being recorded against it. Do you want to continue?"/>
+                    <button name="action_reopen" string="Reopen" type="object"
+                            invisible="state!='closed'"
+                            confirm="Reopening this grant will make it active again and allow new activity to be recorded against it. Do you want to continue?"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state in ('cancelled','closed')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,review,approved,active,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Grant title" readonly="state not in ('draft','review')"/>
+                        </h1>
+                    </div>
+                    <notebook>
+                        <page name="general" string="General Information">
+                            <group>
+                                <group>
+                                    <field name="grant_number" placeholder="Example: UNDP-2026-001"
+                                           readonly="state not in ('draft','review')"/>
+                                    <field name="agreement_number" placeholder="Signed agreement reference"
+                                           readonly="state not in ('draft','review')"/>
+                                    <field name="donor_id" readonly="state not in ('draft','review')"/>
+                                    <field name="funding_model" readonly="state not in ('draft','review')"/>
+                                    <field name="is_restricted" readonly="state not in ('draft','review')"/>
+                                </group>
+                                <group>
+                                    <field name="company_id" groups="base.group_multi_company"
+                                           readonly="state not in ('draft','review')"/>
+                                    <field name="currency_id" readonly="state not in ('draft','review')"/>
+                                    <field name="date_start" readonly="state not in ('draft','review')"/>
+                                    <field name="date_end" readonly="state not in ('draft','review')"/>
+                                    <field name="reporting_frequency" readonly="state not in ('draft','review')"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="financial" string="Financial Information">
+                            <group>
+                                <field name="approved_amount" placeholder="Enter approved budget amount"
+                                       readonly="state not in ('draft','review')"/>
+                                <field name="analytic_account_id" readonly="state not in ('draft','review')"/>
+                            </group>
+                        </page>
+                        <page name="compliance" string="Compliance"/>
+                        <page name="reporting" string="Reporting"/>
+                        <page name="documents" string="Documents">
+                            <field name="attachment_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="mimetype"/>
+                                    <field name="file_size" widget="integer"/>
+                                    <field name="create_uid"/>
+                                    <field name="create_date"/>
+                                </tree>
+                            </field>
+                            <p class="text-muted oe_grey">
+                                Attach files (such as the signed agreement) using the chatter below — they are listed
+                                here and counted by the approval gate.
+                            </p>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="view_arcs_grant_search" model="ir.ui.view">
+        <field name="name">arcs.grant.search</field>
+        <field name="model">arcs.grant</field>
+        <field name="arch" type="xml">
+            <search string="Search Grants">
+                <field name="grant_number" placeholder="Search by grant number…"/>
+                <field name="name" placeholder="Search by grant title…"/>
+                <field name="donor_id"/>
+                <filter name="draft_grants" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="review_grants" string="In Review" domain="[('state','=','review')]"/>
+                <filter name="approved_grants" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="active_grants" string="Active" domain="[('state','=','active')]"/>
+                <filter name="closed_grants" string="Closed" domain="[('state','=','closed')]"/>
+                <filter name="cancelled_grants" string="Cancelled" domain="[('state','=','cancelled')]"/>
+                <separator/>
+                <filter name="archived" string="Archived" domain="[('active','=',False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
+                    <filter name="g_model" string="Funding Model" context="{'group_by':'funding_model'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_currency" string="Currency" context="{'group_by':'currency_id'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="donor_id" icon="fa-heart" select="multi" enable_counters="1"/>
+                    <field name="funding_model" icon="fa-money" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+    <record id="action_arcs_grant" model="ir.actions.act_window">
+        <field name="name">Grants</field>
+        <field name="res_model">arcs.grant</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

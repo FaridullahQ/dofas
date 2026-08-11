@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_zone" name="Regions / Provinces" parent="arcs_base.menu_arcs_master"
+              action="action_arcs_zone" sequence="50"/>
+    <menuitem id="menu_arcs_department" name="Departments" parent="arcs_base.menu_arcs_master"
+              action="action_arcs_department" sequence="60"/>
+</odoo>

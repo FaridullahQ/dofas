@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_root" name="DoFAS" sequence="50"/>
+
+    <!-- Procurement & Assets has no single natural owning module (Acquisitions
+         lives in arcs_request, Asset Register in arcs_asset), so - matching
+         Master Data/Audit & Compliance/Configuration below - it is defined
+         once here, in the foundation module every other module already
+         depends on, rather than arbitrarily picking one of its two children
+         to own it. -->
+    <menuitem id="menu_arcs_procurement_assets" name="Procurement &amp; Assets"
+              parent="menu_arcs_root" sequence="30"/>
+
+    <menuitem id="menu_arcs_master" name="Master Data" parent="menu_arcs_root" sequence="50"/>
+
+    <menuitem id="menu_arcs_audit" name="Audit &amp; Compliance" parent="menu_arcs_root"
+              sequence="70" groups="group_finance_manager"/>
+    <menuitem id="menu_arcs_audit_log" name="Audit Reports" parent="menu_arcs_audit"
+              action="action_arcs_audit_log" sequence="10"/>
+
+    <menuitem id="menu_arcs_config" name="Configuration" parent="menu_arcs_root"
+              sequence="80" groups="group_system_admin"/>
+    <menuitem id="menu_arcs_system_settings" name="System Settings" parent="menu_arcs_config"
+              action="base_setup.action_general_configuration" sequence="10"/>
+    <menuitem id="menu_arcs_config_settings" name="Accounting Setup" parent="menu_arcs_config"
+              action="action_arcs_config_settings" sequence="20"/>
+    <menuitem id="menu_arcs_ask_index" name="Ask DoFAS Index" parent="menu_arcs_config"
+              action="action_arcs_ask_index" sequence="50"/>
+</odoo>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_fund_receipt_tree" model="ir.ui.view">
+        <field name="name">arcs.fund.receipt.tree</field>
+        <field name="model">arcs.fund.receipt</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='posted'" decoration-muted="state=='draft'">
+                <field name="name"/>
+                <field name="received_date"/>
+                <field name="donor_id"/>
+                <field name="grant_id"/>
+                <field name="bank_voucher_ref" optional="show"/>
+                <field name="installment" optional="hide"/>
+                <field name="amount" sum="Total"/>
+                <field name="currency_id" optional="hide"/>
+                <field name="state" widget="badge" decoration-success="state=='posted'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_fund_receipt_form" model="ir.ui.view">
+        <field name="name">arcs.fund.receipt.form</field>
+        <field name="model">arcs.fund.receipt</field>
+        <field name="arch" type="xml">
+            <form string="Fund Receipt">
+                <header>
+                    <button name="action_post" string="Post" type="object"
+                            class="oe_highlight" invisible="state!='draft'"
+                            confirm="Posting this receipt will create a journal entry and lock it from further edits. Do you want to continue?"/>
+                    <button name="action_print_thanks" string="Print Thank-You Letter"
+                            type="object" class="btn-secondary" icon="fa-file-pdf-o"
+                            invisible="state!='posted'"/>
+                    <button name="action_print_voucher" string="Print Voucher"
+                            type="object" class="btn-secondary" icon="fa-file-text-o"
+                            invisible="state!='posted'"/>
+                    <button name="action_open_send_wizard" string="Send Email"
+                            type="object" class="btn-secondary" icon="fa-envelope-o"
+                            invisible="state!='posted'"/>
+                    <button name="action_reset" string="Reset to Draft" type="object"
+                            invisible="state!='posted'"
+                            confirm="This will cancel the journal entry and set the receipt back to draft. Continue?"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,posted"/>
+                </header>
+                <sheet>
+                    <!-- smart buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <field name="move_id" invisible="1"/>
+                        <field name="move_count" invisible="1"/>
+                        <button name="action_view_move" type="object"
+                                class="oe_stat_button" icon="fa-book"
+                                invisible="not move_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Journal</span>
+                                <span class="o_stat_text">Entry</span>
+                            </div>
+                        </button>
+                        <field name="thanks_email_sent" invisible="1"/>
+                        <div class="oe_stat_button" invisible="not thanks_email_sent">
+                            <i class="fa fa-fw fa-envelope"/>
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Emailed</span>
+                                <field name="thanks_email_date" widget="date"
+                                       class="o_stat_text" readonly="1"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- attachment gate banner -->
+                    <field name="voucher_attached" invisible="1"/>
+                    <field name="attachment_count" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state=='posted' or voucher_attached">
+                        <strong>Bank voucher required.</strong>
+                        Attach the scanned bank voucher in the chatter (paperclip icon below)
+                        before posting. The receipt cannot be posted without it.
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="state=='posted' or not voucher_attached">
+                        <strong>Voucher attached.</strong>
+                        <field name="attachment_count" class="oe_inline"/>
+                        document(s) attached. You may post this receipt.
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Donor &amp; Grant">
+                            <field name="grant_id"/>
+                            <field name="donor_id"/>
+                            <field name="installment" placeholder="e.g. Tranche 1"/>
+                            <field name="purpose" placeholder="e.g. 25% revolving fund for 2026"/>
+                            <field name="received_date"/>
+                        </group>
+                        <group string="Payment Details">
+                            <field name="bank_voucher_ref"
+                                   placeholder="e.g. 0001011046760"
+                                   required="state=='draft'"/>
+                            <field name="journal_id"/>
+                            <field name="receivable_account_id"/>
+                            <field name="currency_id"/>
+                            <field name="exchange_rate"/>
+                            <field name="amount" placeholder="Enter received amount"/>
+                            <field name="amount_words"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="view_arcs_fund_receipt_search" model="ir.ui.view">
+        <field name="name">arcs.fund.receipt.search</field>
+        <field name="model">arcs.fund.receipt</field>
+        <field name="arch" type="xml">
+            <search string="Search Fund Receipts">
+                <field name="name" placeholder="Search by receipt reference…"/>
+                <field name="bank_voucher_ref" placeholder="Search by bank voucher reference…"/>
+                <field name="donor_id"/>
+                <field name="grant_id"/>
+                <filter name="posted" string="Posted" domain="[('state','=','posted')]"/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
+                    <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="donor_id" icon="fa-heart" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+    <record id="action_arcs_fund_receipt" model="ir.actions.act_window">
+        <field name="name">Fund Receipts</field>
+        <field name="res_model">arcs.fund.receipt</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

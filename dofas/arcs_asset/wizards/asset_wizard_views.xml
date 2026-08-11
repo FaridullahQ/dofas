@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Transfer wizard -->
+    <record id="view_asset_transfer_wizard_form" model="ir.ui.view">
+        <field name="name">arcs.asset.transfer.wizard.form</field>
+        <field name="model">arcs.asset.transfer.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Transfer Asset">
+                <group>
+                    <field name="asset_id" readonly="1"/>
+                    <field name="current_location_id" readonly="1"/>
+                    <field name="dest_location_id"
+                           placeholder="Receiving office / store location..."/>
+                    <field name="custodian_id"
+                           placeholder="Person or office responsible..."/>
+                    <field name="transfer_date"/>
+                    <field name="reference" placeholder="e.g. Gate-pass GP-2026-014"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Transfer"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Dispose wizard -->
+    <record id="view_asset_dispose_wizard_form" model="ir.ui.view">
+        <field name="name">arcs.asset.dispose.wizard.form</field>
+        <field name="model">arcs.asset.dispose.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Dispose Asset">
+                <group>
+                    <field name="asset_id" readonly="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="disposal_method"/>
+                    <field name="disposal_date"/>
+                    <field name="disposal_value"/>
+                    <field name="reference" placeholder="e.g. Disposal board memo No. 7"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirm Disposal"
+                            class="btn-danger"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Lost wizard -->
+    <record id="view_asset_lost_wizard_form" model="ir.ui.view">
+        <field name="name">arcs.asset.lost.wizard.form</field>
+        <field name="model">arcs.asset.lost.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Mark Asset Lost">
+                <group>
+                    <field name="asset_id" readonly="1"/>
+                    <field name="lost_date"/>
+                    <field name="reason"
+                           placeholder="Describe how the asset was lost or stolen..."/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Mark Lost"
+                            class="btn-danger"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

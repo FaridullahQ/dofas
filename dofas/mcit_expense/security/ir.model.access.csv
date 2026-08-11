@@ -1,4 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_mcit_expense_officer,mcit.expense officer,model_mcit_expense,mcit_base.group_finance_officer,1,1,1,0
-access_mcit_expense_mgr,mcit.expense mgr,model_mcit_expense,mcit_base.group_finance_manager,1,1,1,1
-access_mcit_expense_read,mcit.expense read,model_mcit_expense,base.group_user,1,0,0,0

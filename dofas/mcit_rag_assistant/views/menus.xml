@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <menuitem id="menu_mcit_rag_chunk"
-              name="Ask DoFAS Index"
-              parent="mcit_base.menu_mcit_config"
-              action="action_mcit_rag_chunk"
-              groups="mcit_base.group_system_admin"
-              sequence="20"/>
-</odoo>

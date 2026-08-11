@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_budget_transfer_tree" model="ir.ui.view">
+        <field name="name">arcs.budget.transfer.tree</field>
+        <field name="model">arcs.budget.transfer</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state in ('draft','cancelled')" decoration-info="state=='submitted'"
+                  decoration-success="state=='approved'" decoration-danger="state=='rejected'">
+                <field name="name"/>
+                <field name="from_line_id"/>
+                <field name="to_line_id"/>
+                <field name="amount" sum="Total"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state in ('draft','cancelled')" decoration-info="state=='submitted'"
+                       decoration-success="state=='approved'" decoration-danger="state=='rejected'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_budget_transfer_form" model="ir.ui.view">
+        <field name="name">arcs.budget.transfer.form</field>
+        <field name="model">arcs.budget.transfer</field>
+        <field name="arch" type="xml">
+            <form string="Internal Budget Transfer">
+                <header>
+                    <button name="action_submit" string="Submit" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"
+                            confirm="Submitting this transfer will send it to Finance for approval and lock it from further edits. Do you want to continue?"/>
+                    <button name="action_approve" string="Approve" type="object"
+                            class="oe_highlight" invisible="state != 'submitted'"
+                            groups="arcs_base.group_finance_manager"
+                            confirm="Approving this transfer will shift spendable budget between the selected lines immediately. Each line's Planned amount stays as originally approved; the effect is recorded separately as Transferred In / Transferred Out. Do you want to continue?"/>
+                    <button name="action_reject_wizard" string="Reject" type="object"
+                            invisible="state != 'submitted'"
+                            groups="arcs_base.group_finance_manager"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state not in ('draft', 'submitted')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Movement">
+                            <field name="from_line_id" required="1" readonly="state != 'draft'"
+                                   help="The budget line to draw funds from."/>
+                            <field name="from_line_available" invisible="not from_line_id"/>
+                            <field name="to_line_id" readonly="state != 'draft'"
+                                   help="The budget line receiving the funds."/>
+                            <field name="to_line_available" invisible="not to_line_id"/>
+                        </group>
+                        <group string="Amount">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="amount" placeholder="0.00" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group string="Justification" col="1">
+                        <field name="reason" nolabel="1" readonly="state != 'draft'"
+                               placeholder="Why is this transfer needed? e.g. cover a shortfall on..."/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="view_arcs_budget_transfer_search" model="ir.ui.view">
+        <field name="name">arcs.budget.transfer.search</field>
+        <field name="model">arcs.budget.transfer</field>
+        <field name="arch" type="xml">
+            <search string="Search Budget Transfers">
+                <field name="name" string="Transfer"
+                       filter_domain="['|',('name','ilike',self),('reason','ilike',self)]"/>
+                <field name="from_line_id"/>
+                <field name="to_line_id"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="submitted" string="Submitted" domain="[('state','=','submitted')]"/>
+                <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state','=','rejected')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_from" string="From Budget Line" context="{'group_by':'from_line_id'}"/>
+                    <filter name="g_to" string="To Budget Line" context="{'group_by':'to_line_id'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+    <record id="action_arcs_budget_transfer" model="ir.actions.act_window">
+        <field name="name">Internal Budget Transfers</field>
+        <field name="res_model">arcs.budget.transfer</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_arcs_budget_transfer_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create an internal budget transfer</p>
+            <p>Shift spendable budget from one line to another within the same grant/version,
+                subject to Finance Manager approval. Each line's originally approved Planned
+                amount is never changed - the movement is tracked separately as Transferred
+                In / Transferred Out on the two lines.
+            </p>
+        </field>
+    </record>
+</odoo>

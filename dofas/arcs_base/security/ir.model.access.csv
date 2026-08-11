@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_audit_log_user,arcs.audit.log user,model_arcs_audit_log,base.group_user,1,0,1,0
+access_arcs_audit_log_admin,arcs.audit.log admin,model_arcs_audit_log,group_system_admin,1,0,1,0
+access_arcs_reason_wizard_user,arcs.reason.wizard user,model_arcs_reason_wizard,base.group_user,1,1,1,1
+access_arcs_ask_index_user,arcs.ask.index user,model_arcs_ask_index,base.group_user,1,1,1,1

@@ -1,0 +1,16 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_adv_user,advance read,model_arcs_advance,base.group_user,1,0,0,0
+access_adv_finoff,advance finance officer,model_arcs_advance,arcs_base.group_finance_officer,1,1,1,0
+access_adv_proj,advance project manager,model_arcs_advance,arcs_base.group_project_manager,1,1,1,0
+access_adv_finmgr,advance finance manager,model_arcs_advance,arcs_base.group_finance_manager,1,1,1,1
+access_adv_admin,advance admin,model_arcs_advance,arcs_base.group_system_admin,1,1,1,1
+access_adv_donor_officer,advance donor officer,model_arcs_advance,arcs_base.group_donor_officer,1,1,1,0
+access_liq_user,liquidation read,model_arcs_advance_liquidation,base.group_user,1,0,0,0
+access_liq_finoff,liquidation finance officer,model_arcs_advance_liquidation,arcs_base.group_finance_officer,1,1,1,0
+access_liq_proj,liquidation project manager,model_arcs_advance_liquidation,arcs_base.group_project_manager,1,1,1,0
+access_liq_finmgr,liquidation finance manager,model_arcs_advance_liquidation,arcs_base.group_finance_manager,1,1,1,1
+access_liq_admin,liquidation admin,model_arcs_advance_liquidation,arcs_base.group_system_admin,1,1,1,1
+access_liq_donor_officer,liquidation donor officer,model_arcs_advance_liquidation,arcs_base.group_donor_officer,1,1,1,0
+access_adv_settle_wizard_finmgr,advance settlement wizard finance manager,model_arcs_advance_settlement_wizard,arcs_base.group_finance_manager,1,1,1,1
+access_adv_settle_wizard_admin,advance settlement wizard admin,model_arcs_advance_settlement_wizard,arcs_base.group_system_admin,1,1,1,1
+

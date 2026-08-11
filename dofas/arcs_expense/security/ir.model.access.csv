@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_expense_officer,arcs.expense officer,model_arcs_expense,arcs_base.group_finance_officer,1,1,1,0
+access_arcs_expense_mgr,arcs.expense mgr,model_arcs_expense,arcs_base.group_finance_manager,1,1,1,1
+access_arcs_expense_read,arcs.expense read,model_arcs_expense,base.group_user,1,0,0,0

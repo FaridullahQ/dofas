@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_expense_tree" model="ir.ui.view">
+        <field name="name">arcs.expense.tree</field>
+        <field name="model">arcs.expense</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state=='cancelled'" decoration-success="state=='posted'">
+                <field name="date"/>
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="budget_line_id"/>
+                <field name="partner_id" optional="show"/>
+                <field name="amount" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge" decoration-info="state=='submitted'"
+                       decoration-success="state in ('approved','posted')"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_arcs_expense_form" model="ir.ui.view">
+        <field name="name">arcs.expense.form</field>
+        <field name="model">arcs.expense</field>
+        <field name="arch" type="xml">
+            <form string="Expense">
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight"
+                            invisible="state!='draft'"
+                            confirm="Submitting this expense will send it for approval and lock it from further edits. Do you want to continue?"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight"
+                            invisible="state!='submitted'"
+                            help="Encumbers the budget line. Blocked if insufficient."
+                            confirm="Approving this expense will encumber the budget line for this amount. This will be blocked if the available balance is insufficient. Do you want to continue?"/>
+                    <button name="action_post" string="Post" type="object" class="oe_highlight"
+                            invisible="state!='approved'"
+                            help="Books the journal entry and records the actual."
+                            confirm="Posting this expense will book the journal entry and record it as an actual cost against the budget line. Do you want to continue?"/>
+                    <button name="action_print_voucher" string="Print Voucher" type="object"
+                            invisible="state!='posted'"/>
+                    <button name="action_reject_wizard" string="Reject" type="object"
+                            invisible="state!='submitted'"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state in ('posted','cancelled')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_move" type="object" class="oe_stat_button" icon="fa-book"
+                                invisible="not move_id">
+                            <span>Journal Entry</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="grant_id"/>
+                            <field name="budget_line_id"/>
+                            <field name="account_id"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="amount" placeholder="Enter expense amount"/>
+                            <field name="date"/>
+                            <field name="commitment_id"/>
+                            <field name="move_id" invisible="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="view_arcs_expense_search" model="ir.ui.view">
+        <field name="name">arcs.expense.search</field>
+        <field name="model">arcs.expense</field>
+        <field name="arch" type="xml">
+            <search string="Search Expenses">
+                <field name="name" placeholder="Search by expense reference…"/>
+                <field name="grant_id"/>
+                <field name="budget_line_id"/>
+                <field name="partner_id"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="to_approve" string="To Approve" domain="[('state','=','submitted')]"/>
+                <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="posted" string="Posted" domain="[('state','=','posted')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state','=','rejected')]"/>
+                <filter name="cancelled" string="Cancelled" domain="[('state','=','cancelled')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="g_line" string="Budget Line" context="{'group_by':'budget_line_id'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="g_month" string="Month" context="{'group_by':'date:month'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="grant_id" icon="fa-money" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+    <record id="action_arcs_expense" model="ir.actions.act_window">
+        <field name="name">Expenses</field>
+        <field name="res_model">arcs.expense</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

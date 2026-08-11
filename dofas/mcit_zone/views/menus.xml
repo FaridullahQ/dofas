@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <menuitem id="menu_mcit_zone" name="Regions / Provinces" parent="mcit_base.menu_mcit_master"
-              action="action_mcit_zone" sequence="30"/>
-    <menuitem id="menu_mcit_department" name="Departments" parent="mcit_base.menu_mcit_master"
-              action="action_mcit_department" sequence="31"/>
-</odoo>

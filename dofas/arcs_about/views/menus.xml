@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_about_root" name="Help"
+              parent="arcs_base.menu_arcs_root"
+              sequence="100"
+              groups="arcs_about.group_arcs_about"/>
+    <menuitem id="menu_arcs_about" name="User Guide"
+              parent="menu_arcs_about_root"
+              action="action_arcs_about" sequence="10"/>
+    <menuitem id="menu_arcs_faq" name="FAQs"
+              parent="menu_arcs_about_root"
+              action="action_arcs_faq" sequence="20"/>
+    <menuitem id="menu_arcs_support_contact" name="Support Contact"
+              parent="menu_arcs_about_root"
+              action="action_arcs_support_contact" sequence="30"/>
+</odoo>

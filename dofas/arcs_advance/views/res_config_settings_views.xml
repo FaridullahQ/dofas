@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_advance_config_settings" model="ir.ui.view">
+        <field name="name">arcs.advance.config.settings</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="arcs_base.view_arcs_config_settings"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='arcs_donor_management']" position="inside">
+                <block title="Advances" name="arcs_advance_block">
+                    <setting string="Book advances to the ledger" help="Post journal entries when advances are issued and liquidated.">
+                        <field name="arcs_advance_book"/>
+                    </setting>
+                    <setting string="Advance Journal" invisible="not arcs_advance_book">
+                        <field name="arcs_advance_journal_id"/>
+                    </setting>
+                    <setting string="Advance (Receivable) Account" invisible="not arcs_advance_book">
+                        <field name="arcs_advance_account_id"/>
+                    </setting>
+                    <setting string="Cash/Bank Account" invisible="not arcs_advance_book">
+                        <field name="arcs_advance_cash_account_id"/>
+                    </setting>
+                    <setting string="Clearing Account" invisible="not arcs_advance_book">
+                        <field name="arcs_advance_clearing_account_id"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

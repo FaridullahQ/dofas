@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_spend_request" name="Acquisitions"
+              parent="arcs_base.menu_arcs_procurement_assets"
+              action="action_arcs_spend_request" sequence="10"/>
+</odoo>

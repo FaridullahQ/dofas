@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_asset" model="ir.ui.view">
+        <field name="name">res.config.settings.form.arcs.asset</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="ARCS Asset Register" string="ARCS Asset Register"
+                     name="arcs_asset">
+                    <block title="Inventory Locations"
+                           name="arcs_asset_locations">
+                        <setting string="Asset Warehouse"
+                                 help="Provides the internal-transfer operation type.">
+                            <field name="asset_warehouse_id"/>
+                        </setting>
+                        <setting string="Custody (In-Use) Location"
+                                 help="Where assets live while in use.">
+                            <field name="asset_custody_location_id"/>
+                        </setting>
+                        <setting string="Store Location"
+                                 help="Target of the 'Move to Store' button.">
+                            <field name="asset_store_location_id"/>
+                        </setting>
+                        <setting string="Disposal / Loss Location"
+                                 help="Where disposed/lost units are moved out to.">
+                            <field name="asset_disposal_location_id"/>
+                        </setting>
+                        <setting string="Asset Product Category"
+                                 help="Category for auto-created asset products.">
+                            <field name="asset_product_category_id"/>
+                        </setting>
+                    </block>
+                    <block title="Disposal Accounting (optional)"
+                           name="arcs_asset_accounting">
+                        <setting string="Book Disposal Journal Entry"
+                                 help="Post a journal entry when an asset is disposed.">
+                            <field name="asset_book_disposal"/>
+                        </setting>
+                        <setting string="Disposal Journal"
+                                 invisible="not asset_book_disposal">
+                            <field name="asset_disposal_journal_id"/>
+                        </setting>
+                        <setting string="Disposal Proceeds Account"
+                                 invisible="not asset_book_disposal">
+                            <field name="asset_disposal_income_account_id"/>
+                        </setting>
+                        <setting string="Disposal Write-off Account"
+                                 invisible="not asset_book_disposal">
+                            <field name="asset_disposal_loss_account_id"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_arcs_asset_settings" model="ir.actions.act_window">
+        <field name="name">Asset Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'arcs_asset'}</field>
+    </record>
+</odoo>

@@ -1,0 +1,19 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_budget_read,arcs.budget read,model_arcs_budget,base.group_user,1,0,0,0
+access_arcs_budget_fmgr,arcs.budget fmgr,model_arcs_budget,arcs_base.group_finance_manager,1,1,1,1
+access_arcs_budget_donor_officer,arcs.budget donor officer,model_arcs_budget,arcs_base.group_donor_officer,1,1,1,0
+access_arcs_budget_line_read,arcs.budget.line read,model_arcs_budget_line,base.group_user,1,0,0,0
+access_arcs_budget_line_fmgr,arcs.budget.line fmgr,model_arcs_budget_line,arcs_base.group_finance_manager,1,1,1,1
+access_arcs_budget_line_donor_officer,arcs.budget.line donor officer,model_arcs_budget_line,arcs_base.group_donor_officer,1,1,1,0
+access_arcs_commitment_read,arcs.commitment read,model_arcs_commitment,base.group_user,1,0,0,0
+access_arcs_commitment_fofficer,arcs.commitment fofficer,model_arcs_commitment,arcs_base.group_finance_officer,1,1,1,0
+access_arcs_commitment_admin,arcs.commitment admin,model_arcs_commitment,arcs_base.group_system_admin,1,1,1,1
+access_arcs_commitment_donor_officer,arcs.commitment donor officer,model_arcs_commitment,arcs_base.group_donor_officer,1,1,1,0
+access_arcs_budget_transfer_read,arcs.budget.transfer read,model_arcs_budget_transfer,base.group_user,1,0,0,0
+access_arcs_budget_transfer_prog,arcs.budget.transfer program officer,model_arcs_budget_transfer,arcs_base.group_program_officer,1,1,1,0
+access_arcs_budget_transfer_proj,arcs.budget.transfer project manager,model_arcs_budget_transfer,arcs_base.group_project_manager,1,1,1,0
+access_arcs_budget_transfer_officer,arcs.budget.transfer officer,model_arcs_budget_transfer,arcs_base.group_finance_officer,1,1,1,0
+access_arcs_budget_transfer_mgr,arcs.budget.transfer finance mgr,model_arcs_budget_transfer,arcs_base.group_finance_manager,1,1,1,0
+access_arcs_budget_transfer_admin,arcs.budget.transfer admin,model_arcs_budget_transfer,arcs_base.group_system_admin,1,1,1,1
+access_arcs_budget_transfer_donor_officer,arcs.budget.transfer donor officer,model_arcs_budget_transfer,arcs_base.group_donor_officer,1,1,1,0
+

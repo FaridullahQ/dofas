@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_checklist_read,checklist read,model_arcs_compliance_checklist,base.group_user,1,0,0,0
+access_arcs_checklist_co,checklist co,model_arcs_compliance_checklist,arcs_base.group_compliance_officer,1,1,1,1
+access_arcs_checklist_donor_officer,checklist donor officer,model_arcs_compliance_checklist,arcs_base.group_donor_officer,1,1,1,0
+access_arcs_checklist_line_read,checklist line read,model_arcs_compliance_checklist_line,base.group_user,1,0,0,0
+access_arcs_checklist_line_co,checklist line co,model_arcs_compliance_checklist_line,arcs_base.group_compliance_officer,1,1,1,1
+access_arcs_checklist_line_donor_officer,checklist line donor officer,model_arcs_compliance_checklist_line,arcs_base.group_donor_officer,1,1,1,0
+

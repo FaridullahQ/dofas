@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_spend_request_tree" model="ir.ui.view">
+        <field name="name">arcs.spend.request.tree</field>
+        <field name="model">arcs.spend.request</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state in ('draft','cancelled')" decoration-info="state=='submitted'"
+                  decoration-warning="state=='insufficient_funds'"
+                  decoration-success="state in ('committed','approved')" decoration-danger="state=='rejected'">
+                <field name="name"/>
+                <field name="date_request"/>
+                <field name="zone_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="budget_line_id"/>
+                <field name="estimated_amount" sum="Estimated"/>
+                <field name="approved_amount" sum="Approved" optional="show"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state in ('draft','cancelled')" decoration-info="state=='submitted'"
+                       decoration-warning="state=='insufficient_funds'"
+                       decoration-success="state in ('committed','approved')" decoration-danger="state=='rejected'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_spend_request_form" model="ir.ui.view">
+        <field name="name">arcs.spend.request.form</field>
+        <field name="model">arcs.spend.request</field>
+        <field name="arch" type="xml">
+            <form string="Spend Request">
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight"
+                            invisible="state != 'draft'"
+                            confirm="Submitting this request will send it for budget commitment and lock the items from further edits. Do you want to continue?"/>
+                    <button name="action_open_quotation_wizard" string="Confirm Real Price" type="object"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_commit" string="Commit &amp; Reserve" type="object" class="oe_highlight"
+                            invisible="state != 'submitted' or not approved_amount"
+                            groups="arcs_base.group_finance_manager"
+                            confirm="Committing this request will reserve the approved amount against the budget line, reducing what's available for other requests. Do you want to continue?"/>
+                    <button name="action_choose_different_budget_line" string="Choose Different Budget Line"
+                            type="object"
+                            class="oe_highlight" invisible="state != 'insufficient_funds'"/>
+                    <button name="action_open_split_wizard" string="Split Across Budget Lines" type="object"
+                            invisible="state != 'insufficient_funds'"
+                            groups="arcs_base.group_finance_manager"/>
+                    <button name="action_request_budget_transfer" string="Request Internal Transfer" type="object"
+                            invisible="state != 'insufficient_funds'"/>
+                    <button name="action_request_donor_funding" string="Request Donor Funding" type="object"
+                            invisible="state != 'insufficient_funds'"/>
+                    <button name="action_reset_draft_wizard" string="Revise Request" type="object"
+                            invisible="state != 'insufficient_funds'"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight"
+                            invisible="state != 'committed'"
+                            groups="arcs_base.group_executive_director"
+                            confirm="Approving this request authorizes the reserved funds to be spent and allows an expense to be created against it. Do you want to continue?"/>
+                    <button name="action_create_expense" string="Create Expense" type="object"
+                            invisible="state != 'approved'"/>
+                    <button name="action_disburse_advance" string="Disburse Advance" type="object"
+                            class="oe_highlight" icon="fa-money"
+                            invisible="state != 'approved' or advance_id"
+                            groups="arcs_base.group_finance_manager"
+                            confirm="This pays the approved amount out to Requested By as a real cash advance. Do you want to continue?"/>
+                    <button name="action_create_liquidation_for_advance" string="Create Liquidation" type="object"
+                            invisible="state != 'approved' or not advance_id or advance_state != 'issued'"/>
+                    <button name="action_settle_advance" string="Settle Advance" type="object"
+                            invisible="state != 'approved' or not advance_id or advance_state != 'issued' or not advance_outstanding_amount"
+                            groups="arcs_base.group_finance_manager"/>
+                    <button name="action_print_voucher" string="Print Voucher" type="object"
+                            invisible="state not in ('committed', 'approved')"/>
+                    <button name="action_reject_wizard" string="Reject" type="object"
+                            invisible="state not in ('submitted','committed')"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state in ('approved','rejected','cancelled')"/>
+                    <button name="action_reset_draft_wizard" string="Reset to Draft" type="object"
+                            invisible="state not in ('rejected','cancelled')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,committed,approved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning" role="alert" invisible="state != 'insufficient_funds'">
+                        <field name="insufficient_funds_note" readonly="1" nolabel="1"/>
+                        <div class="mt-1">
+                            Choose a different budget line, split the amount across
+                            several budget lines, request an internal transfer, or
+                            request supplementary donor funding.
+                        </div>
+                    </div>
+                    <div class="alert alert-info" role="alert" invisible="state != 'submitted' or approved_amount">
+                        Click <strong>Confirm Real Price</strong> to record the vendor's quotation
+                        before Commit &amp; Reserve becomes available.
+                    </div>
+                    <div class="alert alert-info" role="alert" invisible="not is_split_reserve">
+                        This acquisition's approved amount is reserved across more than one
+                        budget line - see the <strong>Budget Reserves</strong> tab below for
+                        the breakdown; the printed voucher itemizes it the same way.
+                    </div>
+                    <div class="alert alert-secondary" role="alert"
+                         invisible="state != 'approved' or advance_id">
+                        No employee advance has been disbursed yet for this acquisition.
+                        Use <strong>Disburse Advance</strong> to pay <field name="requested_by"
+                        readonly="1" nolabel="1" class="oe_inline"/> the approved amount.
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'approved' or not advance_id or advance_state != 'issued' or advance_outstanding_amount &lt;= 0">
+                        <strong><field name="requested_by" readonly="1" nolabel="1" class="oe_inline"/></strong>
+                        still has <field name="advance_outstanding_amount" readonly="1" nolabel="1" class="oe_inline"/>
+                        outstanding on this advance. Once their expense(s) are posted, use
+                        <strong>Create Liquidation</strong> to justify what they spent, then
+                        <strong>Settle Advance</strong> to pay back or collect the difference.
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="state != 'approved' or not advance_id or advance_state != 'issued' or advance_outstanding_amount &gt;= 0">
+                        <field name="requested_by" readonly="1" nolabel="1" class="oe_inline"/>
+                        spent more than the advance and is owed a reimbursement of
+                        <field name="advance_outstanding_amount" readonly="1" nolabel="1" class="oe_inline"/>
+                        (shown negative). Use <strong>Settle Advance</strong> to pay it back to them.
+                    </div>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="commitment_id" invisible="1"/>
+                        <field name="is_split_reserve" invisible="1"/>
+                        <field name="advance_id" invisible="1"/>
+                        <field name="advance_state" invisible="1"/>
+                        <field name="advance_outstanding_amount" invisible="1"/>
+                        <button name="action_view_advance" type="object" class="oe_stat_button"
+                                icon="fa-money" invisible="not advance_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Employee Advance</span>
+                                <field name="advance_state" class="o_stat_text" readonly="1"/>
+                            </div>
+                        </button>
+                        <button name="action_view_commitments" type="object" class="oe_stat_button"
+                                icon="fa-lock" invisible="commitment_count == 0">
+                            <field name="commitment_count" widget="statinfo" string="Budget Reserves"/>
+                        </button>
+                        <button name="action_view_expenses" type="object" class="oe_stat_button" icon="fa-money"
+                                invisible="expense_count == 0">
+                            <field name="expense_count" widget="statinfo" string="Expenses"/>
+                        </button>
+                        <button name="action_view_budget_transfers" type="object" class="oe_stat_button"
+                                icon="fa-exchange" invisible="budget_transfer_count == 0">
+                            <field name="budget_transfer_count" widget="statinfo" string="Budget Transfers"/>
+                        </button>
+                        <button name="action_view_donor_funding" type="object" class="oe_stat_button" icon="fa-heart"
+                                invisible="donor_funding_count == 0">
+                            <field name="donor_funding_count" widget="statinfo" string="Donor Funding"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Requesting unit">
+                            <field name="zone_id" readonly="state != 'draft'"/>
+                            <field name="department_id" readonly="state != 'draft'"/>
+                            <field name="budget_holder_id" readonly="state != 'draft'"/>
+                            <field name="requested_by" readonly="state != 'draft'"/>
+                            <field name="date_request" readonly="state != 'draft'"/>
+                        </group>
+                        <group string="Budget">
+                            <field name="budget_line_id" readonly="state != 'draft'"/>
+                            <field name="grant_id"/>
+                            <field name="program_id" readonly="state != 'draft'"/>
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="activity_id" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="estimated_amount"/>
+                            <field name="approved_amount"/>
+                            <field name="quotation_ref"/>
+                            <field name="vendor_id"/>
+                            <field name="shortfall_amount" invisible="not shortfall_amount"/>
+                            <field name="available_on_line"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Items" name="items">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom">
+                                    <field name="name"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_estimate"/>
+                                    <field name="quoted_unit_price"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="quoted_amount" sum="Total (Quoted)"/>
+                                    <field name="currency_id" invisible="1"/>
+                                    <field name="note" optional="hide"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Budget Reserves" name="budget_reserves"
+                              invisible="commitment_count == 0">
+                            <field name="commitment_ids" readonly="1">
+                                <tree create="false" edit="false" delete="false"
+                                      decoration-info="state=='confirmed'"
+                                      decoration-success="state=='consumed'"
+                                      decoration-muted="state=='released'">
+                                    <field name="budget_line_id"/>
+                                    <field name="amount" sum="Reserved"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state=='confirmed'"
+                                           decoration-success="state=='consumed'"
+                                           decoration-muted="state=='released'"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Employee Advance" name="employee_advance"
+                              invisible="not advance_id">
+                            <group>
+                                <group>
+                                    <field name="advance_id" readonly="1"/>
+                                    <field name="advance_state" readonly="1"/>
+                                </group>
+                                <group>
+                                    <field name="advance_outstanding_amount" readonly="1"/>
+                                </group>
+                            </group>
+                            <field name="advance_liquidation_ids" readonly="1">
+                                <tree create="false" edit="false" delete="false"
+                                      decoration-info="state in ('submitted','approved')"
+                                      decoration-success="state=='posted'"
+                                      decoration-muted="state=='cancelled'">
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="amount" sum="Liquidated"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state in ('submitted','approved')"
+                                           decoration-success="state=='posted'"
+                                           decoration-muted="state=='cancelled'"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="note" placeholder="Justification / remarks"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="view_arcs_spend_request_search" model="ir.ui.view">
+        <field name="name">arcs.spend.request.search</field>
+        <field name="model">arcs.spend.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Spend Requests">
+                <field name="name" placeholder="Search by request reference…"/>
+                <field name="zone_id"/>
+                <field name="department_id"/>
+                <field name="budget_line_id"/>
+                <field name="grant_id"/>
+                <field name="program_id"/>
+                <field name="project_id"/>
+                <separator/>
+                <filter name="draft" string="Drafted" domain="[('state','=','draft')]"/>
+                <filter name="submitted" string="Submitted" domain="[('state','=','submitted')]"/>
+                <filter name="insufficient_funds" string="Insufficient Funds"
+                        domain="[('state','=','insufficient_funds')]"/>
+                <filter name="committed" string="Committed" domain="[('state','=','committed')]"/>
+                <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state','=','rejected')]"/>
+                <filter name="cancelled" string="Cancelled" domain="[('state','=','cancelled')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_zone" string="Region" context="{'group_by':'zone_id'}"/>
+                    <filter name="g_department" string="Department" context="{'group_by':'department_id'}"/>
+                    <filter name="g_program" string="Program" context="{'group_by':'program_id'}"/>
+                    <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+                <searchpanel>
+                    <field name="state" icon="fa-flag" select="one" enable_counters="1"/>
+                    <field name="zone_id" icon="fa-map-marker" select="multi" enable_counters="1"/>
+                    <field name="program_id" icon="fa-folder" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+    <record id="action_arcs_spend_request" model="ir.actions.act_window">
+        <field name="name">Acquisitions</field>
+        <field name="res_model">arcs.spend.request</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

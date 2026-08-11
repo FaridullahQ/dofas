@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_arcs_donor_report_document">
+        <t t-call="web.external_layout">
+            <t t-set="flags" t-value="doc.report_flags()"/>
+            <t t-set="cur" t-value="doc.currency_id"/>
+            <div class="page">
+                <h2 style="color:#1F3A5F;margin-bottom:0;"><span t-esc="doc.report_title()"/></h2>
+                <div style="color:#6B7280;margin-bottom:8px;">
+                    <span t-field="doc.donor_id"/> &#183; Grant: <span t-field="doc.grant_id"/>
+                </div>
+                <t t-if="doc.report_header_note()">
+                    <p style="white-space:pre-line;"><span t-esc="doc.report_header_note()"/></p>
+                </t>
+
+                <table class="table table-sm" style="margin-bottom:14px;">
+                    <tr>
+                        <td style="width:18%;"><strong>Report no.</strong></td><td style="width:32%;"><span t-field="doc.name"/></td>
+                        <td style="width:18%;"><strong>Period</strong></td><td><span t-field="doc.period"/></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Report date</strong></td><td><span t-field="doc.date_report"/></td>
+                        <td><strong>Prepared by</strong></td><td><span t-field="doc.create_uid"/></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status</strong></td><td><span t-field="doc.state"/></td>
+                        <td><strong>Currency</strong></td><td><span t-field="doc.currency_id"/></td>
+                    </tr>
+                    <tr t-if="flags['fx']">
+                        <td><strong>Exchange rate</strong></td>
+                        <td colspan="3"><span t-esc="doc.report_fx_info()"/></td>
+                    </tr>
+                </table>
+
+                <t t-if="flags['budget']">
+                    <t t-set="rows" t-value="doc.report_budget_rows()"/>
+                    <t t-set="tot" t-value="doc.report_budget_totals()"/>
+                    <h4 style="color:#1F3A5F;">Budget vs Actual</h4>
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr style="background-color:#1F3A5F;color:#ffffff;">
+                                <th>Category</th><th class="text-end">Planned</th><th class="text-end">Committed</th>
+                                <th class="text-end">Actual</th><th class="text-end">Available</th><th class="text-end">Util %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="rows" t-as="r">
+                                <td><span t-esc="r['category']"/></td>
+                                <td class="text-end"><span t-esc="r['planned']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td class="text-end"><span t-esc="r['committed']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td class="text-end"><span t-esc="r['actual']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td class="text-end"><span t-esc="r['available']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td class="text-end"><span t-esc="'%.1f' % r['utilization']"/></td>
+                            </tr>
+                            <tr t-if="not rows"><td colspan="6" class="text-muted">No budget lines.</td></tr>
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight:bold;border-top:2px solid #1F3A5F;">
+                                <td>Total</td>
+                                <td class="text-end"><span t-esc="tot['planned']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td class="text-end"><span t-esc="tot['committed']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td class="text-end"><span t-esc="tot['actual']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td class="text-end"><span t-esc="tot['available']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td class="text-end"><span t-esc="'%.1f' % tot['utilization']"/></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <p>Approved grant amount:
+                        <strong><span t-esc="tot['approved']" t-options='{"widget":"monetary","display_currency":cur}'/></strong>
+                        &#183; Total expenditure to date:
+                        <strong><span t-field="doc.total_actual" t-options='{"widget":"monetary","display_currency":cur}'/></strong>
+                    </p>
+                </t>
+
+                <t t-if="flags['narrative']">
+                    <t t-set="nar" t-value="doc.report_narrative()"/>
+                    <h4 style="color:#1F3A5F;">Narrative</h4>
+                    <p t-if="not nar" class="text-muted">No department narratives recorded.</p>
+                    <t t-foreach="nar" t-as="n">
+                        <p style="margin-bottom:2px;"><strong t-esc="n['period'] or 'Reporting period'"/></p>
+                        <ul>
+                            <li t-if="n['achievements']"><strong>Achievements: </strong><span t-esc="n['achievements']"/></li>
+                            <li t-if="n['challenges']"><strong>Challenges: </strong><span t-esc="n['challenges']"/></li>
+                            <li t-if="n['lessons']"><strong>Lessons: </strong><span t-esc="n['lessons']"/></li>
+                            <li t-if="n['outputs']"><strong>Outputs: </strong><span t-esc="n['outputs']"/></li>
+                            <li t-if="n['outcomes']"><strong>Outcomes: </strong><span t-esc="n['outcomes']"/></li>
+                        </ul>
+                    </t>
+                </t>
+
+                <t t-if="flags['compliance']">
+                    <t t-set="cmp" t-value="doc.report_compliance()"/>
+                    <h4 style="color:#1F3A5F;">Compliance</h4>
+                    <p>Signed agreement attached:
+                        <strong t-esc="'Yes' if cmp['agreement_attached'] else 'No'"/>
+                        (<span t-esc="cmp['attachment_count']"/> document(s) on file).</p>
+                    <table class="table table-sm" t-if="cmp['items']">
+                        <thead><tr><th>Requirement</th><th style="width:20%;">Required</th></tr></thead>
+                        <tbody>
+                            <tr t-foreach="cmp['items']" t-as="it">
+                                <td><span t-esc="it['name']"/></td>
+                                <td><span t-esc="'Yes' if it['required'] else 'No'"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p t-if="not cmp['items']" class="text-muted">No donor checklist items configured.</p>
+                </t>
+
+                <t t-if="flags['procurement']">
+                    <t t-set="cms" t-value="doc.report_commitments()"/>
+                    <h4 style="color:#1F3A5F;">Commitments / Procurement</h4>
+                    <table class="table table-sm table-bordered" t-if="cms">
+                        <thead><tr style="background-color:#1F3A5F;color:#ffffff;"><th>Reference</th><th class="text-end">Amount</th><th style="width:20%;">Status</th></tr></thead>
+                        <tbody>
+                            <tr t-foreach="cms" t-as="c">
+                                <td><span t-esc="c['ref']"/></td>
+                                <td class="text-end"><span t-esc="c['amount']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td><span t-esc="c['state']"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p t-if="not cms" class="text-muted">No commitments recorded.</p>
+                </t>
+
+                <t t-if="flags['asset']">
+                    <t t-set="assets" t-value="doc.report_assets()"/>
+                    <h4 style="color:#1F3A5F;">Assets Acquired</h4>
+                    <table class="table table-sm table-bordered" t-if="assets">
+                        <thead>
+                            <tr style="background-color:#1F3A5F;color:#ffffff;">
+                                <th>Tag</th><th>Asset</th><th>Category</th><th>Acquired</th>
+                                <th class="text-end">Cost</th><th>Custodian</th><th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="assets" t-as="a">
+                                <td><span t-esc="a['code']"/></td>
+                                <td><span t-esc="a['name']"/></td>
+                                <td><span t-esc="a['category']"/></td>
+                                <td><span t-esc="a['date']"/></td>
+                                <td class="text-end"><span t-esc="a['cost']" t-options='{"widget":"monetary","display_currency":cur}'/></td>
+                                <td><span t-esc="a['custodian']"/></td>
+                                <td><span t-esc="a['state']"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p t-if="not assets" class="text-muted">No assets recorded for this grant.</p>
+                </t>
+
+                <t t-if="flags['signature']">
+                    <table style="width:100%;margin-top:34px;">
+                        <tr>
+                            <td style="width:33%;">Prepared by<br/><br/><br/>_____________________<br/><span t-field="doc.create_uid"/></td>
+                            <td style="width:33%;">Reviewed by<br/><br/><br/>_____________________</td>
+                            <td style="width:33%;">Approved by<br/><br/><br/>_____________________</td>
+                        </tr>
+                    </table>
+                </t>
+
+                <t t-if="doc.report_footer_note()">
+                    <p style="margin-top:18px;color:#6B7280;white-space:pre-line;font-size:9px;"><span t-esc="doc.report_footer_note()"/></p>
+                </t>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_arcs_donor_report">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="arcs_report.report_arcs_donor_report_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

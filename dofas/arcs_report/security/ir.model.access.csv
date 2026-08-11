@@ -1,0 +1,12 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_rtemplate_read,template read,model_arcs_report_template,base.group_user,1,0,0,0
+access_arcs_rtemplate_admin,template admin,model_arcs_report_template,arcs_base.group_system_admin,1,1,1,1
+access_arcs_rtemplate_donor_officer,template donor officer,model_arcs_report_template,arcs_base.group_donor_officer,1,1,1,0
+access_arcs_deptrep_read,dept report read,model_arcs_department_report,base.group_user,1,0,0,0
+access_arcs_deptrep_dm,dept report dm,model_arcs_department_report,arcs_base.group_dept_manager,1,1,1,0
+access_arcs_deptrep_admin,dept report admin,model_arcs_department_report,arcs_base.group_system_admin,1,1,1,1
+access_arcs_deptrep_donor_officer,dept report donor officer,model_arcs_department_report,arcs_base.group_donor_officer,1,1,1,0
+access_arcs_donorrep_read,donor report read,model_arcs_donor_report,base.group_user,1,0,0,0
+access_arcs_donorrep_do,donor report do,model_arcs_donor_report,arcs_base.group_donor_officer,1,1,1,0
+access_arcs_donorrep_admin,donor report admin,model_arcs_donor_report,arcs_base.group_system_admin,1,1,1,1
+

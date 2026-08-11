@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_expense_form_request" model="ir.ui.view">
+        <field name="name">arcs.expense.form.request</field>
+        <field name="model">arcs.expense</field>
+        <field name="inherit_id" ref="arcs_expense.view_arcs_expense_form"/>
+        <field name="arch" type="xml">
+            <field name="budget_line_id" position="before">
+                <field name="request_id" readonly="1"/>
+            </field>
+        </field>
+    </record>
+</odoo>

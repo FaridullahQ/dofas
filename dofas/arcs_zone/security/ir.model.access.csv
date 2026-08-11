@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_zone_user,arcs.zone read,model_arcs_zone,base.group_user,1,0,0,0
+access_arcs_zone_finmgr,arcs.zone finance manager,model_arcs_zone,arcs_base.group_finance_manager,1,1,1,0
+access_arcs_zone_admin,arcs.zone admin,model_arcs_zone,arcs_base.group_system_admin,1,1,1,1
+access_arcs_dept_user,arcs.department read,model_arcs_department,base.group_user,1,0,0,0
+access_arcs_dept_finmgr,arcs.department finance manager,model_arcs_department,arcs_base.group_finance_manager,1,1,1,0
+access_arcs_dept_admin,arcs.department admin,model_arcs_department,arcs_base.group_system_admin,1,1,1,1

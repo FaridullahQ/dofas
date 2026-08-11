@@ -1,0 +1,25 @@
+from odoo import _, fields, models
+
+
+class ArcsBudgetTransfer(models.Model):
+    """Link an internal budget transfer back to the acquisition it is
+    covering, and resume that acquisition's workflow once Finance approves
+    the transfer. Kept in arcs_request (not arcs_budget) so arcs.budget.transfer
+    stays a reusable primitive with no knowledge of the acquisition workflow."""
+
+    _inherit = "arcs.budget.transfer"
+
+    spend_request_id = fields.Many2one(
+        "arcs.spend.request", string="Related Acquisition", copy=False,
+        help="If set, approving this transfer sends the acquisition back to "
+             "Finance for another commit attempt.")
+
+    def action_approve(self):
+        res = super().action_approve()
+        for t in self:
+            request = t.spend_request_id
+            if request and request.state == "insufficient_funds":
+                request.write({"shortfall_amount": 0.0, "insufficient_funds_note": False})
+                request._transition("submitted", "budget_transfer_approved", comment=_(
+                    "Internal budget transfer %s approved; sent back to Finance.") % t.name)
+        return res

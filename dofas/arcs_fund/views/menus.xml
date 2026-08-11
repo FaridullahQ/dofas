@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_fund_receipts" name="Fund Receipts"
+              parent="arcs_grant.menu_arcs_funding_root"
+              action="action_arcs_fund_receipt" sequence="20"/>
+    <menuitem id="menu_arcs_donor_funding_request" name="Donor Supplementary Funding"
+              parent="arcs_grant.menu_arcs_funding_root"
+              action="action_arcs_donor_funding_request" sequence="30"
+              groups="arcs_base.group_finance_officer"/>
+</odoo>

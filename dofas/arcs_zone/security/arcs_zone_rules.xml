@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_arcs_zone_company" model="ir.rule">
+        <field name="name">arcs.zone multi-company</field>
+        <field name="model_id" ref="model_arcs_zone"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+    <record id="rule_arcs_dept_company" model="ir.rule">
+        <field name="name">arcs.department multi-company</field>
+        <field name="model_id" ref="model_arcs_department"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+    </record>
+</odoo>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_activity_report_tree" model="ir.ui.view">
+        <field name="name">arcs.activity.tree.report</field>
+        <field name="model">arcs.activity</field>
+        <field name="arch" type="xml">
+            <tree string="Project/Activity Reports" create="false" edit="false" delete="false"
+                  decoration-info="state=='draft'" decoration-warning="state=='submitted'"
+                  decoration-success="state in ('approved','implemented')" decoration-muted="state=='closed'">
+                <field name="project_id"/>
+                <field name="code" optional="hide"/>
+                <field name="name"/>
+                <field name="component_id" optional="hide"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="planned_cost" sum="Planned"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-info="state=='draft'" decoration-warning="state=='submitted'"
+                       decoration-success="state in ('approved','implemented')" decoration-muted="state=='closed'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_activity_report_pivot" model="ir.ui.view">
+        <field name="name">arcs.activity.pivot.report</field>
+        <field name="model">arcs.activity</field>
+        <field name="arch" type="xml">
+            <pivot string="Project/Activity Reports">
+                <field name="project_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="planned_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_arcs_activity_report_search" model="ir.ui.view">
+        <field name="name">arcs.activity.search.report</field>
+        <field name="model">arcs.activity</field>
+        <field name="arch" type="xml">
+            <search string="Search Project/Activity Reports">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="component_id"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_project" string="Project" context="{'group_by':'project_id'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_arcs_activity_report" model="ir.actions.act_window">
+        <field name="name">Project/Activity Reports</field>
+        <field name="res_model">arcs.activity</field>
+        <field name="view_mode">tree,pivot</field>
+        <field name="search_view_id" ref="view_arcs_activity_report_search"/>
+        <field name="context">{'search_default_g_project': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No activities to report on yet</p>
+            <p>Every activity across every project, grouped by project by default, with its
+                planned cost and status.
+            </p>
+        </field>
+    </record>
+</odoo>

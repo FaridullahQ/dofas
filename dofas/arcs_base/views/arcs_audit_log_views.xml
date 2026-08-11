@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_audit_log_tree" model="ir.ui.view">
+        <field name="name">arcs.audit.log.tree</field>
+        <field name="model">arcs.audit.log</field>
+        <field name="arch" type="xml">
+            <tree create="false" edit="false" delete="false">
+                <field name="event_date"/>
+                <field name="res_ref"/>
+                <field name="action"/>
+                <field name="from_state" optional="show"/>
+                <field name="to_state" optional="show"/>
+                <field name="user_id"/>
+                <field name="comment" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_arcs_audit_log_search" model="ir.ui.view">
+        <field name="name">arcs.audit.log.search</field>
+        <field name="model">arcs.audit.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="res_ref"/>
+                <field name="user_id"/>
+                <field name="action"/>
+                <filter name="g_action" string="Action" context="{'group_by':'action'}"/>
+                <filter name="g_user" string="Performed By" context="{'group_by':'user_id'}"/>
+            </search>
+        </field>
+    </record>
+    <record id="action_arcs_audit_log" model="ir.actions.act_window">
+        <field name="name">Audit Log</field>
+        <field name="res_model">arcs.audit.log</field>
+        <field name="view_mode">tree</field>
+    </record>
+</odoo>

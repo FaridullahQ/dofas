@@ -1,0 +1,28 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_req_user,spend request read,model_arcs_spend_request,base.group_user,1,0,0,0
+access_req_prog,spend request program officer,model_arcs_spend_request,arcs_base.group_program_officer,1,1,1,0
+access_req_proj,spend request project manager,model_arcs_spend_request,arcs_base.group_project_manager,1,1,1,0
+access_req_finmgr,spend request finance manager,model_arcs_spend_request,arcs_base.group_finance_manager,1,1,1,1
+access_req_exec,spend request executive,model_arcs_spend_request,arcs_base.group_executive_director,1,1,1,0
+access_req_admin,spend request admin,model_arcs_spend_request,arcs_base.group_system_admin,1,1,1,1
+access_reqline_user,spend request line read,model_arcs_spend_request_line,base.group_user,1,0,0,0
+access_reqline_prog,spend request line program officer,model_arcs_spend_request_line,arcs_base.group_program_officer,1,1,1,1
+access_reqline_proj,spend request line project manager,model_arcs_spend_request_line,arcs_base.group_project_manager,1,1,1,1
+access_reqline_finmgr,spend request line finance manager,model_arcs_spend_request_line,arcs_base.group_finance_manager,1,1,1,1
+access_reqline_admin,spend request line admin,model_arcs_spend_request_line,arcs_base.group_system_admin,1,1,1,1
+access_req_quotwiz_prog,acquisition quotation wizard program officer,model_arcs_spend_request_quotation_wizard,arcs_base.group_program_officer,1,1,1,1
+access_req_quotwiz_proj,acquisition quotation wizard project manager,model_arcs_spend_request_quotation_wizard,arcs_base.group_project_manager,1,1,1,1
+access_req_quotwiz_finmgr,acquisition quotation wizard finance manager,model_arcs_spend_request_quotation_wizard,arcs_base.group_finance_manager,1,1,1,1
+access_req_quotwiz_admin,acquisition quotation wizard admin,model_arcs_spend_request_quotation_wizard,arcs_base.group_system_admin,1,1,1,1
+access_req_quotline_prog,acquisition quotation line program officer,model_arcs_spend_request_quotation_line,arcs_base.group_program_officer,1,1,1,1
+access_req_quotline_proj,acquisition quotation line project manager,model_arcs_spend_request_quotation_line,arcs_base.group_project_manager,1,1,1,1
+access_req_quotline_finmgr,acquisition quotation line finance manager,model_arcs_spend_request_quotation_line,arcs_base.group_finance_manager,1,1,1,1
+access_req_quotline_admin,acquisition quotation line admin,model_arcs_spend_request_quotation_line,arcs_base.group_system_admin,1,1,1,1
+access_req_reassignwiz_prog,acquisition reassign wizard program officer,model_arcs_spend_request_reassign_wizard,arcs_base.group_program_officer,1,1,1,1
+access_req_reassignwiz_proj,acquisition reassign wizard project manager,model_arcs_spend_request_reassign_wizard,arcs_base.group_project_manager,1,1,1,1
+access_req_reassignwiz_finmgr,acquisition reassign wizard finance manager,model_arcs_spend_request_reassign_wizard,arcs_base.group_finance_manager,1,1,1,1
+access_req_reassignwiz_admin,acquisition reassign wizard admin,model_arcs_spend_request_reassign_wizard,arcs_base.group_system_admin,1,1,1,1
+access_req_splitwiz_finmgr,acquisition split wizard finance manager,model_arcs_spend_request_split_wizard,arcs_base.group_finance_manager,1,1,1,1
+access_req_splitwiz_admin,acquisition split wizard admin,model_arcs_spend_request_split_wizard,arcs_base.group_system_admin,1,1,1,1
+access_req_splitwizline_finmgr,acquisition split wizard line finance manager,model_arcs_spend_request_split_wizard_line,arcs_base.group_finance_manager,1,1,1,1
+access_req_splitwizline_admin,acquisition split wizard line admin,model_arcs_spend_request_split_wizard_line,arcs_base.group_system_admin,1,1,1,1
