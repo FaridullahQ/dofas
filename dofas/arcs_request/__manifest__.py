@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Acquisitions (Four Form)",
-    "version": "17.0.1.11.0",
+    "version": "17.0.1.15.0",
     "summary": "Four-step pre-acquisition request that reserves budget before expenses, with "
                "insufficient-funds recovery, and an employee cash-advance/settlement cycle "
                "on approval.",
@@ -35,6 +35,8 @@
         "wizards/arcs_spend_request_quotation_wizard_views.xml",
         "wizards/arcs_spend_request_reassign_wizard_views.xml",
         "wizards/arcs_spend_request_split_wizard_views.xml",
+        "wizards/arcs_spend_request_activity_reassign_wizard_views.xml",
+        "wizards/arcs_spend_request_activity_split_wizard_views.xml",
         "views/menus.xml",
     ],
     "installable": True,

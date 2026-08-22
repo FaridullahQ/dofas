@@ -20,6 +20,21 @@ class ArcsProject(models.Model):
     manager_id = fields.Many2one("res.users", string="Project Manager")
     date_start = fields.Date(required=True)
     date_end = fields.Date(required=True)
+    planned_cost = fields.Monetary(currency_field="currency_id")
+    currency_id = fields.Many2one(related="grant_id.currency_id", store=True)
+    commitment_ids = fields.One2many("arcs.commitment", "project_id", string="Commitments")
+    committed_amount = fields.Monetary(
+        compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Sum of confirmed reserves against this project (and its activities) - "
+             "created when an acquisition linked to one of its activities is committed "
+             "(Program/Project/Activity ceiling enforcement must be on in ARCS Settings "
+             "for this to ever block anything).")
+    actual_amount = fields.Monetary(
+        compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Sum of posted expenses linked to this project.")
+    available_amount = fields.Monetary(
+        compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Planned Cost − Committed − Actual.")
     state = fields.Selection([("draft", "Draft"), ("active", "Active"), ("closed", "Closed")],
                              default="draft", tracking=True)
     component_ids = fields.One2many("arcs.project.component", "project_id", string="Components")
@@ -40,6 +55,25 @@ class ArcsProject(models.Model):
                     raise ValidationError(_(
                         "Project dates must fall within the grant period (%(s)s to %(e)s).",
                         s=g.date_start, e=g.date_end))
+
+    @api.depends("planned_cost", "commitment_ids.amount", "commitment_ids.state")
+    def _compute_amounts(self):
+        Expense = self.env["arcs.expense"]
+        for p in self:
+            committed = sum(p.commitment_ids.filtered(
+                lambda c: c.state == "confirmed").mapped("amount"))
+            actual = sum(Expense.search([
+                ("project_id", "=", p.id), ("state", "=", "posted"),
+            ]).mapped("amount"))
+            p.committed_amount = committed
+            p.actual_amount = actual
+            p.available_amount = p.planned_cost - committed - actual
+
+    def get_available_locked(self):
+        self.ensure_one()
+        self.env.cr.execute("SELECT id FROM arcs_project WHERE id = %s FOR UPDATE", (self.id,))
+        self.invalidate_recordset(["committed_amount", "actual_amount", "available_amount"])
+        return self.available_amount
 
     @api.onchange("code")
     def _onchange_code_upper(self):

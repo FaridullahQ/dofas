@@ -56,6 +56,15 @@
                             <field name="company_id"/>
                         </group>
                     </group>
+                    <group>
+                        <group string="Planned Cost" col="4">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="planned_cost"/>
+                            <field name="committed_amount"/>
+                            <field name="actual_amount"/>
+                            <field name="available_amount"/>
+                        </group>
+                    </group>
                     <separator string="Description"/>
                     <field name="description" nolabel="1" placeholder="Purpose and scope of this program…"/>
                     <separator string="Projects"/>
@@ -181,6 +190,15 @@
                         <group string="Period">
                             <field name="date_start"/>
                             <field name="date_end"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Planned Cost" col="4">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="planned_cost"/>
+                            <field name="committed_amount"/>
+                            <field name="actual_amount"/>
+                            <field name="available_amount"/>
                         </group>
                     </group>
                     <notebook>
@@ -322,6 +340,13 @@
                             <field name="date_end"/>
                             <field name="planned_cost"/>
                             <field name="expected_beneficiaries"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Tracking" col="4">
+                            <field name="committed_amount"/>
+                            <field name="actual_amount"/>
+                            <field name="available_amount"/>
                         </group>
                     </group>
                     <separator string="Expected outputs"/>

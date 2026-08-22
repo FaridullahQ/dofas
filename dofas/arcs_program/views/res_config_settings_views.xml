@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_program_config_settings" model="ir.ui.view">
+        <field name="name">arcs.program.config.settings</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="arcs_base.view_arcs_config_settings"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='arcs_donor_management']" position="inside">
+                <block title="Programs &amp; Activities" name="arcs_program_block">
+                    <setting string="Enforce Program/Project/Activity Ceilings"
+                             help="Commit &amp; Reserve also checks the Activity's (and its Project's and Program's) own Planned Cost, not just the Budget Line.">
+                        <field name="arcs_enforce_program_ceilings"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

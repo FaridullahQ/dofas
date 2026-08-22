@@ -27,6 +27,18 @@ class ArcsActivity(models.Model):
     date_start = fields.Date(required=True)
     date_end = fields.Date(required=True)
     planned_cost = fields.Monetary(currency_field="currency_id")
+    commitment_ids = fields.One2many("arcs.commitment", "activity_id", string="Commitments")
+    committed_amount = fields.Monetary(
+        compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Sum of confirmed reserves against this activity - created when an "
+             "acquisition linked to it is committed (Program/Project/Activity ceiling "
+             "enforcement must be on in ARCS Settings for this to ever block anything).")
+    actual_amount = fields.Monetary(
+        compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Sum of posted expenses linked to this activity.")
+    available_amount = fields.Monetary(
+        compute="_compute_amounts", store=True, currency_field="currency_id",
+        help="Planned Cost − Committed − Actual.")
     expected_outputs = fields.Text()
     expected_beneficiaries = fields.Integer()
     state = fields.Selection(
@@ -54,6 +66,29 @@ class ArcsActivity(models.Model):
                 raise ValidationError(_(
                     "Planned cost exceeds the available budget on line '%s'.",
                     a.budget_line_id.name))
+
+    @api.depends("planned_cost", "commitment_ids.amount", "commitment_ids.state")
+    def _compute_amounts(self):
+        Expense = self.env["arcs.expense"]
+        for a in self:
+            committed = sum(a.commitment_ids.filtered(
+                lambda c: c.state == "confirmed").mapped("amount"))
+            actual = sum(Expense.search([
+                ("activity_id", "=", a.id), ("state", "=", "posted"),
+            ]).mapped("amount"))
+            a.committed_amount = committed
+            a.actual_amount = actual
+            a.available_amount = a.planned_cost - committed - actual
+
+    def get_available_locked(self):
+        """Row-locks this activity and returns a freshly recomputed Available,
+        mirroring arcs.budget.line.get_available_locked() exactly - same
+        concurrency-safe pattern, same reasoning: two acquisitions committing
+        against the same activity at once must be serialised, not race."""
+        self.ensure_one()
+        self.env.cr.execute("SELECT id FROM arcs_activity WHERE id = %s FOR UPDATE", (self.id,))
+        self.invalidate_recordset(["committed_amount", "actual_amount", "available_amount"])
+        return self.available_amount
 
     @api.onchange("code")
     def _onchange_code_upper(self):

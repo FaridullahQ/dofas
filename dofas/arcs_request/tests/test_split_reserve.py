@@ -1,7 +1,7 @@
 import base64
 
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import Form, TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install", "arcs")
@@ -62,6 +62,14 @@ class TestArcsSpendRequestSplitReserve(TransactionCase):
         })
         wizard.action_confirm()
 
+    def _split_wizard(self, request, line_vals):
+        return self.env["arcs.spend.request.split.wizard"].with_context(
+            default_request_id=request.id).create({
+                "reference": "MEMO-SPLIT-0001",
+                "attachment_ids": [(6, 0, self.attachment.ids)],
+                "line_ids": line_vals,
+            })
+
     def test_split_reserve_across_two_lines(self):
         request = self._submitted_request(1000.0)
         self._confirm_real_price(request, 1000.0)
@@ -71,10 +79,8 @@ class TestArcsSpendRequestSplitReserve(TransactionCase):
         self.assertEqual(request.state, "insufficient_funds")
         self.assertEqual(request.shortfall_amount, 300.0)
 
-        wizard = self.env["arcs.spend.request.split.wizard"].with_context(
-            default_request_id=request.id).create({
-                "line_ids": [(0, 0, {"budget_line_id": self.line_b.id, "amount": 300.0})],
-            })
+        wizard = self._split_wizard(
+            request, [(0, 0, {"budget_line_id": self.line_b.id, "amount": 300.0})])
         self.assertEqual(wizard.primary_amount, 700.0)
         self.assertEqual(wizard.total_allocated, 1000.0)
         self.assertEqual(wizard.remaining_to_allocate, 0.0)
@@ -101,16 +107,70 @@ class TestArcsSpendRequestSplitReserve(TransactionCase):
         self.assertAlmostEqual(sum(l["debit"] for l in vlines), 1000.0)
         self.assertAlmostEqual(sum(l["credit"] for l in vlines), 1000.0)
 
+    def test_split_requires_reference_and_attachment(self):
+        request = self._submitted_request(1000.0)
+        self._confirm_real_price(request, 1000.0)
+        request.action_commit()
+
+        wizard = self.env["arcs.spend.request.split.wizard"].with_context(
+            default_request_id=request.id).create({
+                "line_ids": [(0, 0, {"budget_line_id": self.line_b.id, "amount": 300.0})],
+            })
+        with self.assertRaises(UserError):
+            wizard.action_confirm()  # no reference, no attachment
+
+        wizard.reference = "MEMO-SPLIT-0002"
+        with self.assertRaises(UserError):
+            wizard.action_confirm()  # reference set, still no attachment
+
+        wizard.attachment_ids = [(6, 0, self.attachment.ids)]
+        wizard.action_confirm()
+        self.assertEqual(request.state, "committed")
+
+    def test_split_line_onchange_autofills_capped_amount(self):
+        """budget_line_id triggers the amount auto-fill: min(remaining still
+        unallocated, that line's own available) - and the leftover, if any,
+        is what shows up as remaining_to_allocate for the next line."""
+        request = self._submitted_request(1000.0)
+        self._confirm_real_price(request, 1000.0)
+        request.action_commit()  # primary line short by 300 (700 available of 1000)
+
+        # A third line with only 120 available - less than the 300 shortfall.
+        line_c = self.env["arcs.budget.line"].create({
+            "budget_id": self.budget.id, "name": "Line C",
+            "account_ids": [(6, 0, self.exp_acc.ids)], "planned_amount": 120.0})
+
+        wizard = self.env["arcs.spend.request.split.wizard"].with_context(
+            default_request_id=request.id).create({})
+        self.assertEqual(wizard.primary_amount, 700.0)
+        self.assertEqual(wizard.remaining_to_allocate, 300.0)
+
+        form = Form(wizard)
+        with form.line_ids.new() as line:
+            line.budget_line_id = line_c
+            # Capped at line_c's own available (120), not the full 300 shortfall.
+            self.assertEqual(line.amount, 120.0)
+        form.save()
+        wizard.invalidate_recordset()
+        self.assertEqual(wizard.remaining_to_allocate, 180.0)  # 300 - 120 left over
+
+        form = Form(wizard)
+        with form.line_ids.new() as line:
+            line.budget_line_id = self.line_b
+            # line_b has plenty available - picks up exactly what's left.
+            self.assertEqual(line.amount, 180.0)
+        form.save()
+        wizard.invalidate_recordset()
+        self.assertEqual(wizard.remaining_to_allocate, 0.0)
+
     def test_split_must_add_up_exactly(self):
         request = self._submitted_request(1000.0)
         self._confirm_real_price(request, 1000.0)
         request.action_commit()
         self.assertEqual(request.state, "insufficient_funds")
 
-        wizard = self.env["arcs.spend.request.split.wizard"].with_context(
-            default_request_id=request.id).create({
-                "line_ids": [(0, 0, {"budget_line_id": self.line_b.id, "amount": 250.0})],
-            })
+        wizard = self._split_wizard(
+            request, [(0, 0, {"budget_line_id": self.line_b.id, "amount": 250.0})])
         with self.assertRaises(UserError):
             wizard.action_confirm()
 
@@ -118,10 +178,8 @@ class TestArcsSpendRequestSplitReserve(TransactionCase):
         request = self._submitted_request(1000.0)
         self._confirm_real_price(request, 1000.0)
         request.action_commit()
-        wizard = self.env["arcs.spend.request.split.wizard"].with_context(
-            default_request_id=request.id).create({
-                "line_ids": [(0, 0, {"budget_line_id": self.line_b.id, "amount": 300.0})],
-            })
+        wizard = self._split_wizard(
+            request, [(0, 0, {"budget_line_id": self.line_b.id, "amount": 300.0})])
         wizard.action_confirm()
 
         request.action_reject()
@@ -136,10 +194,8 @@ class TestArcsSpendRequestSplitReserve(TransactionCase):
         request = self._submitted_request(1000.0)
         self._confirm_real_price(request, 1000.0)
         request.action_commit()
-        wizard = self.env["arcs.spend.request.split.wizard"].with_context(
-            default_request_id=request.id).create({
-                "line_ids": [(0, 0, {"budget_line_id": self.line_b.id, "amount": 300.0})],
-            })
+        wizard = self._split_wizard(
+            request, [(0, 0, {"budget_line_id": self.line_b.id, "amount": 300.0})])
         wizard.action_confirm()
         request.action_approve()
 

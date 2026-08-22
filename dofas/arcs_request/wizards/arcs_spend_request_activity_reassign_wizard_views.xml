@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_arcs_spend_request_reassign_wizard_form" model="ir.ui.view">
-        <field name="name">arcs.spend.request.reassign.wizard.form</field>
-        <field name="model">arcs.spend.request.reassign.wizard</field>
+    <record id="view_arcs_spend_request_activity_reassign_wizard_form" model="ir.ui.view">
+        <field name="name">arcs.spend.request.activity.reassign.wizard.form</field>
+        <field name="model">arcs.spend.request.activity.reassign.wizard</field>
         <field name="arch" type="xml">
-            <form string="Choose a Different Budget Line">
+            <form string="Choose a Different Activity">
                 <field name="request_id" invisible="1"/>
                 <group>
-                    <field name="current_budget_line_id"/>
-                    <field name="new_budget_line_id"/>
+                    <field name="current_activity_id"/>
+                    <field name="new_activity_id"/>
                     <field name="note"/>
                     <field name="reference" placeholder="Approval memo, justification, etc."/>
                 </group>

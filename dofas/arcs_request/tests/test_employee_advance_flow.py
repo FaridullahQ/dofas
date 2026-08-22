@@ -75,28 +75,89 @@ class TestArcsSpendRequestEmployeeAdvance(TransactionCase):
         expense.action_post()
         return expense
 
+    def _disburse(self, request):
+        """Drives the full new disbursement flow: action_disburse_advance()
+        creates the draft advance and opens the wizard; this fills in the
+        journal + required attachment and confirms it - mirroring exactly
+        what a user does in the UI."""
+        action = request.action_disburse_advance()
+        self.assertEqual(action["res_model"], "arcs.advance.disbursement.wizard")
+        wizard = self.env["arcs.advance.disbursement.wizard"].with_context(
+            action["context"]).create({})
+        self.assertEqual(wizard.advance_id, request.advance_id)
+        wizard.journal_id = self.cash_journal.id
+        wizard.attachment_ids = [(6, 0, [self.env["ir.attachment"].create({
+            "name": "voucher.pdf", "datas": base64.b64encode(b"dummy"),
+        }).id])]
+        wizard.action_confirm()
+        return wizard
+
     def test_requested_by_defaults_from_current_user_employee(self):
         request = self.env["arcs.spend.request"].create({"budget_line_id": self.line.id})
         self.assertEqual(request.requested_by._name, "hr.employee")
 
-    def test_disburse_advance_links_and_pays_employee(self):
+    def test_disburse_advance_creates_draft_and_opens_wizard(self):
         request = self._approved_request(1000.0)
         self.assertFalse(request.advance_id)
-        request.action_disburse_advance()
+        action = request.action_disburse_advance()
 
+        # The draft advance is created and linked immediately...
         self.assertTrue(request.advance_id)
+        self.assertEqual(request.advance_id.state, "draft")
         self.assertEqual(request.advance_id.employee_id, self.employee)
-        self.assertEqual(request.advance_id.state, "issued")
         self.assertEqual(request.advance_id.amount, 1000.0)
         self.assertEqual(request.advance_id.spend_request_id, request)
         self.assertTrue(request.advance_id.allow_over_liquidation)
+        # ...but the money hasn't moved yet - that's the wizard's job.
+        self.assertFalse(request.advance_id.move_id)
+        self.assertEqual(action["res_model"], "arcs.advance.disbursement.wizard")
 
         with self.assertRaises(UserError):
-            request.action_disburse_advance()  # already disbursed
+            request.action_disburse_advance()  # already has an advance (draft or not)
+
+    def test_disburse_advance_links_and_pays_employee(self):
+        request = self._approved_request(1000.0)
+        self._disburse(request)
+
+        self.assertEqual(request.advance_id.state, "issued")
+        self.assertTrue(request.advance_id.move_id)
+        move = request.advance_id.move_id
+        self.assertEqual(move.state, "posted")
+        self.assertEqual(move.journal_id, self.cash_journal)
+        # The cash leg used the journal's own account, not a fixed company default.
+        cash_lines = move.line_ids.filtered(lambda l: l.credit)
+        self.assertEqual(cash_lines.account_id, self.cash_journal.default_account_id)
+        debit_lines = move.line_ids.filtered(lambda l: l.debit)
+        self.assertEqual(debit_lines.account_id, self.adv_account)
+        self.assertEqual(debit_lines.debit, 1000.0)
+
+    def test_complete_disbursement_resumes_after_abandoned_wizard(self):
+        request = self._approved_request(1000.0)
+        request.action_disburse_advance()  # wizard opened but never confirmed
+        self.assertEqual(request.advance_id.state, "draft")
+
+        action = request.action_complete_disbursement()
+        self.assertEqual(action["res_model"], "arcs.advance.disbursement.wizard")
+        self.assertEqual(action["context"]["default_advance_id"], request.advance_id.id)
+
+        # And it actually works end to end from there:
+        wizard = self.env["arcs.advance.disbursement.wizard"].with_context(
+            action["context"]).create({})
+        wizard.journal_id = self.cash_journal.id
+        wizard.attachment_ids = [(6, 0, [self.env["ir.attachment"].create({
+            "name": "voucher.pdf", "datas": base64.b64encode(b"dummy"),
+        }).id])]
+        wizard.action_confirm()
+        self.assertEqual(request.advance_id.state, "issued")
+
+    def test_complete_disbursement_blocked_with_nothing_pending(self):
+        request = self._approved_request(1000.0)
+        with self.assertRaises(UserError):
+            request.action_complete_disbursement()  # no advance at all yet
 
     def test_underspend_settles_with_return(self):
         request = self._approved_request(1000.0)
-        request.action_disburse_advance()
+        self._disburse(request)
         expense = self._posted_expense_for(request, 700.0)
 
         action = request.action_create_liquidation_for_advance()
@@ -125,7 +186,7 @@ class TestArcsSpendRequestEmployeeAdvance(TransactionCase):
 
     def test_overspend_settles_with_reimbursement(self):
         request = self._approved_request(1000.0)
-        request.action_disburse_advance()
+        self._disburse(request)
         expense = self._posted_expense_for(request, 1250.0)
 
         liq = self.env["arcs.advance.liquidation"].create({

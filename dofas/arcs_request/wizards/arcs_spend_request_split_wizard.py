@@ -43,6 +43,13 @@ class ArcsSpendRequestSplitWizard(models.TransientModel):
     remaining_to_allocate = fields.Monetary(
         string="Remaining to Allocate", compute="_compute_totals", currency_field="currency_id",
         help="Must reach zero before the split can be confirmed.")
+    reference = fields.Char(
+        string="Reference", required=True,
+        help="Supporting document reference (approval memo, justification, etc.) - "
+             "required, together with an attachment, before confirming.")
+    attachment_ids = fields.Many2many(
+        "ir.attachment", string="Attachments",
+        help="At least one attachment is required - the document backing this split.")
 
     @api.depends("primary_amount", "line_ids.amount", "approved_amount")
     def _compute_totals(self):
@@ -74,6 +81,11 @@ class ArcsSpendRequestSplitWizard(models.TransientModel):
             raise UserError(_("This is only available on requests flagged Insufficient Funds."))
         if not self.line_ids:
             raise UserError(_("Add at least one other budget line before confirming the split."))
+        if not self.reference or not self.reference.strip():
+            raise UserError(_("Enter a Reference before confirming the split."))
+        if not self.attachment_ids:
+            raise UserError(_(
+                "Attach the supporting document before confirming this split."))
 
         rounding = self.currency_id.rounding or 0.01
         if float_compare(self.primary_amount, 0.0, precision_rounding=rounding) < 0:
@@ -133,6 +145,10 @@ class ArcsSpendRequestSplitWizard(models.TransientModel):
         request._transition("committed", "split_commit", comment=_(
             "Reserved across %(n)s budget lines: %(lines)s") % {
             "n": len(commitments), "lines": summary})
+        request.message_post(
+            body=_("Split reserve reference: %s") % self.reference,
+            attachment_ids=self.attachment_ids.ids,
+        )
         return {"type": "ir.actions.act_window_close"}
 
     def action_discard(self):
@@ -156,6 +172,26 @@ class ArcsSpendRequestSplitWizardLine(models.TransientModel):
         help="Snapshot at selection time; the real balance is re-checked under lock "
              "when you confirm the split.")
     amount = fields.Monetary(string="Amount", currency_field="currency_id")
+
+    @api.onchange("budget_line_id")
+    def _onchange_budget_line_id(self):
+        """Speeds up data entry and keeps allocations honest: picking a
+        budget line auto-fills its Amount with whatever's still unallocated
+        on the wizard, capped at what THIS line can actually give (its own
+        live available balance) - so a line can never be pre-filled with
+        more than it can cover. Whatever doesn't fit stays unallocated,
+        ready to be picked up by the next line added, same rule applying
+        each time. Still fully editable afterwards; this is a starting
+        suggestion, not a lock."""
+        if not self.budget_line_id or not self.wizard_id:
+            return
+        # remaining_to_allocate already reflects this line's own current
+        # amount (0 on a brand new line, or its previous value if the user
+        # is changing budget_line_id on an existing one) - add it back so
+        # we cap against what's unallocated BEFORE this line, not after.
+        unallocated_before_this_line = self.wizard_id.remaining_to_allocate + (self.amount or 0.0)
+        line_available = max(self.budget_line_id.available_amount, 0.0)
+        self.amount = max(min(unallocated_before_this_line, line_available), 0.0)
 
     @api.constrains("amount")
     def _check_amount_non_negative(self):
