@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Program & Projects",
-    "version": "17.0.1.4.0",
+    "version": "17.0.1.5.0",
     "summary": "Program -> Project -> Component -> Activity hierarchy, each level with its own "
                "Planned Cost ceiling tracked alongside the budget line.",
     "category": "Accounting/ARCS Donor Management",

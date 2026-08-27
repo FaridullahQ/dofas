@@ -38,25 +38,8 @@
                             invisible="state != 'submitted' or not approved_amount"
                             groups="arcs_base.group_finance_manager"
                             confirm="Committing this request will reserve the approved amount against the budget line, reducing what's available for other requests. Do you want to continue?"/>
-                    <button name="action_choose_different_budget_line" string="Choose Different Budget Line"
-                            type="object"
-                            class="oe_highlight"
-                            invisible="state != 'insufficient_funds' or shortfall_type != 'budget_line'"/>
-                    <button name="action_open_split_wizard" string="Split Across Budget Lines" type="object"
-                            invisible="state != 'insufficient_funds' or shortfall_type != 'budget_line'"
-                            groups="arcs_base.group_finance_manager"/>
-                    <button name="action_request_budget_transfer" string="Request Internal Transfer" type="object"
-                            invisible="state != 'insufficient_funds' or shortfall_type != 'budget_line'"/>
-                    <button name="action_request_donor_funding" string="Request Donor Funding" type="object"
-                            invisible="state != 'insufficient_funds' or shortfall_type != 'budget_line'"/>
-                    <button name="action_choose_different_activity" string="Choose Different Activity"
-                            type="object"
-                            class="oe_highlight"
-                            invisible="state != 'insufficient_funds' or shortfall_type != 'activity'"/>
-                    <button name="action_open_activity_split_wizard" string="Split Across Activities" type="object"
-                            invisible="state != 'insufficient_funds' or shortfall_type != 'activity'"
-                            groups="arcs_base.group_finance_manager"/>
-                    <button name="action_reset_draft_wizard" string="Revise Request" type="object"
+                    <button name="action_open_insufficient_funds_wizard" string="Resolve Insufficient Funds"
+                            type="object" class="oe_highlight"
                             invisible="state != 'insufficient_funds'"/>
                     <button name="action_approve" string="Approve" type="object" class="oe_highlight"
                             invisible="state != 'committed'"
@@ -89,22 +72,12 @@
                 </header>
                 <sheet>
                     <field name="shortfall_type" invisible="1"/>
-                    <div class="alert alert-warning" role="alert"
-                         invisible="state != 'insufficient_funds' or shortfall_type != 'budget_line'">
+                    <div class="alert alert-warning" role="alert" invisible="state != 'insufficient_funds'">
                         <field name="insufficient_funds_note" readonly="1" nolabel="1"/>
                         <div class="mt-1">
-                            Choose a different budget line, split the amount across
-                            several budget lines, request an internal transfer, or
-                            request supplementary donor funding.
-                        </div>
-                    </div>
-                    <div class="alert alert-warning" role="alert"
-                         invisible="state != 'insufficient_funds' or shortfall_type != 'activity'">
-                        <field name="insufficient_funds_note" readonly="1" nolabel="1"/>
-                        <div class="mt-1">
-                            The budget line has room, but the Activity (or its Project/Program)
-                            doesn't. Choose a different activity, split the amount across
-                            several activities, or revise this request.
+                            Click <strong>Resolve Insufficient Funds</strong> above to choose how to
+                            fix this - every recovery option (budget line and activity) is offered
+                            together there, whichever axis was actually short.
                         </div>
                     </div>
                     <div class="alert alert-info" role="alert" invisible="state != 'submitted' or approved_amount">
@@ -119,22 +92,31 @@
                     <div class="alert alert-secondary" role="alert"
                          invisible="state != 'approved' or advance_id">
                         No employee advance has been disbursed yet for this acquisition.
-                        Use <strong>Disburse Advance</strong> to pay <field name="requested_by"
-                        readonly="1" nolabel="1" class="oe_inline"/> the approved amount.
+                        Use <strong>Disburse Advance</strong> to pay
+                        <field name="requested_by"
+                               readonly="1" nolabel="1" class="oe_inline"/>
+                        the approved amount.
                     </div>
                     <div class="alert alert-warning" role="alert"
                          invisible="state != 'approved' or not advance_id or advance_state != 'draft'">
-                        A cash advance for <field name="requested_by" readonly="1" nolabel="1" class="oe_inline"/>
-                        was started but not yet paid out. Use <strong>Complete Disbursement</strong>
+                        A cash advance for
+                        <field name="requested_by" readonly="1" nolabel="1" class="oe_inline"/>
+                        was started but not yet paid out. Use
+                        <strong>Complete Disbursement</strong>
                         to pick the bank/cash journal, attach the voucher, and finish paying it.
                     </div>
                     <div class="alert alert-warning" role="alert"
                          invisible="state != 'approved' or not advance_id or advance_state != 'issued' or advance_outstanding_amount &lt;= 0">
-                        <strong><field name="requested_by" readonly="1" nolabel="1" class="oe_inline"/></strong>
-                        still has <field name="advance_outstanding_amount" readonly="1" nolabel="1" class="oe_inline"/>
+                        <strong>
+                            <field name="requested_by" readonly="1" nolabel="1" class="oe_inline"/>
+                        </strong>
+                        still has
+                        <field name="advance_outstanding_amount" readonly="1" nolabel="1" class="oe_inline"/>
                         outstanding on this advance. Once their expense(s) are posted, use
-                        <strong>Create Liquidation</strong> to justify what they spent, then
-                        <strong>Settle Advance</strong> to pay back or collect the difference.
+                        <strong>Create Liquidation</strong>
+                        to justify what they spent, then
+                        <strong>Settle Advance</strong>
+                        to pay back or collect the difference.
                     </div>
                     <div class="alert alert-danger" role="alert"
                          invisible="state != 'approved' or not advance_id or advance_state != 'issued' or advance_outstanding_amount &gt;= 0">
@@ -178,7 +160,8 @@
                             <field name="name" readonly="1"/>
                         </h1>
                     </div>
-                    <group>
+                    <group col="3">
+                        <!-- Group 1: Requesting Unit (1/3 width) -->
                         <group string="Requesting unit">
                             <field name="zone_id" readonly="state != 'draft'"/>
                             <field name="department_id" readonly="state != 'draft'"/>
@@ -186,26 +169,32 @@
                             <field name="requested_by" readonly="state != 'draft'"/>
                             <field name="date_request" readonly="state != 'draft'"/>
                         </group>
-                        <group string="Budget">
-                            <field name="budget_line_id" readonly="state != 'draft'"/>
-                            <field name="grant_id"/>
+
+                        <!-- Group 2: Activity / Project / Program (1/3 width) -->
+                        <group string="Activity / Project / Program">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="activity_id" readonly="state != 'draft'"/>
+                            <field name="activity_planned_cost" invisible="not activity_id"/>
+                            <field name="activity_available_amount" invisible="not activity_id"/>
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="project_planned_cost" invisible="not project_id"/>
+                            <field name="project_available_amount" invisible="not project_id"/>
                             <field name="program_id" readonly="state != 'draft'"/>
                             <field name="program_currency_id" invisible="1"/>
                             <field name="program_planned_cost" invisible="not program_id"/>
                             <field name="program_available_amount" invisible="not program_id"/>
-                            <field name="project_id" readonly="state != 'draft'"/>
-                            <field name="project_planned_cost" invisible="not project_id"/>
-                            <field name="project_available_amount" invisible="not project_id"/>
-                            <field name="activity_id" readonly="state != 'draft'"/>
-                            <field name="activity_planned_cost" invisible="not activity_id"/>
-                            <field name="activity_available_amount" invisible="not activity_id"/>
-                            <field name="currency_id" invisible="1"/>
+                        </group>
+
+                        <!-- Group 3: Budget Line & Funding (1/3 width) -->
+                        <group string="Budget Line &amp; Funding">
+                            <field name="budget_line_id" readonly="state != 'draft'"/>
+                            <field name="available_on_line"/>
+                            <field name="grant_id"/>
                             <field name="estimated_amount"/>
                             <field name="approved_amount"/>
                             <field name="quotation_ref"/>
                             <field name="vendor_id"/>
                             <field name="shortfall_amount" invisible="not shortfall_amount"/>
-                            <field name="available_on_line"/>
                         </group>
                     </group>
                     <notebook>

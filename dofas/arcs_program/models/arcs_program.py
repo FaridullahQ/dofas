@@ -1,6 +1,7 @@
 import re
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import float_compare
 
 CODE_RE = re.compile(r"^[A-Z0-9][A-Z0-9\-_/]{1,23}$")
 
@@ -22,6 +23,15 @@ class ArcsProgram(models.Model):
         [("draft", "Draft"), ("active", "Active"), ("closed", "Closed")],
         default="draft", required=True, tracking=True, copy=False)
     project_ids = fields.One2many("arcs.project", "program_id", string="Projects")
+    budget_line_id = fields.Many2one(
+        "arcs.budget.line", string="Budget Line",
+        domain="[('budget_state', '=', 'approved')]",
+        help="Optional source budget line for this program's Planned Cost ceiling. "
+             "Selecting one suggests Planned Cost from its live available amount "
+             "(converted to company currency) - and Planned Cost can never exceed "
+             "it. This is the top of the cascade: a Project's Planned Cost can "
+             "never exceed its Program's, and an Activity's can never exceed its "
+             "Project's.")
     planned_cost = fields.Monetary(
         currency_field="currency_id",
         help="In company currency: a Program can span projects funded by different "
@@ -49,6 +59,24 @@ class ArcsProgram(models.Model):
         if self.code:
             self.code = self.code.strip().upper()
 
+    @api.onchange("budget_line_id")
+    def _onchange_budget_line_id(self):
+        if self.budget_line_id:
+            self.planned_cost = self._to_company_currency(
+                self.budget_line_id.available_amount, self.budget_line_id.currency_id)
+
+    def _to_company_currency(self, amount, currency):
+        """Shared conversion used everywhere this model compares or derives a
+        company-currency amount from a source in another currency (a budget
+        line's own currency, or a child project's grant currency) - one
+        implementation instead of the same three lines repeated three times."""
+        self.ensure_one()
+        company = self.company_id or self.env.company
+        if currency and company.currency_id and currency != company.currency_id:
+            return currency._convert(amount, company.currency_id, company,
+                                     fields.Date.context_today(self))
+        return amount
+
     @api.constrains("code")
     def _check_code_format(self):
         for r in self.filtered("code"):
@@ -59,27 +87,45 @@ class ArcsProgram(models.Model):
                     "starting with a letter or digit. Example: HEALTH or HEALTH-2026.",
                     code=r.code))
 
+    @api.constrains("planned_cost", "budget_line_id")
+    def _check_planned_within_budget_line(self):
+        for p in self.filtered("budget_line_id"):
+            available = p._to_company_currency(
+                p.budget_line_id.available_amount, p.budget_line_id.currency_id)
+            if float_compare(p.planned_cost, available,
+                             precision_rounding=p.currency_id.rounding) > 0:
+                raise ValidationError(_(
+                    "Planned Cost (%(pc).2f %(cur)s) exceeds the available amount on "
+                    "budget line '%(line)s' (%(avail).2f %(cur)s).") % {
+                    "pc": p.planned_cost, "cur": p.currency_id.name or "",
+                    "line": p.budget_line_id.name, "avail": available})
+
+    @api.constrains("planned_cost")
+    def _check_children_still_fit(self):
+        for p in self:
+            too_big = p.project_ids.filtered(
+                lambda proj: float_compare(
+                    p._to_company_currency(proj.planned_cost, proj.currency_id),
+                    p.planned_cost, precision_rounding=p.currency_id.rounding) > 0)
+            if too_big:
+                raise ValidationError(_(
+                    "Cannot set this Program's Planned Cost below %(names)s's own "
+                    "Planned Cost. Reduce the project(s) first.") % {
+                    "names": ", ".join(too_big.mapped("name"))})
+
     @api.depends("planned_cost", "commitment_ids.amount", "commitment_ids.state",
                 "commitment_ids.currency_id")
     def _compute_amounts(self):
         Expense = self.env["arcs.expense"]
         for p in self:
-            company = p.company_id or self.env.company
-            today = fields.Date.context_today(p)
-
-            def to_company(amount, currency):
-                if currency and company.currency_id and currency != company.currency_id:
-                    return currency._convert(amount, company.currency_id, company, today)
-                return amount
-
             committed = sum(
-                to_company(c.amount, c.currency_id)
+                p._to_company_currency(c.amount, c.currency_id)
                 for c in p.commitment_ids.filtered(lambda c: c.state == "confirmed")
             )
             expenses = Expense.search([
                 ("project_id.program_id", "=", p.id), ("state", "=", "posted"),
             ])
-            actual = sum(to_company(e.amount, e.currency_id) for e in expenses)
+            actual = sum(p._to_company_currency(e.amount, e.currency_id) for e in expenses)
             p.committed_amount = committed
             p.actual_amount = actual
             p.available_amount = p.planned_cost - committed - actual

@@ -59,6 +59,7 @@
                     <group>
                         <group string="Planned Cost" col="4">
                             <field name="currency_id" invisible="1"/>
+                            <field name="budget_line_id" colspan="4"/>
                             <field name="planned_cost"/>
                             <field name="committed_amount"/>
                             <field name="actual_amount"/>

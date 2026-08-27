@@ -1,6 +1,9 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools import float_compare
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class ArcsSpendRequest(models.Model):
@@ -34,13 +37,14 @@ class ArcsSpendRequest(models.Model):
         related="program_id.available_amount", currency_field="program_currency_id", readonly=True)
     project_id = fields.Many2one(
         "arcs.project", string="Project",
-        domain="[('grant_id','=',grant_id)] + ([('program_id','=',program_id)] if program_id else [])")
+        domain="([('grant_id','=',grant_id)] if grant_id else []) + ([('program_id','=',program_id)] if program_id else [])")
     project_planned_cost = fields.Monetary(
         related="project_id.planned_cost", currency_field="currency_id", readonly=True)
     project_available_amount = fields.Monetary(
         related="project_id.available_amount", currency_field="currency_id", readonly=True)
-    activity_id = fields.Many2one("arcs.activity", string="Activity",
-                                  domain="[('project_id','=',project_id)]")
+    activity_id = fields.Many2one(
+        "arcs.activity", string="Activity",
+        domain="[('project_id','=',project_id)] if project_id else []")
     activity_planned_cost = fields.Monetary(
         related="activity_id.planned_cost", currency_field="currency_id", readonly=True)
     activity_available_amount = fields.Monetary(
@@ -181,6 +185,8 @@ class ArcsSpendRequest(models.Model):
         if self.program_id and self.project_id and self.project_id.program_id != self.program_id:
             self.project_id = False
             self.activity_id = False
+        if self.program_id and not self.budget_line_id and self.program_id.budget_line_id:
+            self.budget_line_id = self.program_id.budget_line_id
 
     @api.onchange("project_id")
     def _onchange_project(self):
@@ -188,11 +194,49 @@ class ArcsSpendRequest(models.Model):
             self.activity_id = False
         if self.project_id and self.project_id.program_id and not self.program_id:
             self.program_id = self.project_id.program_id
+        if self.project_id and not self.budget_line_id:
+            program = self.project_id.program_id
+            if program and program.budget_line_id \
+                    and program.budget_line_id.grant_id == self.project_id.grant_id:
+                self.budget_line_id = program.budget_line_id
+
+    @api.onchange("activity_id")
+    def _onchange_activity(self):
+        """The entry point the client asked for: pick an Activity and every
+        relevant upstream field - Project, Program, and (best-effort) Budget
+        Line - fills in from it, instead of having to pick Budget Line first
+        and work down. Prefers the Activity's own direct budget line link;
+        falls back to its Program's, but only when that line is confirmed
+        to belong to the SAME grant as the project/activity - filling in a
+        budget line from a different grant would immediately get wiped by
+        _onchange_budget_line's own mismatch guard below, so it's safer to
+        leave it for the user to pick manually in that edge case than to
+        fill in something that can't stick."""
+        if not self.activity_id:
+            return
+        activity = self.activity_id
+        project = activity.project_id
+        if self.project_id != project:
+            self.project_id = project
+        if project.program_id and self.program_id != project.program_id:
+            self.program_id = project.program_id
+        if not self.budget_line_id:
+            if activity.budget_line_id:
+                self.budget_line_id = activity.budget_line_id
+            elif project.program_id and project.program_id.budget_line_id \
+                    and project.program_id.budget_line_id.grant_id == project.grant_id:
+                self.budget_line_id = project.program_id.budget_line_id
 
     @api.onchange("budget_line_id")
     def _onchange_budget_line(self):
-        self.project_id = False
-        self.activity_id = False
+        """Only clears Project/Activity when they've become genuinely
+        inconsistent with the new Budget Line's grant - not unconditionally,
+        so a Budget Line auto-filled BY the Activity/Project/Program cascade
+        above (always the same grant, by construction) never wipes the very
+        selections that produced it."""
+        if self.project_id and self.project_id.grant_id != self.grant_id:
+            self.project_id = False
+            self.activity_id = False
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -202,9 +246,24 @@ class ArcsSpendRequest(models.Model):
         return super().create(vals_list)
 
     # ---------------- four-step workflow ----------------
+    # def action_submit(self):
+    #     finance_or_admin = self.env.user.has_group("arcs_base.group_finance_manager") \
+    #         or self.env.user.has_group("arcs_base.group_system_admin")
+    #     for r in self:
+    #         if r.state != "draft":
+    #             raise UserError(_("Only drafted requests can be submitted."))
+    #         if not r.line_ids:
+    #             raise UserError(_("Add at least one item before submitting."))
+    #         if r.budget_holder_id and r.budget_holder_id != self.env.user and not finance_or_admin:
+    #             raise UserError(_(
+    #                 "Only the assigned Budget Holder (%s) can submit this acquisition "
+    #                 "for finance review.") % r.budget_holder_id.name)
+    #     return self._transition("submitted", "submit")
     def action_submit(self):
+        """Override to check activity available amount before submission."""
         finance_or_admin = self.env.user.has_group("arcs_base.group_finance_manager") \
-            or self.env.user.has_group("arcs_base.group_system_admin")
+                           or self.env.user.has_group("arcs_base.group_system_admin")
+
         for r in self:
             if r.state != "draft":
                 raise UserError(_("Only drafted requests can be submitted."))
@@ -214,7 +273,56 @@ class ArcsSpendRequest(models.Model):
                 raise UserError(_(
                     "Only the assigned Budget Holder (%s) can submit this acquisition "
                     "for finance review.") % r.budget_holder_id.name)
+
+            # Check for activity shortfall BEFORE submission
+            if r.activity_id and r.activity_available_amount < r.estimated_amount:
+                return self._open_activity_warning_wizard(r)
+
         return self._transition("submitted", "submit")
+
+    def _open_activity_warning_wizard(self, request):
+        """Open the warning wizard for insufficient activity funds."""
+        _logger.info(f"Opening activity warning wizard for request {request.name}")
+
+        wizard = self.env["arcs.spend.request.activity.warning.wizard"].create({
+            "request_id": request.id,
+            "activity_available_amount": request.activity_available_amount,
+            "estimated_amount": request.estimated_amount,
+        })
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Activity Insufficient Funds"),
+            "res_model": "arcs.spend.request.activity.warning.wizard",
+            "res_id": wizard.id,
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_request_id": request.id,
+            },
+        }
+
+    def action_force_submit_ignore_activity(self):
+        """Force submit even if activity has insufficient funds."""
+        _logger.info(f"action_force_submit_ignore_activity called for {self.name}")
+
+        finance_or_admin = self.env.user.has_group("arcs_base.group_finance_manager") \
+                           or self.env.user.has_group("arcs_base.group_system_admin")
+
+        for r in self:
+            _logger.info(f"Processing request {r.name}, state: {r.state}")
+            if r.state != "draft":
+                raise UserError(_("Only drafted requests can be submitted."))
+            if not r.line_ids:
+                raise UserError(_("Add at least one item before submitting."))
+            if r.budget_holder_id and r.budget_holder_id != self.env.user and not finance_or_admin:
+                raise UserError(_(
+                    "Only the assigned Budget Holder (%s) can submit this acquisition "
+                    "for finance review.") % r.budget_holder_id.name)
+
+        result = self._transition("submitted", "submit")
+        _logger.info(f"Transition completed, new state: {self.state}")
+        return result
 
     def action_commit(self):
         for r in self:
@@ -238,12 +346,14 @@ class ArcsSpendRequest(models.Model):
                     "shortfall_type": "budget_line",
                     "insufficient_funds_note": _(
                         "Available %(a).2f %(c)s, requested %(r).2f %(c)s on '%(l)s'.") % {
-                        "a": available, "r": reserve_amount, "c": r.currency_id.name or "",
-                        "l": r.budget_line_id.name},
+                                                   "a": available, "r": reserve_amount, "c": r.currency_id.name or "",
+                                                   "l": r.budget_line_id.name},
                 })
                 r._transition("insufficient_funds", "insufficient_funds", comment=_(
                     "Insufficient budget: short by %(s).2f %(c)s on '%(l)s'.") % {
-                    "s": shortfall, "c": r.currency_id.name or "", "l": r.budget_line_id.name})
+                                                                                      "s": shortfall,
+                                                                                      "c": r.currency_id.name or "",
+                                                                                      "l": r.budget_line_id.name})
                 continue
 
             # Budget line has room. If this acquisition is tied to an Activity
@@ -262,12 +372,15 @@ class ArcsSpendRequest(models.Model):
                     "shortfall_type": "activity",
                     "insufficient_funds_note": _(
                         "Available %(a).2f %(c)s, requested %(r).2f %(c)s on %(lvl)s.") % {
-                        "a": level_available, "r": reserve_amount, "c": r.currency_id.name or "",
-                        "lvl": level_name},
+                                                   "a": level_available, "r": reserve_amount,
+                                                   "c": r.currency_id.name or "",
+                                                   "lvl": level_name},
                 })
                 r._transition("insufficient_funds", "insufficient_funds", comment=_(
                     "Insufficient Planned Cost: short by %(s).2f %(c)s on %(lvl)s.") % {
-                    "s": shortfall, "c": r.currency_id.name or "", "lvl": level_name})
+                                                                                      "s": shortfall,
+                                                                                      "c": r.currency_id.name or "",
+                                                                                      "lvl": level_name})
                 continue
 
             extra_vals = {"spend_request_id": r.id}
@@ -282,8 +395,10 @@ class ArcsSpendRequest(models.Model):
             r.commitment_id = commitment.id
             r._transition("committed", "commit", comment=_(
                 "Reserved %(amount).2f %(currency)s (quoted, ref %(ref)s) on '%(line)s'") % {
-                "amount": reserve_amount, "currency": r.currency_id.name or "",
-                "ref": r.quotation_ref or "", "line": r.budget_line_id.name})
+                                                             "amount": reserve_amount,
+                                                             "currency": r.currency_id.name or "",
+                                                             "ref": r.quotation_ref or "",
+                                                             "line": r.budget_line_id.name})
         return True
 
     def _check_activity_availability(self, reserve_amount):
@@ -301,9 +416,9 @@ class ArcsSpendRequest(models.Model):
             return False
         rounding = self.currency_id.rounding
         for level_name, record in (
-            (_("Activity '%s'") % self.activity_id.name, self.activity_id),
-            (_("Project '%s'") % self.project_id.name, self.project_id),
-            (_("Program '%s'") % self.program_id.name, self.program_id),
+                (_("Activity '%s'") % self.activity_id.name, self.activity_id),
+                (_("Project '%s'") % self.project_id.name, self.project_id),
+                (_("Program '%s'") % self.program_id.name, self.program_id),
         ):
             if not record:
                 continue
@@ -597,14 +712,27 @@ class ArcsSpendRequest(models.Model):
                 "domain": [("spend_request_id", "=", self.id)]}
 
     # ---------------- insufficient-funds recovery ----------------
+    def action_open_insufficient_funds_wizard(self):
+        """The single entry point for every recovery path - opens the
+        router wizard that offers all of them together, regardless of
+        which axis (budget line or Activity/Project/Program) triggered
+        the shortfall."""
+        self.ensure_one()
+        if self.state != "insufficient_funds":
+            raise UserError(_("This is only available on requests flagged Insufficient Funds."))
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Resolve Insufficient Funds"),
+            "res_model": "arcs.spend.request.insufficient.funds.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_request_id": self.id},
+        }
+
     def action_choose_different_budget_line(self):
         self.ensure_one()
         if self.state != "insufficient_funds":
             raise UserError(_("This is only available on requests flagged Insufficient Funds."))
-        if self.shortfall_type != "budget_line":
-            raise UserError(_(
-                "This request is short on Activity/Project/Program Planned Cost, not the "
-                "budget line. Use 'Choose Different Activity' instead."))
         return {
             "type": "ir.actions.act_window",
             "name": _("Choose a Different Budget Line"),
@@ -618,10 +746,6 @@ class ArcsSpendRequest(models.Model):
         self.ensure_one()
         if self.state != "insufficient_funds":
             raise UserError(_("This is only available on requests flagged Insufficient Funds."))
-        if self.shortfall_type != "activity":
-            raise UserError(_(
-                "This request is short on the budget line, not Activity/Project/Program "
-                "Planned Cost. Use 'Choose Different Budget Line' instead."))
         return {
             "type": "ir.actions.act_window",
             "name": _("Choose a Different Activity"),
@@ -632,23 +756,21 @@ class ArcsSpendRequest(models.Model):
         }
 
     def action_open_split_wizard(self):
-        """4th recovery path alongside reassign / internal transfer / donor
-        funding: cover the approved amount by reserving part of it on the
-        primary budget line and the rest on one or more other lines, instead
-        of moving money between lines or waiting on a transfer/donor-funding
-        approval. Restricted like Commit & Reserve (not just via the button's
-        `groups` attribute, which only hides it - this actually reserves
-        budget, so it needs the same server-side authorization)."""
+        """One of the recovery paths offered on any Insufficient Funds
+        request, alongside reassign / internal transfer / donor funding /
+        the activity-axis equivalents: cover the approved amount by
+        reserving part of it on the primary budget line and the rest on one
+        or more other lines, instead of moving money between lines or
+        waiting on a transfer/donor-funding approval. Restricted like
+        Commit & Reserve (not just via the button's `groups` attribute,
+        which only hides it - this actually reserves budget, so it needs
+        the same server-side authorization)."""
         self.ensure_one()
         if not (self.env.user.has_group("arcs_base.group_finance_manager")
                 or self.env.user.has_group("arcs_base.group_system_admin")):
             raise UserError(_("Only a Finance Manager can split a reserve across budget lines."))
         if self.state != "insufficient_funds":
             raise UserError(_("This is only available on requests flagged Insufficient Funds."))
-        if self.shortfall_type != "budget_line":
-            raise UserError(_(
-                "This request is short on Activity/Project/Program Planned Cost, not the "
-                "budget line. Use 'Split Across Activities' instead."))
         return {
             "type": "ir.actions.act_window",
             "name": _("Split Reserve Across Budget Lines"),
@@ -662,18 +784,21 @@ class ArcsSpendRequest(models.Model):
         """Same idea as action_open_split_wizard, one level up: cover the
         approved amount by drawing part of it from the acquisition's own
         Activity's Planned Cost and the rest from one or more other
-        activities - for the case where the budget line itself has room but
-        the programmatic (Activity/Project/Program) ceiling doesn't."""
+        activities - most relevant when the budget line itself has room but
+        the programmatic (Activity/Project/Program) ceiling doesn't, though
+        offered alongside every other recovery path regardless of which
+        axis actually triggered the shortfall - Finance decides which tool
+        fits, not the system."""
         self.ensure_one()
         if not (self.env.user.has_group("arcs_base.group_finance_manager")
                 or self.env.user.has_group("arcs_base.group_system_admin")):
             raise UserError(_("Only a Finance Manager can split a reserve across activities."))
         if self.state != "insufficient_funds":
             raise UserError(_("This is only available on requests flagged Insufficient Funds."))
-        if self.shortfall_type != "activity":
+        if not self.activity_id:
             raise UserError(_(
-                "This request is short on the budget line, not Activity/Project/Program "
-                "Planned Cost. Use 'Split Across Budget Lines' instead."))
+                "This acquisition isn't linked to an Activity, so there's nothing to "
+                "split across activities."))
         return {
             "type": "ir.actions.act_window",
             "name": _("Split Reserve Across Activities"),
@@ -687,10 +812,6 @@ class ArcsSpendRequest(models.Model):
         self.ensure_one()
         if self.state != "insufficient_funds":
             raise UserError(_("This is only available on requests flagged Insufficient Funds."))
-        if self.shortfall_type != "budget_line":
-            raise UserError(_(
-                "This request is short on Activity/Project/Program Planned Cost, not the "
-                "budget line - an internal transfer wouldn't help here."))
         transfer = self.env["arcs.budget.transfer"].create({
             "to_line_id": self.budget_line_id.id,
             "amount": self.shortfall_amount,
@@ -698,7 +819,7 @@ class ArcsSpendRequest(models.Model):
             "spend_request_id": self.id,
         })
         self.message_post(body=_("Internal budget transfer %s requested to cover the shortfall.")
-                          % transfer.name)
+                               % transfer.name)
         return {
             "type": "ir.actions.act_window",
             "name": _("Internal Budget Transfer"),
@@ -712,10 +833,6 @@ class ArcsSpendRequest(models.Model):
         self.ensure_one()
         if self.state != "insufficient_funds":
             raise UserError(_("This is only available on requests flagged Insufficient Funds."))
-        if self.shortfall_type != "budget_line":
-            raise UserError(_(
-                "This request is short on Activity/Project/Program Planned Cost, not the "
-                "budget line - donor funding wouldn't help here."))
         if not self.budget_line_id.grant_id:
             raise UserError(_("The budget line has no grant to request supplementary funding from."))
         funding = self.env["arcs.donor.funding.request"].create({
@@ -725,7 +842,7 @@ class ArcsSpendRequest(models.Model):
             "spend_request_id": self.id,
         })
         self.message_post(body=_("Donor supplementary funding request %s created to cover the shortfall.")
-                          % funding.name)
+                               % funding.name)
         return {
             "type": "ir.actions.act_window",
             "name": _("Donor Supplementary Funding Request"),

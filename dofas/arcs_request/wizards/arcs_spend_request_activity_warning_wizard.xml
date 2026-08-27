@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_spend_request_activity_warning_wizard_form" model="ir.ui.view">
+        <field name="name">arcs.spend.request.activity.warning.wizard.form</field>
+        <field name="model">arcs.spend.request.activity.warning.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Activity Insufficient Funds">
+                <sheet>
+                    <!-- Compact Alert Banner -->
+                    <div class="alert alert-danger mb-3" role="alert" style="padding: 8px 12px; margin-bottom: 12px;">
+                        <span class="fa fa-exclamation-triangle" style="margin-right: 8px;"/>
+                        <strong>Insufficient Activity Funds</strong>
+                        <span class="text-muted">— The activity has insufficient available balance.</span>
+                    </div>
+
+                    <!-- Two-Column Details -->
+                    <group col="2" class="mb-2">
+                        <!-- Left Column -->
+                        <group>
+                            <field name="request_id" readonly="1" string="Acquisition"/>
+                            <field name="activity_id" readonly="1" string="Activity"/>
+                        </group>
+                        <!-- Right Column -->
+                        <group>
+                            <field name="estimated_amount" readonly="1" string="Estimated Amount"/>
+                            <field name="activity_available_amount" readonly="1" string="Available Amount"/>
+                        </group>
+                    </group>
+
+                    <!-- Shortfall Highlight -->
+                    <div style="background: #f8f9fa; padding: 6px 12px; border-radius: 4px; margin-bottom: 12px;">
+                        <span class="text-muted">Shortfall:</span>
+                        <span style="color: #dc3545; font-weight: bold; font-size: 16px;">
+                            <field name="shortfall" nolabel="1"/>
+                        </span>
+                        <span class="text-muted" style="margin-left: 8px;">— This amount exceeds the available funds.</span>
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div class="alert alert-warning mb-0" role="alert" style="padding: 6px 12px; font-size: 13px;">
+                        <span class="fa fa-info-circle" style="margin-right: 6px;"/>
+                        <strong>Force Submit?</strong> This will bypass the activity shortfall and submit the request.
+                        <span class="text-muted">You can always adjust later.</span>
+                    </div>
+                </sheet>
+
+                <!-- Footer -->
+                <footer>
+                    <button name="action_force_submit" string="Force Submit" 
+                            type="object" class="btn-primary" 
+                            style="min-width: 120px;"/>
+                    <button name="action_cancel" string="Cancel" 
+                            type="object" class="btn-secondary" 
+                            style="min-width: 100px;"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

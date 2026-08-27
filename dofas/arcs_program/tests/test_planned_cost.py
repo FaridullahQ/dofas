@@ -1,4 +1,6 @@
-from odoo.tests import TransactionCase, tagged
+from odoo.exceptions import ValidationError
+from odoo.tests import Form, TransactionCase, tagged
+from odoo import fields
 
 
 @tagged("post_install", "-at_install", "arcs")
@@ -87,3 +89,76 @@ class TestArcsPlannedCost(TransactionCase):
         self.assertEqual(self.project.committed_amount, 700.0)
         self.assertEqual(self.project.available_amount, 1300.0)
         self.assertEqual(self.program.committed_amount, 700.0)
+
+    # ================================================================ cascade
+
+    def test_program_planned_cost_capped_at_its_budget_line(self):
+        budget = self.env["arcs.budget"].create({"grant_id": self.grant.id})
+        line = self.env["arcs.budget.line"].create({
+            "budget_id": budget.id, "name": "Line P", "planned_amount": 500.0})
+        budget.action_approve()
+
+        with self.assertRaises(ValidationError):
+            self.env["arcs.program"].create({
+                "name": "Over Program", "code": "OVER-P",
+                "budget_line_id": line.id, "planned_cost": 600.0})  # exceeds 500
+
+        program = self.env["arcs.program"].create({
+            "name": "Fits Program", "code": "FITS-P",
+            "budget_line_id": line.id, "planned_cost": 500.0})
+        self.assertEqual(program.planned_cost, 500.0)
+
+    def test_program_budget_line_onchange_suggests_planned_cost(self):
+        budget = self.env["arcs.budget"].create({"grant_id": self.grant.id})
+        line = self.env["arcs.budget.line"].create({
+            "budget_id": budget.id, "name": "Line Q", "planned_amount": 750.0})
+        budget.action_approve()
+
+        form = Form(self.env["arcs.program"])
+        form.name = "Suggested Program"
+        form.code = "SUGGEST-P"
+        form.budget_line_id = line
+        self.assertEqual(form.planned_cost, 750.0)
+        program = form.save()
+        self.assertEqual(program.planned_cost, 750.0)
+
+    def test_project_cannot_exceed_program_planned_cost(self):
+        with self.assertRaises(ValidationError):
+            self.env["arcs.project"].create({
+                "name": "Too Big Project", "code": "TOOBIG-PJ",
+                "grant_id": self.grant.id, "program_id": self.program.id,
+                "date_start": "2026-01-01", "date_end": "2026-12-31",
+                "planned_cost": self.program.planned_cost + 1.0})
+
+    def test_activity_cannot_exceed_project_planned_cost(self):
+        with self.assertRaises(ValidationError):
+            self.env["arcs.activity"].create({
+                "name": "Too Big Activity", "project_id": self.project.id,
+                "date_start": "2026-01-01", "date_end": "2026-03-31",
+                "planned_cost": self.project.planned_cost + 1.0})
+
+    def test_reducing_program_below_existing_project_is_blocked(self):
+        with self.assertRaises(ValidationError):
+            self.program.planned_cost = self.project.planned_cost - 1.0
+
+    def test_reducing_project_below_existing_activity_is_blocked(self):
+        with self.assertRaises(ValidationError):
+            self.project.planned_cost = self.activity.planned_cost - 1.0
+
+    def test_project_onchange_suggests_program_planned_cost(self):
+        form = Form(self.env["arcs.project"])
+        form.name = "Suggested Project"
+        form.code = "SUGGEST-PJ"
+        form.grant_id = self.grant
+        form.program_id = self.program
+        form.date_start = fields.Date.from_string("2026-01-01")
+        form.date_end = fields.Date.from_string("2026-12-31")
+        self.assertEqual(form.planned_cost, self.program.planned_cost)
+
+    def test_activity_onchange_suggests_project_planned_cost(self):
+        form = Form(self.env["arcs.activity"])
+        form.name = "Suggested Activity"
+        form.project_id = self.project
+        form.date_start = fields.Date.from_string("2026-01-01")
+        form.date_end = fields.Date.from_string("2026-03-31")
+        self.assertEqual(form.planned_cost, self.project.planned_cost)

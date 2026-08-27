@@ -1,5 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import float_compare
 import re
 
 CODE_RE = re.compile(r"^[A-Z0-9][A-Z0-9\-_/]{1,23}$")
@@ -80,15 +81,51 @@ class ArcsProject(models.Model):
         if self.code:
             self.code = self.code.strip().upper()
 
+    @api.onchange("program_id")
+    def _onchange_program_id(self):
+        if self.program_id and not self.planned_cost:
+            company = self.company_id or self.env.company
+            amount = self.program_id.planned_cost  # always in company currency
+            if self.currency_id and company.currency_id and self.currency_id != company.currency_id:
+                amount = company.currency_id._convert(
+                    amount, self.currency_id, company, fields.Date.context_today(self))
+            self.planned_cost = amount
+
     @api.constrains("code")
     def _check_code_format(self):
         for r in self.filtered("code"):
             if not CODE_RE.match(r.code.strip()):
                 raise ValidationError(_(
-                    "Invalid program code '%(code)s'.\n\n"
+                    "Invalid project code '%(code)s'.\n\n"
                     "Use 2-24 characters - letters, digits, dash, underscore or slash - "
-                    "starting with a letter or digit. Example: HEALTH or HEALTH-2026.",
+                    "starting with a letter or digit. Example: HEALTH-001.",
                     code=r.code))
+
+    @api.constrains("planned_cost", "program_id")
+    def _check_planned_within_program(self):
+        for p in self.filtered("program_id"):
+            program = p.program_id
+            amount = program._to_company_currency(p.planned_cost, p.currency_id)
+            if float_compare(amount, program.planned_cost,
+                             precision_rounding=program.currency_id.rounding) > 0:
+                raise ValidationError(_(
+                    "Planned Cost exceeds Program '%(prog)s''s own Planned Cost "
+                    "(%(pc).2f %(cur)s).") % {
+                    "prog": program.name, "pc": program.planned_cost,
+                    "cur": program.currency_id.name or ""})
+
+    @api.constrains("planned_cost")
+    def _check_children_still_fit(self):
+        for p in self:
+            too_big = p.activity_ids.filtered(
+                lambda a: float_compare(
+                    a.planned_cost, p.planned_cost,
+                    precision_rounding=p.currency_id.rounding) > 0)
+            if too_big:
+                raise ValidationError(_(
+                    "Cannot set this Project's Planned Cost below %(names)s's own "
+                    "Planned Cost. Reduce the activity/activities first.") % {
+                    "names": ", ".join(too_big.mapped("name"))})
 
     def action_activate(self):
         for p in self:

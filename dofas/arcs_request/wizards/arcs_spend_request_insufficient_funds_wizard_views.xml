@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_spend_request_insufficient_funds_wizard_form" model="ir.ui.view">
+        <field name="name">arcs.spend.request.insufficient.funds.wizard.form</field>
+        <field name="model">arcs.spend.request.insufficient.funds.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Resolve Insufficient Funds">
+                <!-- Hidden fields -->
+                <field name="request_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="activity_id" invisible="1"/>
+
+                <sheet>
+                    <!-- Shortfall Alert -->
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107; margin-bottom: 12px;">
+                        <span class="fa fa-exclamation-triangle" style="color: #856404; font-size: 20px;"/>
+                        <div>
+                            <strong style="color: #856404; font-size: 14px;">
+                                <field name="shortfall_amount" readonly="1" nolabel="1"/>
+                                short
+                            </strong>
+                            <span style="color: #856404; margin-left: 6px;">—</span>
+                            <span style="color: #856404; font-size: 13px;">
+                                <field name="insufficient_funds_note" readonly="1" nolabel="1"/>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Help Text -->
+                    <div style="font-size: 13px; color: #6c757d; padding: 4px 0 12px 0; border-bottom: 1px solid #e9ecef; margin-bottom: 12px;">
+                        <span class="fa fa-info-circle" style="margin-right: 6px; color: #17a2b8;"/>
+                        Choose how to resolve this. Every option below is available regardless of whether the budget
+                        line or the Activity/Project/Program ceiling was short — pick whichever actually fits the
+                        situation.
+                    </div>
+
+                    <!-- Quick Actions (Primary choices) -->
+                    <div style="margin-bottom: 14px;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button name="action_choose_different_activity"
+                                    string="Choose Different Activity"
+                                    type="object"
+                                    class="btn btn-primary"
+                                    style="flex: 1; min-width: 180px;"
+                                    invisible="not activity_id"/>
+                            <button name="action_choose_different_budget_line"
+                                    string="Choose Different Budget Line"
+                                    type="object"
+                                    class="btn btn-primary"
+                                    style="flex: 1; min-width: 180px;"/>
+                            <button name="action_reset_draft_wizard"
+                                    string="Revise Request"
+                                    type="object"
+                                    class="btn btn-secondary"
+                                    style="flex: 0 0 auto; min-width: 130px;"/>
+                        </div>
+                    </div>
+
+                    <!-- Activity Options -->
+                    <div invisible="not activity_id" style="margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+                            <span style="font-weight: 600; font-size: 13px; color: #495057;">Activity Options</span>
+                            <span style="flex: 1; border-bottom: 1px solid #dee2e6;"></span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button name="action_open_activity_split_wizard"
+                                    string="Split Across Activities"
+                                    type="object"
+                                    class="btn btn-outline-info"
+                                    style="flex: 1; min-width: 180px;"
+                                    groups="arcs_base.group_finance_manager"/>
+                        </div>
+                    </div>
+
+                    <!-- Budget Line Options -->
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+                            <span style="font-weight: 600; font-size: 13px; color: #495057;">Budget Line Options</span>
+                            <span style="flex: 1; border-bottom: 1px solid #dee2e6;"></span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button name="action_open_split_wizard"
+                                    string="Split Across Budget Lines"
+                                    type="object"
+                                    class="btn btn-outline-info"
+                                    style="flex: 1; min-width: 180px;"
+                                    groups="arcs_base.group_finance_manager"/>
+                            <button name="action_request_budget_transfer"
+                                    string="Request Internal Transfer"
+                                    type="object"
+                                    class="btn btn-outline-success"
+                                    style="flex: 1; min-width: 180px;"/>
+                            <button name="action_request_donor_funding"
+                                    string="Request Donor Funding"
+                                    type="object"
+                                    class="btn btn-outline-warning"
+                                    style="flex: 1; min-width: 180px;"/>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="display: flex; justify-content: flex-end; border-top: 1px solid #e9ecef; padding-top: 10px; margin-top: 4px;">
+                        <button name="action_discard" string="Cancel" type="object" class="btn-secondary"/>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

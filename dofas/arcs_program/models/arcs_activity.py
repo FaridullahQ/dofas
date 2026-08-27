@@ -67,6 +67,16 @@ class ArcsActivity(models.Model):
                     "Planned cost exceeds the available budget on line '%s'.",
                     a.budget_line_id.name))
 
+    @api.constrains("planned_cost", "project_id")
+    def _check_planned_within_project(self):
+        for a in self.filtered("project_id"):
+            project = a.project_id
+            if float_compare(a.planned_cost, project.planned_cost,
+                             precision_rounding=a.currency_id.rounding) > 0:
+                raise ValidationError(_(
+                    "Planned cost exceeds Project '%s''s own Planned Cost.",
+                    project.name))
+
     @api.depends("planned_cost", "commitment_ids.amount", "commitment_ids.state")
     def _compute_amounts(self):
         Expense = self.env["arcs.expense"]
@@ -94,6 +104,11 @@ class ArcsActivity(models.Model):
     def _onchange_code_upper(self):
         if self.code:
             self.code = self.code.strip().upper()
+
+    @api.onchange("project_id")
+    def _onchange_project_id(self):
+        if self.project_id and not self.planned_cost:
+            self.planned_cost = self.project_id.planned_cost
 
     @api.constrains("code")
     def _check_code_format(self):
