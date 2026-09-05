@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Budget",
-    "version": "17.0.1.7.0",
+    "version": "17.0.1.9.0",
     "summary": "Versioned grant budgets, the concurrency-safe encumbrance engine, and internal budget "
                "transfers that never overwrite a line's originally approved Planned amount.",
     "category": "Accounting/ARCS Donor Management",

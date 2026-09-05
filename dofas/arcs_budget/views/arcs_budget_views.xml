@@ -100,6 +100,14 @@
         <field name="res_model">arcs.budget</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_arcs_budget_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a budget version for a grant</p>
+            <p>
+                A budget breaks a grant down into lines by account, tracking what's
+                Planned, Committed (reserved), Actual (spent), and still Available on
+                each - only lines on an Approved budget can be spent against.
+            </p>
+        </field>
     </record>
 
     <record id="view_arcs_commitment_tree" model="ir.ui.view">
@@ -150,5 +158,13 @@
         <field name="res_model">arcs.commitment</field>
         <field name="view_mode">tree</field>
         <field name="search_view_id" ref="view_arcs_commitment_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No commitments reserved yet</p>
+            <p>
+                Every reserve held against a budget line - created automatically when an
+                acquisition is committed or an advance is issued - through to release or
+                consumption when the actual expense posts.
+            </p>
+        </field>
     </record>
 </odoo>

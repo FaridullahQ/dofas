@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Grant",
-    "version": "17.0.1.3.0",
+    "version": "17.0.1.4.0",
     "summary": "Grant / donor agreements with analytic accounts and lifecycle.",
     "category": "Accounting/ARCS Donor Management",
     "license": "LGPL-3",

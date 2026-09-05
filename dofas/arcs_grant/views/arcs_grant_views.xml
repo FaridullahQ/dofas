@@ -144,5 +144,13 @@
         <field name="name">Grants</field>
         <field name="res_model">arcs.grant</field>
         <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a new grant</p>
+            <p>
+                A donor-funded grant, its funding model, and its own currency and
+                analytic account - the top of the hierarchy everything else (budgets,
+                acquisitions, expenses, advances) is tracked against.
+            </p>
+        </field>
     </record>
 </odoo>

@@ -333,13 +333,12 @@
                             <field name="project_id" options="{'no_create': True}"/>
                             <field name="component_id"
                                    help="Optional sub-component of the project this activity belongs to."/>
-                            <field name="budget_line_id" options="{'no_create': True}"
-                                   help="Budget line this activity is planned against; planned cost is checked against its available amount."/>
                         </group>
                         <group string="Plan">
                             <field name="date_start"/>
                             <field name="date_end"/>
-                            <field name="planned_cost"/>
+                            <field name="planned_cost"
+                                   help="Checked against what's still available under this activity's Project once other activities already planned there are taken into account."/>
                             <field name="expected_beneficiaries"/>
                         </group>
                     </group>
@@ -365,7 +364,6 @@
                 <field name="name" string="Activity" filter_domain="['|',('name','ilike',self),('code','ilike',self)]"/>
                 <field name="project_id"/>
                 <field name="component_id"/>
-                <field name="budget_line_id"/>
                 <field name="state"/>
                 <separator/>
                 <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>

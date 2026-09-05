@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Base",
-    "version": "17.0.1.4.0",
+    "version": "17.0.1.5.0",
     "summary": "Foundation: approval mixin, immutable audit log, roles, configuration, the reason "
                "wizard used by every Reject/Cancel/Reset to Draft button across the suite, and "
                "the suite-wide menu structure (Procurement & Assets, Master Data, Audit & "

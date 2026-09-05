@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Reporting",
-    "version": "17.0.1.4.0",
+    "version": "17.0.1.5.0",
     "summary": "Department and donor reports, templates, PDF output, reporting calendar, plus "
                "Budget vs Actual and Project/Activity Reports.",
     "category": "Accounting/ARCS Donor Management",

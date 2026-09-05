@@ -1,8 +1,10 @@
 {
     "name": "ARCS Donor Mgmt - Program & Projects",
-    "version": "17.0.1.5.0",
-    "summary": "Program -> Project -> Component -> Activity hierarchy, each level with its own "
-               "Planned Cost ceiling tracked alongside the budget line.",
+    "version": "17.0.1.6.0",
+    "summary": "Program -> Project -> Activity hierarchy, each level's Planned Cost ceiling "
+               "correctly shared among siblings (two programs on one budget line, two "
+               "projects on one program, two activities on one project can never together "
+               "plan more than their parent actually has).",
     "category": "Accounting/ARCS Donor Management",
     "license": "LGPL-3", "author": "ARCS",
     "depends": ["arcs_budget", "arcs_expense"],

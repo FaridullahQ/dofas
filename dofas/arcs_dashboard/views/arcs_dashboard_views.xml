@@ -26,6 +26,14 @@
         <field name="res_model">arcs.expense</field>
         <field name="view_mode">graph,pivot,tree</field>
         <field name="domain">[('state','=','posted')]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No posted expenses yet</p>
+            <p>
+                Every posted (actual) expense - chart or pivot by grant, budget line, or
+                date to see where money has actually gone, as opposed to what's merely
+                reserved.
+            </p>
+        </field>
     </record>
 
     <!-- Budget monitoring: planned vs committed vs actual vs available -->
@@ -47,6 +55,13 @@
         <field name="name">Budget Monitoring</field>
         <field name="res_model">arcs.budget.line</field>
         <field name="view_mode">pivot,tree</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No budget lines to monitor yet</p>
+            <p>
+                Planned, Committed, Actual, and Available side by side across every
+                budget line - pivot by grant to see where spending pressure is building.
+            </p>
+        </field>
     </record>
 
     <!-- Commitments analysis -->
@@ -64,5 +79,13 @@
         <field name="res_model">arcs.commitment</field>
         <field name="view_mode">graph,tree</field>
         <field name="domain">[('state','=','confirmed')]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No open commitments right now</p>
+            <p>
+                Every reserve still holding budget (not yet released or consumed) -
+                useful for seeing how much of the portfolio is tied up before it's
+                actually spent.
+            </p>
+        </field>
     </record>
 </odoo>

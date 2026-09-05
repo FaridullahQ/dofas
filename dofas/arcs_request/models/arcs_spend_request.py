@@ -14,12 +14,27 @@ class ArcsSpendRequest(models.Model):
 
     name = fields.Char(required=True, default=lambda s: _("New"), copy=False, readonly=True)
     date_request = fields.Date(default=fields.Date.context_today, tracking=True)
-    zone_id = fields.Many2one("arcs.zone", string="Region / Province", tracking=True)
+    region_id = fields.Many2one(
+        "arcs.zone", string="Region", tracking=True,
+        domain="[('kind', '=', 'zone')]",
+        help="The region this acquisition is filed under. Auto-filled, together with "
+             "Province, Department, Department Manager and Budget Holder, from the "
+             "requested employee's own HR department once 'Requested By' is set - "
+             "still fully editable afterwards, and narrows the Province choice below "
+             "once picked (either automatically or by hand).")
+    zone_id = fields.Many2one(
+        "arcs.zone", string="Province", tracking=True,
+        domain="[('kind', '=', 'province')] + ([('parent_id', '=', region_id)] if region_id else [])",
+        help="The province this acquisition is filed under.")
     department_id = fields.Many2one(
-        "arcs.department", string="Department",
-        domain="[] if not zone_id else ['|', ('zone_id', '=', zone_id), ('zone_id.parent_id', '=', zone_id)]",
-        help="Narrowed to the departments of the selected Region/Province once one is chosen "
-             "(matches whether you picked the province directly or its parent zone).")
+        "hr.department", string="Department",
+        domain="[('zone_id', '=', zone_id)] if zone_id else []",
+        help="Narrowed to the departments of the selected Province once one is chosen.")
+    department_manager_id = fields.Many2one(
+        "hr.employee", string="Department Manager",
+        help="Auto-filled from the requested employee's department manager once "
+             "'Requested By' is set; editable if a different approver applies to "
+             "this particular acquisition.")
     budget_line_id = fields.Many2one(
         "arcs.budget.line", string="Budget Line", required=True, tracking=True,
         domain="[('budget_state', '=', 'approved')]",
@@ -55,10 +70,18 @@ class ArcsSpendRequest(models.Model):
     requested_by = fields.Many2one(
         "hr.employee", string="Requested By",
         default=lambda s: s.env.user.employee_id,
-        help="The employee this acquisition is filed for. Once Approved, this is who the "
-             "approved amount is disbursed to as a cash advance (see the Employee Advance "
-             "section) - they spend it, and any difference between what they spent and "
-             "what they were given is settled with them afterwards.")
+        help="The employee this acquisition is filed for. Once set, auto-fills Region, "
+             "Province, Department, Department Manager and Budget Holder from this "
+             "employee's own HR department (still fully editable afterwards). Once "
+             "Approved, this is also who the approved amount is disbursed to as a cash "
+             "advance (see the Employee Advance section) - they spend it, and any "
+             "difference between what they spent and what they were given is settled "
+             "with them afterwards.")
+    requested_by_employee_code = fields.Char(
+        related="requested_by.employee_code", string="Employee Code", readonly=True,
+        help="The selected employee's unique ARCS identifier - confirms exactly which "
+             "person this acquisition (and its eventual cash advance) is for when "
+             "several employees share the same name.")
     line_ids = fields.One2many("arcs.spend.request.line", "request_id", string="Items")
     estimated_amount = fields.Monetary(compute="_compute_estimated", store=True,
                                        currency_field="currency_id")
@@ -171,13 +194,54 @@ class ArcsSpendRequest(models.Model):
         for r in self:
             r.donor_funding_count = len(r.donor_funding_ids)
 
+    @api.onchange("requested_by")
+    def _onchange_requested_by(self):
+        """Entry point requested by the client: pick the requesting employee
+        and every relevant requesting-unit field - Region, Province,
+        Department, Department Manager and Budget Holder - fills in from
+        that employee's own HR department, mirroring the established
+        Activity -> Project -> Program -> Budget Line cascade below (every
+        field it touches is set directly here, rather than relying on the
+        other onchange methods to fire and re-derive it, exactly like
+        _onchange_activity does for the budget line). Every field stays
+        fully editable afterwards - this is an auto-fill convenience, not a
+        lock, and it only ever fills in blanks / replaces a PREVIOUS
+        auto-fill, never overwrites unrelated user input on an employee
+        with no department."""
+        if not self.requested_by:
+            return
+        department = self.requested_by.department_id
+        if not department:
+            return
+        self.department_id = department
+        province = department.zone_id
+        if province:
+            self.zone_id = province
+            self.region_id = province.parent_id
+            if province.budget_holder_id:
+                self.budget_holder_id = province.budget_holder_id
+        if department.manager_id:
+            self.department_manager_id = department.manager_id
+
+    @api.onchange("region_id")
+    def _onchange_region(self):
+        """Only clears Province when it's become genuinely inconsistent with
+        the new Region - not unconditionally, so a Region auto-filled BY the
+        Requested By cascade above (always the matching parent, by
+        construction) never wipes the very Province selection that produced
+        it, mirroring _onchange_budget_line's guard below."""
+        if self.zone_id and self.zone_id.parent_id != self.region_id:
+            self.zone_id = False
+
     @api.onchange("zone_id")
     def _onchange_zone(self):
-        if self.zone_id and self.zone_id.budget_holder_id:
-            self.budget_holder_id = self.zone_id.budget_holder_id
+        if self.zone_id:
+            if self.zone_id.budget_holder_id:
+                self.budget_holder_id = self.zone_id.budget_holder_id
+            if not self.region_id:
+                self.region_id = self.zone_id.parent_id
         if self.department_id and self.department_id.zone_id and self.zone_id and \
-                self.department_id.zone_id != self.zone_id and \
-                self.department_id.zone_id.parent_id != self.zone_id:
+                self.department_id.zone_id != self.zone_id:
             self.department_id = False
 
     @api.onchange("program_id")
@@ -205,13 +269,15 @@ class ArcsSpendRequest(models.Model):
         """The entry point the client asked for: pick an Activity and every
         relevant upstream field - Project, Program, and (best-effort) Budget
         Line - fills in from it, instead of having to pick Budget Line first
-        and work down. Prefers the Activity's own direct budget line link;
-        falls back to its Program's, but only when that line is confirmed
-        to belong to the SAME grant as the project/activity - filling in a
-        budget line from a different grant would immediately get wiped by
-        _onchange_budget_line's own mismatch guard below, so it's safer to
-        leave it for the user to pick manually in that edge case than to
-        fill in something that can't stick."""
+        and work down. Falls back to the Activity's own Program's budget
+        line (arcs_program's single source of truth for where a budget line
+        enters the Program -> Project -> Activity cascade - an Activity has
+        no direct budget_line_id of its own), but only when that line is
+        confirmed to belong to the SAME grant as the project/activity -
+        filling in a budget line from a different grant would immediately
+        get wiped by _onchange_budget_line's own mismatch guard below, so
+        it's safer to leave it for the user to pick manually in that edge
+        case than to fill in something that can't stick."""
         if not self.activity_id:
             return
         activity = self.activity_id
@@ -221,9 +287,7 @@ class ArcsSpendRequest(models.Model):
         if project.program_id and self.program_id != project.program_id:
             self.program_id = project.program_id
         if not self.budget_line_id:
-            if activity.budget_line_id:
-                self.budget_line_id = activity.budget_line_id
-            elif project.program_id and project.program_id.budget_line_id \
+            if project.program_id and project.program_id.budget_line_id \
                     and project.program_id.budget_line_id.grant_id == project.grant_id:
                 self.budget_line_id = project.program_id.budget_line_id
 
@@ -246,19 +310,6 @@ class ArcsSpendRequest(models.Model):
         return super().create(vals_list)
 
     # ---------------- four-step workflow ----------------
-    # def action_submit(self):
-    #     finance_or_admin = self.env.user.has_group("arcs_base.group_finance_manager") \
-    #         or self.env.user.has_group("arcs_base.group_system_admin")
-    #     for r in self:
-    #         if r.state != "draft":
-    #             raise UserError(_("Only drafted requests can be submitted."))
-    #         if not r.line_ids:
-    #             raise UserError(_("Add at least one item before submitting."))
-    #         if r.budget_holder_id and r.budget_holder_id != self.env.user and not finance_or_admin:
-    #             raise UserError(_(
-    #                 "Only the assigned Budget Holder (%s) can submit this acquisition "
-    #                 "for finance review.") % r.budget_holder_id.name)
-    #     return self._transition("submitted", "submit")
     def action_submit(self):
         """Override to check activity available amount before submission."""
         finance_or_admin = self.env.user.has_group("arcs_base.group_finance_manager") \
@@ -455,63 +506,86 @@ class ArcsSpendRequest(models.Model):
         return self._transition("approved", "approve")
 
     def action_disburse_advance(self):
-        """Create the draft cash advance (arcs.advance, advance_type='employee')
+        """Create the cash advance (arcs.advance, advance_type='employee')
         for Requested By, linked back to this acquisition's grant/budget
-        line/currency, then hand off to arcs_advance's own Disbursement
-        wizard to actually pay it out - picking a real bank/cash journal and
-        attaching the disbursement voucher/acknowledgement, exactly as any
-        other advance is disbursed. A deliberate, explicit Finance action -
-        never automatic on Approve - matching how every other real money
-        movement in this system works (Commit & Reserve, fund receipts,
-        donor funding). Allow Liquidation Above Advance is switched on for
-        this advance specifically, since an acquisition's confirmed price
-        can end up a little higher than what was advanced for it - the
-        difference is then settled via Settle Advance rather than being
-        blocked as it would be for a normal advance.
+        line/currency, if one doesn't already exist - then open THAT
+        ADVANCE'S OWN FORM, rather than silently locking it and jumping
+        straight to the disbursement wizard on the employee's behalf.
+
+        This is deliberate: locking an employee advance requires a real
+        debtor Partner (see arcs.advance.action_lock). arcs_advance now
+        derives that from the employee's own contact record whenever
+        possible (see ArcsAdvance._derive_employee_partner), but it can't
+        always - the employee's HR record may simply have no partner of
+        any kind linked yet. Silently trying to lock here and failing with
+        a raw error dialog left Finance with no way to fix it. Landing on
+        the advance's own form instead means every field - including
+        Partner - is right there, editable, with the advance's own 'Lock
+        Advance' and 'Issue Advance' buttons driving the rest of the flow,
+        exactly the same as any advance created directly from the Advances
+        menu: review the details (and the Employee Code shown next to
+        Requested By above, so there's no ambiguity about which employee
+        this is for), Lock, then Issue.
+
+        Calling this again on an acquisition that already has an advance
+        simply re-opens that advance's form - the natural 'resume' path if
+        Finance navigated away before locking or disbursing - so this one
+        method now covers what action_complete_disbursement used to handle
+        as a separate button.
+
+        A deliberate, explicit Finance action - never automatic on Approve -
+        matching how every other real money movement in this system works
+        (Commit & Reserve, fund receipts, donor funding). Allow Liquidation
+        Above Advance is switched on for this advance specifically, since
+        an acquisition's confirmed price can end up a little higher than
+        what was advanced for it - the difference is then settled via
+        Settle Advance rather than being blocked as it would be for a
+        normal advance.
 
         arcs_request deliberately does not duplicate any journal-entry
-        logic here - it only ever creates the draft record and points
-        arcs_advance's own wizard at it, the same way action_settle_advance
-        below hands off to arcs_advance's Settlement wizard."""
+        logic here - it only ever creates the draft record and hands off
+        to arcs_advance's own buttons/wizards, the same way
+        action_settle_advance below hands off to arcs_advance's Settlement
+        wizard."""
         self.ensure_one()
         if not (self.env.user.has_group("arcs_base.group_finance_manager")
                 or self.env.user.has_group("arcs_base.group_system_admin")):
             raise UserError(_("Only a Finance Manager can disburse an employee advance."))
         if self.state != "approved":
             raise UserError(_("Only approved acquisitions can have their advance disbursed."))
-        if self.advance_id:
+        if self.advance_id and self.advance_id.state == "issued":
             raise UserError(_("An advance has already been disbursed for this acquisition."))
-        if not self.requested_by:
-            raise UserError(_(
-                "Set 'Requested By' (the employee this acquisition is for) before "
-                "disbursing an advance."))
-        amount = self.approved_amount or self.estimated_amount
-        advance = self.env["arcs.advance"].create({
-            "advance_type": "employee",
-            "employee_id": self.requested_by.id,
-            "grant_id": self.grant_id.id,
-            "budget_line_id": self.budget_line_id.id,
-            "currency_id": self.currency_id.id,
-            "amount": amount,
-            "date": fields.Date.context_today(self),
-            "reference": self.name,
-            "allow_over_liquidation": True,
-            "note": _("Advance for acquisition %s.") % self.name,
-            "spend_request_id": self.id,
-        })
-        self.advance_id = advance.id
-        return advance.action_open_disbursement_wizard()
+        if not self.advance_id:
+            if not self.requested_by:
+                raise UserError(_(
+                    "Set 'Requested By' (the employee this acquisition is for) before "
+                    "disbursing an advance."))
+            amount = self.approved_amount or self.estimated_amount
+            advance = self.env["arcs.advance"].create({
+                "advance_type": "employee",
+                "employee_id": self.requested_by.id,
+                "grant_id": self.grant_id.id,
+                "budget_line_id": self.budget_line_id.id,
+                "currency_id": self.currency_id.id,
+                "amount": amount,
+                "date": fields.Date.context_today(self),
+                "reference": self.name,
+                "allow_over_liquidation": True,
+                "note": _("Advance for acquisition %s.") % self.name,
+                "spend_request_id": self.id,
+            })
+            self.advance_id = advance.id
+        return self.action_view_advance()
 
     def action_complete_disbursement(self):
-        """Resume path: if 'Disburse Advance' was clicked but the
-        disbursement wizard was discarded before confirming, the draft
-        advance record it created is still linked here - this just re-opens
-        the same wizard on it rather than leaving the acquisition stuck
-        with no visible way to finish disbursing."""
+        """Kept as a thin alias - some views/automations may still call
+        this name - now just delegates to action_disburse_advance(), which
+        already handles both 'create and open' and 'resume, already
+        exists' in one place."""
         self.ensure_one()
-        if not self.advance_id or self.advance_id.state != "draft":
+        if not self.advance_id:
             raise UserError(_("There is no pending disbursement to complete."))
-        return self.advance_id.action_open_disbursement_wizard()
+        return self.action_disburse_advance()
 
     def action_view_advance(self):
         self.ensure_one()
@@ -684,6 +758,20 @@ class ArcsSpendRequest(models.Model):
     def action_print_voucher(self):
         self.ensure_one()
         return self.env.ref("arcs_request.action_report_acquisition_voucher").report_action(self)
+
+    def action_print_request_summary(self):
+        """Reference sheet used to collect vendor quotations - not a
+        commitment voucher (no debit/credit lines, no accounting
+        significance), just a printout of the acquisition as currently
+        filled in (Requesting Unit, Activity/Project/Program, Budget Line
+        & Funding, and the requested Items with their estimated amounts),
+        plus a small blank section for the vendor to fill in their quoted
+        price. Available once Submitted, when the estimated amounts are
+        final but the real quotation hasn't been collected yet - the exact
+        gap this document exists to bridge."""
+        self.ensure_one()
+        return self.env.ref(
+            "arcs_request.action_report_acquisition_request_summary").report_action(self)
 
     def action_view_expenses(self):
         self.ensure_one()

@@ -103,6 +103,14 @@
         <field name="res_model">arcs.department.report</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_arcs_dept_report_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a department report</p>
+            <p>
+                Programs and Finance's own internal periodic reporting against a grant -
+                drafted, submitted, reviewed, and approved before it feeds into the
+                grant's overall reporting picture.
+            </p>
+        </field>
     </record>
 
     <!-- Donor report -->
@@ -207,6 +215,14 @@
         <field name="res_model">arcs.donor.report</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_arcs_donor_report_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a donor report</p>
+            <p>
+                The formal report due back to the donor for a grant, tracked against its
+                due date - flagged overdue automatically, and moving through draft,
+                submitted, reviewed, and approved.
+            </p>
+        </field>
     </record>
 
     <!-- Template -->
@@ -277,6 +293,13 @@
         <field name="res_model">arcs.report.template</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_arcs_rtemplate_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a report template</p>
+            <p>
+                Reusable structures for Department and Donor Reports, so every report of
+                the same type asks for the same sections consistently.
+            </p>
+        </field>
     </record>
 
     <record id="view_arcs_grant_form_reporting" model="ir.ui.view">

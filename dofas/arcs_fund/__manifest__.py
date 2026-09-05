@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Fund",
-    "version": "17.0.1.6.0",
+    "version": "17.0.1.8.0",
     "summary": "Donor fund receipts with bank voucher reference, attachment gate, GL posting, donor "
                "thank-you letter, and supplementary funding requests with an email composer and a "
                "bank-receipt attachment gate on recording the donor's approval.",

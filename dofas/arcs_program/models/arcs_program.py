@@ -27,11 +27,14 @@ class ArcsProgram(models.Model):
         "arcs.budget.line", string="Budget Line",
         domain="[('budget_state', '=', 'approved')]",
         help="Optional source budget line for this program's Planned Cost ceiling. "
-             "Selecting one suggests Planned Cost from its live available amount "
-             "(converted to company currency) - and Planned Cost can never exceed "
-             "it. This is the top of the cascade: a Project's Planned Cost can "
-             "never exceed its Program's, and an Activity's can never exceed its "
-             "Project's.")
+             "Selecting one suggests Planned Cost from whatever the line still has "
+             "left after every OTHER program already planning against it (converted "
+             "to company currency) - and Planned Cost can never exceed that remaining "
+             "amount, so several programs sharing one budget line can never together "
+             "plan more than it actually has. This is the top of the cascade: a "
+             "Project's Planned Cost can never exceed its Program's (net of sibling "
+             "projects), and an Activity's can never exceed its Project's (net of "
+             "sibling activities).")
     planned_cost = fields.Monetary(
         currency_field="currency_id",
         help="In company currency: a Program can span projects funded by different "
@@ -62,8 +65,8 @@ class ArcsProgram(models.Model):
     @api.onchange("budget_line_id")
     def _onchange_budget_line_id(self):
         if self.budget_line_id:
-            self.planned_cost = self._to_company_currency(
-                self.budget_line_id.available_amount, self.budget_line_id.currency_id)
+            self.planned_cost = max(
+                self._budget_line_remaining_for_planning(self.budget_line_id), 0.0)
 
     def _to_company_currency(self, amount, currency):
         """Shared conversion used everywhere this model compares or derives a
@@ -76,6 +79,38 @@ class ArcsProgram(models.Model):
             return currency._convert(amount, company.currency_id, company,
                                      fields.Date.context_today(self))
         return amount
+
+    def _budget_line_remaining_for_planning(self, budget_line):
+        """How much of `budget_line`'s Available Amount (converted to company
+        currency) is still unclaimed by OTHER programs already planning
+        against it. This - not the budget line's raw Available Amount - is
+        the real ceiling THIS program's own Planned Cost must respect: if
+        the line has 20,000 and one program already plans 10,000, only
+        10,000 remains for every other program planning against that same
+        line.
+
+        Excludes this program's OWN prior claim (via `self._origin`, so
+        this is safe to call from an onchange on an unsaved record too) -
+        editing a program's own Planned Cost isn't competing against its
+        own existing figure, only against everyone else's.
+
+        Does not row-lock the budget line: Planned Cost is a softer,
+        planning-stage ceiling, not a real money reservation - the actual
+        financial reservation (arcs.commitment, via budget_line.reserve())
+        already row-locks correctly and is completely unaffected by this
+        check either way."""
+        self.ensure_one()
+        if not budget_line:
+            return 0.0
+        available = self._to_company_currency(
+            budget_line.available_amount, budget_line.currency_id)
+        domain = [("budget_line_id", "=", budget_line.id)]
+        if self._origin.id:
+            domain.append(("id", "!=", self._origin.id))
+        others = self.env["arcs.program"].search(domain)
+        others_planned = sum(
+            self._to_company_currency(o.planned_cost, o.currency_id) for o in others)
+        return available - others_planned
 
     @api.constrains("code")
     def _check_code_format(self):
@@ -90,28 +125,31 @@ class ArcsProgram(models.Model):
     @api.constrains("planned_cost", "budget_line_id")
     def _check_planned_within_budget_line(self):
         for p in self.filtered("budget_line_id"):
-            available = p._to_company_currency(
-                p.budget_line_id.available_amount, p.budget_line_id.currency_id)
-            if float_compare(p.planned_cost, available,
+            remaining = p._budget_line_remaining_for_planning(p.budget_line_id)
+            if float_compare(p.planned_cost, remaining,
                              precision_rounding=p.currency_id.rounding) > 0:
                 raise ValidationError(_(
-                    "Planned Cost (%(pc).2f %(cur)s) exceeds the available amount on "
-                    "budget line '%(line)s' (%(avail).2f %(cur)s).") % {
+                    "Planned Cost (%(pc).2f %(cur)s) exceeds what's still available "
+                    "on budget line '%(line)s' once other programs' own Planned Cost "
+                    "is taken into account: %(remaining).2f %(cur)s remains for this "
+                    "one to plan against.") % {
                     "pc": p.planned_cost, "cur": p.currency_id.name or "",
-                    "line": p.budget_line_id.name, "avail": available})
+                    "line": p.budget_line_id.name, "remaining": remaining})
 
     @api.constrains("planned_cost")
     def _check_children_still_fit(self):
         for p in self:
-            too_big = p.project_ids.filtered(
-                lambda proj: float_compare(
-                    p._to_company_currency(proj.planned_cost, proj.currency_id),
-                    p.planned_cost, precision_rounding=p.currency_id.rounding) > 0)
-            if too_big:
+            total_children = sum(
+                p._to_company_currency(proj.planned_cost, proj.currency_id)
+                for proj in p.project_ids)
+            if float_compare(total_children, p.planned_cost,
+                             precision_rounding=p.currency_id.rounding) > 0:
                 raise ValidationError(_(
-                    "Cannot set this Program's Planned Cost below %(names)s's own "
-                    "Planned Cost. Reduce the project(s) first.") % {
-                    "names": ", ".join(too_big.mapped("name"))})
+                    "Cannot set this Program's Planned Cost to %(new).2f %(cur)s - "
+                    "its projects already total %(total).2f %(cur)s planned between "
+                    "them. Reduce the project(s) first.") % {
+                    "new": p.planned_cost, "cur": p.currency_id.name or "",
+                    "total": total_children})
 
     @api.depends("planned_cost", "commitment_ids.amount", "commitment_ids.state",
                 "commitment_ids.currency_id")

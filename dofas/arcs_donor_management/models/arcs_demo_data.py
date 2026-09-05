@@ -10,7 +10,10 @@ DEMO_MODULE = "__arcs_demo__"
 
 # Deletion order matters: children before parents, so FK/ondelete constraints
 # never block cleanup. arcs.commitment has no cascade tie to its source
-# document, so it's deleted explicitly alongside it.
+# document, so it's deleted explicitly alongside it. Departments are now the
+# real hr.department (see arcs_zone/models/hr_department.py) rather than a
+# parallel arcs.department model - only the demo-tagged rows this generator
+# itself created are ever touched here, never a real department.
 CLEANUP_ORDER = [
     "arcs.advance.liquidation",
     "arcs.advance",
@@ -26,7 +29,7 @@ CLEANUP_ORDER = [
     "arcs.program",
     "arcs.budget",
     "arcs.grant",
-    "arcs.department",
+    "hr.department",
     "arcs.zone",
     "arcs.donor",
 ]
@@ -173,7 +176,10 @@ class ArcsDemoData(models.AbstractModel):
     # ---------------------------------------------------------------- geo
     def _gen_geo(self, state):
         Zone = self.env["arcs.zone"]
-        Dept = self.env["arcs.department"]
+        # Departments are the real hr.department model (with the zone_id
+        # and code fields arcs_zone adds onto it) - no longer a separate
+        # arcs.department model.
+        Dept = self.env["hr.department"]
 
         hq = self._tag("zone_hq", Zone.create({"name": "Head Office", "code": "HQ", "kind": "hq"}))
         central = self._tag("zone_central", Zone.create(
@@ -383,6 +389,13 @@ class ArcsDemoData(models.AbstractModel):
             "budget_line_id": hr_line.id, "amount": 5000, "date": today - timedelta(days=20),
             "reference": "ADV-DEMO-1",
         })
+        # Lock (debit the holder, commit the amount via a real accrual
+        # entry) before disbursing - now mandatory for every advance. If
+        # the company hasn't configured the ARCS Advance accounts/journal
+        # yet, this whole section is skipped gracefully by the _section()
+        # wrapper above (same as any other config-dependent demo section),
+        # rather than blocking the rest of the demo data.
+        a1.action_lock()
         a1.action_issue()
         self._tag("advance_1", a1)
 
@@ -391,6 +404,7 @@ class ArcsDemoData(models.AbstractModel):
             "budget_line_id": hr_line.id, "amount": 3000, "date": today - timedelta(days=10),
             "reference": "ADV-DEMO-2",
         })
+        a2.action_lock()
         a2.action_issue()
         self._tag("advance_2", a2)
 

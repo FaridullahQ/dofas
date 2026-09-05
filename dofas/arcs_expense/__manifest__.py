@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Expense",
-    "version": "17.0.1.3.0",
+    "version": "17.0.1.4.0",
     "summary": "Grant expenditure: encumber on approval, book analytic actual on posting.",
     "category": "Accounting/ARCS Donor Management",
     "license": "LGPL-3",

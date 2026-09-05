@@ -111,5 +111,13 @@
         <field name="name">Expenses</field>
         <field name="res_model">arcs.expense</field>
         <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Record a new expense</p>
+            <p>
+                A real, actual cost against a budget line and grant - drawing on an
+                acquisition's existing reserve where one exists, or reserving its own
+                amount when created directly.
+            </p>
+        </field>
     </record>
 </odoo>

@@ -9,6 +9,7 @@
                   decoration-success="state in ('committed','approved')" decoration-danger="state=='rejected'">
                 <field name="name"/>
                 <field name="date_request"/>
+                <field name="region_id" optional="hide"/>
                 <field name="zone_id"/>
                 <field name="department_id" optional="show"/>
                 <field name="budget_line_id"/>
@@ -49,17 +50,15 @@
                             invisible="state != 'approved'"/>
                     <button name="action_disburse_advance" string="Disburse Advance" type="object"
                             class="oe_highlight" icon="fa-money"
-                            invisible="state != 'approved' or advance_id"
-                            groups="arcs_base.group_finance_manager"/>
-                    <button name="action_complete_disbursement" string="Complete Disbursement" type="object"
-                            class="oe_highlight" icon="fa-money"
-                            invisible="state != 'approved' or not advance_id or advance_state != 'draft'"
+                            invisible="state != 'approved' or (advance_id and advance_state == 'issued')"
                             groups="arcs_base.group_finance_manager"/>
                     <button name="action_create_liquidation_for_advance" string="Create Liquidation" type="object"
                             invisible="state != 'approved' or not advance_id or advance_state != 'issued'"/>
                     <button name="action_settle_advance" string="Settle Advance" type="object"
                             invisible="state != 'approved' or not advance_id or advance_state != 'issued' or not advance_outstanding_amount"
                             groups="arcs_base.group_finance_manager"/>
+                    <button name="action_print_request_summary" string="Print Request Summary" type="object"
+                            invisible="state != 'submitted'"/>
                     <button name="action_print_voucher" string="Print Voucher" type="object"
                             invisible="state not in ('committed', 'approved')"/>
                     <button name="action_reject_wizard" string="Reject" type="object"
@@ -98,12 +97,16 @@
                         the approved amount.
                     </div>
                     <div class="alert alert-warning" role="alert"
-                         invisible="state != 'approved' or not advance_id or advance_state != 'draft'">
+                         invisible="state != 'approved' or not advance_id or advance_state == 'issued'">
                         A cash advance for
                         <field name="requested_by" readonly="1" nolabel="1" class="oe_inline"/>
-                        was started but not yet paid out. Use
-                        <strong>Complete Disbursement</strong>
-                        to pick the bank/cash journal, attach the voucher, and finish paying it.
+                        has been started but not yet fully disbursed (status:
+                        <field name="advance_state" readonly="1" nolabel="1" class="oe_inline"/>).
+                        Click <strong>Disburse Advance</strong> to open it and continue -
+                        review the details there (including the Employee Code, to confirm
+                        it's the right person), <strong>Lock Advance</strong> if it's still
+                        Draft to debit the employee, then <strong>Issue Advance</strong> once
+                        Locked to actually pay it out.
                     </div>
                     <div class="alert alert-warning" role="alert"
                          invisible="state != 'approved' or not advance_id or advance_state != 'issued' or advance_outstanding_amount &lt;= 0">
@@ -161,12 +164,19 @@
                         </h1>
                     </div>
                     <group col="3">
-                        <!-- Group 1: Requesting Unit (1/3 width) -->
+                        <!-- Group 1: Requesting Unit (1/3 width). Requested By comes
+                             first - picking the employee auto-fills everything else
+                             below it (Region, Province, Department, Department
+                             Manager, Budget Holder) from that employee's own HR
+                             department; every auto-filled field stays editable. -->
                         <group string="Requesting unit">
+                            <field name="requested_by" readonly="state != 'draft'"/>
+                            <field name="requested_by_employee_code" invisible="not requested_by"/>
+                            <field name="region_id" readonly="state != 'draft'"/>
                             <field name="zone_id" readonly="state != 'draft'"/>
                             <field name="department_id" readonly="state != 'draft'"/>
+                            <field name="department_manager_id" readonly="state != 'draft'"/>
                             <field name="budget_holder_id" readonly="state != 'draft'"/>
-                            <field name="requested_by" readonly="state != 'draft'"/>
                             <field name="date_request" readonly="state != 'draft'"/>
                         </group>
 
@@ -275,6 +285,8 @@
         <field name="arch" type="xml">
             <search string="Search Spend Requests">
                 <field name="name" placeholder="Search by request reference…"/>
+                <field name="requested_by"/>
+                <field name="region_id"/>
                 <field name="zone_id"/>
                 <field name="department_id"/>
                 <field name="budget_line_id"/>
@@ -291,7 +303,8 @@
                 <filter name="rejected" string="Rejected" domain="[('state','=','rejected')]"/>
                 <filter name="cancelled" string="Cancelled" domain="[('state','=','cancelled')]"/>
                 <group expand="0" string="Group By">
-                    <filter name="g_zone" string="Region" context="{'group_by':'zone_id'}"/>
+                    <filter name="g_region" string="Region" context="{'group_by':'region_id'}"/>
+                    <filter name="g_zone" string="Province" context="{'group_by':'zone_id'}"/>
                     <filter name="g_department" string="Department" context="{'group_by':'department_id'}"/>
                     <filter name="g_program" string="Program" context="{'group_by':'program_id'}"/>
                     <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>

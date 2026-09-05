@@ -66,8 +66,13 @@ class TestArcsAcquisitionCascadeAndRouter(TransactionCase):
         request = form.save()
         self.assertEqual(request.budget_line_id, self.line)
 
-    def test_activity_own_budget_line_takes_priority_over_program_one(self):
-        self.activity.budget_line_id = self.other_line
+    def test_activity_budget_line_always_comes_from_its_program(self):
+        """Activities have no budget_line_id of their own (arcs_program
+        removed it - an Activity gets its budget-line context transitively
+        through Project -> Program, never directly). Confirms the cascade
+        always reflects whatever the activity's own Program currently
+        points at."""
+        self.program.budget_line_id = self.other_line.id
         form = Form(self.env["arcs.spend.request"])
         form.activity_id = self.activity
         self.assertEqual(form.budget_line_id, self.other_line)

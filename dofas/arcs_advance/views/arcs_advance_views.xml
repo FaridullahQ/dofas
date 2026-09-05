@@ -9,6 +9,7 @@
         <field name="model">arcs.advance</field>
         <field name="arch" type="xml">
             <tree
+                    decoration-warning="state=='locked'"
                     decoration-info="state=='issued'"
                     decoration-success="state=='closed'"
                     decoration-muted="state=='cancelled'">
@@ -18,6 +19,7 @@
                 <field name="zone_id" optional="show"/>
                 <field name="holder_user_id" optional="hide"/>
                 <field name="employee_id" optional="show"/>
+                <field name="employee_code" optional="hide"/>
                 <field name="department_id" optional="show"/>
                 <field name="job_id" string="Position" optional="show"/>
                 <field name="partner_id" optional="hide"/>
@@ -28,6 +30,7 @@
                 <field name="outstanding_amount" sum="Outstanding"/>
                 <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge"
+                       decoration-warning="state=='locked'"
                        decoration-info="state=='issued'"
                        decoration-success="state=='closed'"
                        decoration-danger="state=='cancelled'"/>
@@ -44,12 +47,17 @@
         <field name="arch" type="xml">
             <form string="Advance">
                 <header>
-                    <button name="action_issue" string="Issue Advance" type="object"
+                    <button name="action_lock" string="Lock Advance" type="object"
                             class="oe_highlight"
                             invisible="state != 'draft'"
                             groups="arcs_base.group_finance_manager"
-                            help="Disburse the advance to the holder. A journal entry will be posted if ledger booking is enabled."
-                            confirm="Issuing this advance will disburse cash to the holder and post a journal entry if ledger booking is enabled. Do you want to continue?"/>
+                            confirm="Locking this advance debits the holder and commits the amount via a real accrual journal entry - before any cash actually moves. This is required before the advance can be disbursed. Do you want to continue?"
+                            help="Commit the amount and debit the holder with a real accrual journal entry, before any cash moves - the required first step, for proper double-entry accounting, before disbursement."/>
+                    <button name="action_open_disbursement_wizard" string="Issue Advance" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'locked'"
+                            groups="arcs_base.group_finance_manager"
+                            help="Physically disburse cash to the holder through a chosen bank/cash journal, with a required disbursement voucher/acknowledgement attached. Only available once the advance is Locked."/>
                     <button name="action_close" string="Close" type="object"
                             invisible="state != 'issued'"
                             groups="arcs_base.group_finance_manager"
@@ -66,18 +74,25 @@
                             help="Open a new liquidation report for this advance, pre-linked to it."/>
                     <button name="action_cancel_wizard" string="Cancel" type="object"
                             invisible="state in ('closed','cancelled')"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,issued,closed"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,locked,issued,closed"/>
                 </header>
 
                 <sheet>
                     <!-- Smart Buttons -->
                     <div class="oe_button_box" name="button_box">
                         <field name="move_id" invisible="1"/>
+                        <field name="lock_move_id" invisible="1"/>
+                        <button name="action_view_lock_move" type="object"
+                                class="oe_stat_button" icon="fa-lock"
+                                invisible="not lock_move_id"
+                                help="View the accrual journal entry posted when this advance was locked (holder debited, amount committed).">
+                            <span class="o_stat_text">Lock Entry</span>
+                        </button>
                         <button name="action_view_move" type="object"
                                 class="oe_stat_button" icon="fa-book"
                                 invisible="not move_id"
-                                help="View the accounting journal entry created when this advance was issued.">
-                            <span class="o_stat_text">Issuance Entry</span>
+                                help="View the accounting journal entry created when this advance was actually disbursed.">
+                            <span class="o_stat_text">Disbursement Entry</span>
                         </button>
                         <button name="action_view_liquidations" type="object"
                                 class="oe_stat_button" icon="fa-money"
@@ -119,6 +134,7 @@
                                    placeholder="Search for an employee…"
                                    help="The employee who will hold and be accountable for this advance. Selecting one automatically fills in their Holder (linked user) and debtor Partner, and surfaces their Department/Position for reporting."
                                    readonly="state != 'draft'"/>
+                            <field name="employee_code" invisible="advance_type != 'employee'" readonly="1"/>
                             <field name="department_id" invisible="advance_type != 'employee'" readonly="1"/>
                             <field name="job_id" invisible="advance_type != 'employee'" readonly="1"/>
                             <field name="partner_id"
@@ -223,6 +239,7 @@
                 <field name="reference" string="Payment Ref" placeholder="Search by payment reference…"/>
                 <!-- Status Filters -->
                 <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="locked" string="Locked" domain="[('state','=','locked')]"/>
                 <filter name="issued" string="Issued" domain="[('state','=','issued')]"/>
                 <filter name="open_outstanding" string="Has Outstanding Balance"
                         domain="[('outstanding_amount','>',0),('state','=','issued')]"/>
@@ -310,6 +327,14 @@
         <field name="view_mode">pivot,graph,tree</field>
         <field name="domain">[('state','=','issued')]</field>
         <field name="context">{'search_default_g_zone': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No advances currently issued</p>
+            <p>
+                Every advance still open (not yet closed), grouped by Region/Province by
+                default - what was sent, what's been justified through liquidations, and
+                what's still outstanding.
+            </p>
+        </field>
     </record>
 
     <record id="action_arcs_employee_advance" model="ir.actions.act_window">

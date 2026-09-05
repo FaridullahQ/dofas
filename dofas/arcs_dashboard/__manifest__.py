@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Dashboards",
-    "version": "17.0.1.2.2",
+    "version": "17.0.1.2.3",
     "summary": "Community monitoring: OWL portfolio dashboard + pivot/graph views.",
     "category": "Accounting/ARCS Donor Management",
     "license": "LGPL-3", "author": "ARCS",

@@ -24,11 +24,11 @@ class ArcsBudgetTransfer(models.Model):
     name = fields.Char(required=True, default=lambda s: _("New"), copy=False, readonly=True)
     from_line_id = fields.Many2one(
         "arcs.budget.line", string="From Budget Line", tracking=True,
-        domain="[('budget_state', '=', 'approved')]",
+        domain="[('budget_state', '=', 'approved'), ('id', '!=', to_line_id)]",
         help="Source line to move budget from. Required before submitting.")
     to_line_id = fields.Many2one(
         "arcs.budget.line", string="To Budget Line", required=True, tracking=True,
-        domain="[('budget_state', '=', 'approved')]")
+        domain="[('budget_state', '=', 'approved'), ('id', '!=', from_line_id)]")
     currency_id = fields.Many2one(related="from_line_id.currency_id", readonly=True)
     from_line_available = fields.Monetary(
         related="from_line_id.available_amount", readonly=True, currency_field="currency_id",
@@ -40,11 +40,27 @@ class ArcsBudgetTransfer(models.Model):
         string="Available on To Line")
     amount = fields.Monetary(required=True, currency_field="currency_id", tracking=True)
     reason = fields.Text(required=True)
+    reference = fields.Char(
+        string="Reference", tracking=True,
+        help="Supporting document reference (approval memo, related acquisition, "
+             "quotation, etc.) - required, together with an attachment, before "
+             "submitting for approval.")
+    attachment_count = fields.Integer(compute="_compute_attachment_count")
+    attachment_present = fields.Boolean(
+        compute="_compute_attachment_count", string="Supporting Document Attached")
     state = fields.Selection(
         [("draft", "Draft"), ("submitted", "Submitted"), ("approved", "Approved"),
          ("rejected", "Rejected"), ("cancelled", "Cancelled")],
         default="draft", required=True, tracking=True, copy=False)
     company_id = fields.Many2one(related="from_line_id.company_id", store=True, readonly=True)
+
+    def _compute_attachment_count(self):
+        Att = self.env["ir.attachment"]
+        for t in self:
+            cnt = Att.search_count([
+                ("res_model", "=", t._name), ("res_id", "=", t.id)]) if t.id else 0
+            t.attachment_count = cnt
+            t.attachment_present = cnt > 0
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -78,6 +94,14 @@ class ArcsBudgetTransfer(models.Model):
                                   "before submitting."))
             if t.amount <= 0:
                 raise UserError(_("The transfer amount must be greater than zero."))
+            if not t.reference or not t.reference.strip():
+                raise UserError(_(
+                    "Enter a Reference (approval memo, related acquisition, etc.) "
+                    "before submitting."))
+            if not t.attachment_present:
+                raise UserError(_(
+                    "Attach the supporting document before submitting.\n\n"
+                    "Use the paperclip in the chatter to attach it, then try again."))
         return self._transition("submitted", "submit")
 
     def action_approve(self):

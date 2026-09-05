@@ -35,6 +35,11 @@ class ArcsDonorFundingRequest(models.Model):
     currency_id = fields.Many2one(related="grant_id.currency_id", readonly=True)
     amount_requested = fields.Monetary(required=True, currency_field="currency_id", tracking=True)
     reason = fields.Text(required=True)
+    reference = fields.Char(
+        string="Reference", tracking=True,
+        help="Supporting document reference (shortfall justification, related acquisition, "
+             "quotation, etc.) - required, together with an attachment, before sending to "
+             "the donor.")
     state = fields.Selection(
         [("draft", "Draft"), ("requested", "Requested from Donor"),
          ("approved", "Donor Approved"), ("rejected", "Donor Rejected"),
@@ -55,7 +60,10 @@ class ArcsDonorFundingRequest(models.Model):
     email_sent = fields.Boolean(string="Email Sent", readonly=True, copy=False, tracking=True)
     email_sent_date = fields.Datetime(string="Emailed On", readonly=True, copy=False)
 
-    # --- bank receipt attachment gate ---
+    # --- attachment gate (reused both at Send to Donor and at recording the
+    # donor's decision - a generic "does this record have any attachment"
+    # check, not specific to bank receipts despite the field name kept for
+    # backward compatibility with the approval-stage check) ---
     attachment_count = fields.Integer(compute="_compute_attachment_count")
     bank_receipt_attached = fields.Boolean(
         compute="_compute_attachment_count", string="Bank Receipt Attached")
@@ -88,6 +96,13 @@ class ArcsDonorFundingRequest(models.Model):
                 raise UserError(_("Only draft requests can be sent to the donor."))
             if r.amount_requested <= 0:
                 raise UserError(_("The requested amount must be greater than zero."))
+            if not r.reference or not r.reference.strip():
+                raise UserError(_(
+                    "Enter a Reference before sending this request to the donor."))
+            if not r.bank_receipt_attached:
+                raise UserError(_(
+                    "Attach the supporting document before sending this request to the "
+                    "donor.\n\nUse the paperclip in the chatter to attach it, then try again."))
             if not r.amount_approved:
                 # Seed a starting suggestion equal to what's being asked for;
                 # Finance overwrites it with what the bank receipt actually

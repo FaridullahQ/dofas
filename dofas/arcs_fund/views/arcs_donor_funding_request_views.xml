@@ -9,6 +9,7 @@
                 <field name="name"/>
                 <field name="grant_id"/>
                 <field name="donor_id"/>
+                <field name="reference" optional="show"/>
                 <field name="amount_requested" sum="Total"/>
                 <field name="amount_approved" sum="Confirmed" optional="show"/>
                 <field name="currency_id" invisible="1"/>
@@ -26,8 +27,7 @@
             <form string="Donor Supplementary Funding Request">
                 <header>
                     <button name="action_request" string="Send to Donor" type="object"
-                            class="oe_highlight" invisible="state != 'draft'"
-                            confirm="Sending this request will notify the donor and lock its details from further edits. Do you want to continue?"/>
+                            class="oe_highlight" invisible="state != 'draft'"/>
                     <button name="action_open_send_wizard" string="Send Email" type="object"
                             class="btn-secondary" icon="fa-envelope-o"
                             invisible="state != 'requested'"/>
@@ -56,9 +56,18 @@
                         </div>
                     </div>
 
-                    <!-- bank receipt attachment gate -->
+                    <!-- attachment gate: required before sending to donor -->
                     <field name="bank_receipt_attached" invisible="1"/>
                     <field name="attachment_count" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'draft' or bank_receipt_attached">
+                        <strong>Supporting document required.</strong>
+                        Attach the reference document (shortfall justification, related
+                        acquisition, quotation, etc.) in the chatter below, and fill in the
+                        Reference field, before sending this request to the donor.
+                    </div>
+
+                    <!-- bank receipt attachment gate -->
                     <div class="alert alert-warning" role="alert"
                          invisible="state != 'requested' or bank_receipt_attached">
                         <strong>Bank receipt required.</strong>
@@ -91,7 +100,12 @@
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
-                    <group string="Justification" col="1">
+                    <group string="Justification">
+                        <field name="reference" readonly="state != 'draft'"
+                               placeholder="Shortfall justification, related acquisition, quotation…"/>
+                        <field name="attachment_count" string="Attachments" readonly="1"/>
+                    </group>
+                    <group col="1">
                         <field name="reason" nolabel="1" readonly="state != 'draft'"
                                placeholder="Why is supplementary funding needed? e.g. cover a shortfall on..."/>
                     </group>
@@ -115,7 +129,7 @@
         <field name="arch" type="xml">
             <search string="Search Donor Funding Requests">
                 <field name="name" string="Request"
-                       filter_domain="['|',('name','ilike',self),('reason','ilike',self)]"/>
+                       filter_domain="['|','|',('name','ilike',self),('reason','ilike',self),('reference','ilike',self)]"/>
                 <field name="grant_id"/>
                 <field name="donor_id"/>
                 <separator/>

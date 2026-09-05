@@ -84,12 +84,36 @@ class ArcsProject(models.Model):
     @api.onchange("program_id")
     def _onchange_program_id(self):
         if self.program_id and not self.planned_cost:
-            company = self.company_id or self.env.company
-            amount = self.program_id.planned_cost  # always in company currency
-            if self.currency_id and company.currency_id and self.currency_id != company.currency_id:
-                amount = company.currency_id._convert(
-                    amount, self.currency_id, company, fields.Date.context_today(self))
-            self.planned_cost = amount
+            self.planned_cost = max(
+                self._program_remaining_for_planning(self.program_id), 0.0)
+
+    def _program_remaining_for_planning(self, program):
+        """How much of `program`'s own Planned Cost (company currency,
+        converted to THIS project's own currency for direct comparison) is
+        still unclaimed by OTHER projects already planned under it -
+        mirrors arcs.program._budget_line_remaining_for_planning() one
+        level down, same reasoning: several projects sharing one program
+        can never together plan more than the program actually has.
+
+        Excludes this project's OWN prior claim (via `self._origin`, safe
+        to call from an onchange on an unsaved record too)."""
+        self.ensure_one()
+        if not program:
+            return 0.0
+        domain = [("program_id", "=", program.id)]
+        if self._origin.id:
+            domain.append(("id", "!=", self._origin.id))
+        others = self.env["arcs.project"].search(domain)
+        others_planned = sum(
+            program._to_company_currency(o.planned_cost, o.currency_id) for o in others)
+        remaining_company_ccy = program.planned_cost - others_planned  # company currency
+
+        company = self.company_id or self.env.company
+        if self.currency_id and company.currency_id and self.currency_id != company.currency_id:
+            return company.currency_id._convert(
+                remaining_company_ccy, self.currency_id, company,
+                fields.Date.context_today(self))
+        return remaining_company_ccy
 
     @api.constrains("code")
     def _check_code_format(self):
@@ -105,27 +129,29 @@ class ArcsProject(models.Model):
     def _check_planned_within_program(self):
         for p in self.filtered("program_id"):
             program = p.program_id
-            amount = program._to_company_currency(p.planned_cost, p.currency_id)
-            if float_compare(amount, program.planned_cost,
-                             precision_rounding=program.currency_id.rounding) > 0:
+            remaining = p._program_remaining_for_planning(program)
+            if float_compare(p.planned_cost, remaining,
+                             precision_rounding=p.currency_id.rounding) > 0:
                 raise ValidationError(_(
-                    "Planned Cost exceeds Program '%(prog)s''s own Planned Cost "
-                    "(%(pc).2f %(cur)s).") % {
-                    "prog": program.name, "pc": program.planned_cost,
-                    "cur": program.currency_id.name or ""})
+                    "Planned Cost exceeds what's still available under Program "
+                    "'%(prog)s' once other projects' own Planned Cost is taken into "
+                    "account: %(remaining).2f %(cur)s remains for this one to plan "
+                    "against.") % {
+                    "prog": program.name, "remaining": remaining,
+                    "cur": p.currency_id.name or ""})
 
     @api.constrains("planned_cost")
     def _check_children_still_fit(self):
         for p in self:
-            too_big = p.activity_ids.filtered(
-                lambda a: float_compare(
-                    a.planned_cost, p.planned_cost,
-                    precision_rounding=p.currency_id.rounding) > 0)
-            if too_big:
+            total_children = sum(a.planned_cost for a in p.activity_ids)
+            if float_compare(total_children, p.planned_cost,
+                             precision_rounding=p.currency_id.rounding) > 0:
                 raise ValidationError(_(
-                    "Cannot set this Project's Planned Cost below %(names)s's own "
-                    "Planned Cost. Reduce the activity/activities first.") % {
-                    "names": ", ".join(too_big.mapped("name"))})
+                    "Cannot set this Project's Planned Cost to %(new).2f %(cur)s - "
+                    "its activities already total %(total).2f %(cur)s planned "
+                    "between them. Reduce the activity/activities first.") % {
+                    "new": p.planned_cost, "cur": p.currency_id.name or "",
+                    "total": total_children})
 
     def action_activate(self):
         for p in self:

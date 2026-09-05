@@ -13,4 +13,6 @@ access_liq_admin,liquidation admin,model_arcs_advance_liquidation,arcs_base.grou
 access_liq_donor_officer,liquidation donor officer,model_arcs_advance_liquidation,arcs_base.group_donor_officer,1,1,1,0
 access_adv_settle_wizard_finmgr,advance settlement wizard finance manager,model_arcs_advance_settlement_wizard,arcs_base.group_finance_manager,1,1,1,1
 access_adv_settle_wizard_admin,advance settlement wizard admin,model_arcs_advance_settlement_wizard,arcs_base.group_system_admin,1,1,1,1
+access_adv_disburse_wizard_finmgr,advance disbursement wizard finance manager,model_arcs_advance_disbursement_wizard,arcs_base.group_finance_manager,1,1,1,1
+access_adv_disburse_wizard_admin,advance disbursement wizard admin,model_arcs_advance_disbursement_wizard,arcs_base.group_system_admin,1,1,1,1
 

@@ -23,7 +23,9 @@ class ArcsZone(models.Model):
              "Headquarters has no parent.")
     child_ids = fields.One2many("arcs.zone", "parent_id", string="Sub-zones / Provinces")
     child_count = fields.Integer(compute="_compute_child_count")
-    department_ids = fields.One2many("arcs.department", "zone_id", string="Departments")
+    # Departments are a real hr.department (see models/hr_department.py for the
+    # zone_id field added onto it) - no longer a parallel ARCS-only model.
+    department_ids = fields.One2many("hr.department", "zone_id", string="Departments")
     department_count = fields.Integer(compute="_compute_department_count")
     manager_id = fields.Many2one("res.users", string="Region/Province Manager")
     budget_holder_id = fields.Many2one(
@@ -114,7 +116,7 @@ class ArcsZone(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": _("Departments"),
-            "res_model": "arcs.department",
+            "res_model": "hr.department",
             "view_mode": "tree,form",
             "domain": [("zone_id", "=", self.id)],
             "context": {"default_zone_id": self.id},

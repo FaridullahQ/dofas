@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_advance_disbursement_wizard_form" model="ir.ui.view">
+        <field name="name">arcs.advance.disbursement.wizard.form</field>
+        <field name="model">arcs.advance.disbursement.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Disburse Advance">
+                <field name="advance_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+                <div class="alert alert-info" role="alert">
+                    This pays <strong>
+                        <field name="employee_id" readonly="1" nolabel="1" class="oe_inline"
+                               invisible="not employee_id"/>
+                        <field name="zone_id" readonly="1" nolabel="1" class="oe_inline"
+                               invisible="not zone_id"/>
+                    </strong> a real cash advance through the journal chosen below.
+                </div>
+                <group>
+                    <group string="Advance">
+                        <field name="amount" readonly="1"/>
+                        <field name="partner_id" readonly="1"/>
+                    </group>
+                    <group string="Disbursement">
+                        <field name="journal_id"/>
+                        <field name="reference" placeholder="e.g. cash voucher / receipt no."/>
+                    </group>
+                </group>
+                <group>
+                    <field name="attachment_ids" widget="many2many_binary"
+                           string="Attachments (required)"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Confirm Disbursement" type="object"
+                            class="oe_highlight"/>
+                    <button name="action_discard" string="Discard" type="object"
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

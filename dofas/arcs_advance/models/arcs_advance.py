@@ -55,6 +55,10 @@ class ArcsAdvance(models.Model):
         related="employee_id.department_id", store=True, string="Department")
     job_id = fields.Many2one(
         related="employee_id.job_id", store=True, string="Position")
+    employee_code = fields.Char(
+        related="employee_id.employee_code", string="Employee Code", readonly=True,
+        help="The selected employee's unique ARCS identifier - confirms exactly which "
+             "person this advance is for when several employees share the same name.")
     # ── NEW: Partner field for charging / accounting purposes ──────────────────
     partner_id = fields.Many2one(
         "res.partner",
@@ -112,23 +116,42 @@ class ArcsAdvance(models.Model):
              "for the holder regarding liquidation deadlines.",
     )
     state = fields.Selection(
-        [("draft", "Draft"), ("issued", "Issued"), ("closed", "Closed"), ("cancelled", "Cancelled")],
+        [("draft", "Draft"), ("locked", "Locked"), ("issued", "Issued"),
+         ("closed", "Closed"), ("cancelled", "Cancelled")],
         default="draft",
         required=True,
         tracking=True,
         copy=False,
         help="Lifecycle of the advance:\n"
-             "• Draft – being prepared, not yet disbursed.\n"
-             "• Issued – cash has been sent to the holder; liquidation can begin.\n"
+             "• Draft – being prepared, not yet committed.\n"
+             "• Locked – amount committed and the holder already debited via a real "
+             "accrual journal entry, but cash hasn't moved yet; the required step "
+             "before disbursement.\n"
+             "• Issued – cash has actually been sent to the holder; liquidation can begin.\n"
              "• Closed – fully liquidated or all outstanding cash returned.\n"
-             "• Cancelled – voided before or during issuance (no liquidations allowed).",
+             "• Cancelled – voided before disbursement (no liquidations allowed).",
+    )
+    lock_move_id = fields.Many2one(
+        "account.move",
+        string="Lock (Accrual) Entry",
+        readonly=True,
+        copy=False,
+        help="Journal entry posted when the advance is locked: debits the Advance "
+             "(Receivable) Account - the holder is now formally debited - and credits "
+             "the Advances Payable / Clearing Account, representing cash the "
+             "organisation is committed to paying out but hasn't yet. Always posted, "
+             "regardless of the 'Book Advances to the Ledger' toggle - locking is a "
+             "real accrual event, not an optional bookkeeping preference.",
     )
     move_id = fields.Many2one(
         "account.move",
-        string="Issuance Entry",
+        string="Disbursement Entry",
         readonly=True,
         copy=False,
-        help="Journal entry automatically created when the advance is issued (if ledger booking is enabled in settings).",
+        help="Journal entry posted when the advance is actually disbursed: clears the "
+             "Advances Payable / Clearing Account booked at locking and credits Cash "
+             "(if ledger booking is enabled in settings, for the legacy direct-issue "
+             "path - always posted when going through the Disbursement wizard).",
     )
     liquidation_ids = fields.One2many(
         "arcs.advance.liquidation",
@@ -220,14 +243,41 @@ class ArcsAdvance(models.Model):
     def _onchange_employee(self):
         """Derive the Holder (login) and debtor Partner from the selected
         employee. Both stay editable afterwards in case the employee has no
-        linked user or a different partner should be charged."""
+        linked user or a different partner should be charged.
+
+        Not every employee has an Odoo login (`user_id`) - many field staff
+        never will - so the debtor Partner can't always come from there.
+        Falls back to the employee's own Work Contact / Home Address
+        partner in that case, via _derive_employee_partner(), so locking an
+        employee advance doesn't dead-end with 'set the partner first' for
+        the (common) case of an employee with no login."""
         if self.employee_id:
             if self.employee_id.user_id:
                 self.holder_user_id = self.employee_id.user_id
-            partner = (self.employee_id.user_id.partner_id
-                      if self.employee_id.user_id else False)
+            partner = self._derive_employee_partner(self.employee_id)
             if partner:
                 self.partner_id = partner
+
+    def _derive_employee_partner(self, employee):
+        """Best-effort debtor Partner for an employee advance. Prefers the
+        employee's linked login (res.users.partner_id, also the Holder),
+        then falls back - in order - to whichever of the employee's own
+        contact fields actually exists on this database (hr.employee's
+        'Work Contact' and/or 'Home Address' partner fields have varied by
+        Odoo version), so an employee with no Odoo login at all still gets
+        a real partner for the accounting entry to reconcile against,
+        instead of silently staying blank until someone hits the error at
+        Lock time with no way to fix it from there."""
+        if not employee:
+            return self.env["res.partner"]
+        if employee.user_id and employee.user_id.partner_id:
+            return employee.user_id.partner_id
+        for field_name in ("work_contact_id", "address_home_id"):
+            if field_name in employee._fields:
+                partner = employee[field_name]
+                if partner:
+                    return partner
+        return self.env["res.partner"]
 
     @api.onchange("holder_user_id")
     def _onchange_holder_user(self):
@@ -297,21 +347,83 @@ class ArcsAdvance(models.Model):
                 user = self.env["res.users"].browse(vals["holder_user_id"])
                 if user.partner_id:
                     vals["partner_id"] = user.partner_id.id
+            # Still nothing? Fall back to the employee's own contact record
+            # (Work Contact / Home Address) - covers the common case of an
+            # employee with no Odoo login at all, e.g. most acquisitions'
+            # 'Requested By' won't have a user account. Without this, any
+            # caller creating an advance programmatically (like
+            # arcs_request.action_disburse_advance) silently leaves
+            # partner_id blank and Lock later fails with no context.
+            if vals.get("employee_id") and not vals.get("partner_id"):
+                employee = self.env["hr.employee"].browse(vals["employee_id"])
+                partner = self._derive_employee_partner(employee)
+                if partner:
+                    vals["partner_id"] = partner.id
         return super().create(vals_list)
 
     # ── State transitions ─────────────────────────────────────────────────────
 
-    def action_issue(self):
+    def action_lock(self):
+        """Lock the advance and debit the holder BEFORE any cash actually
+        moves - the accrual half of proper double-entry accounting for a
+        cash advance, mirroring the Commit & Reserve -> Expense pattern
+        arcs_request already uses for acquisitions (reserve the budget line
+        first, post the real expense against it later).
+
+        Posts Dr Advance (Receivable) Account / Cr Advances Payable /
+        Clearing Account: the holder is now formally debited and the
+        amount committed, while the offsetting credit sits in a liability
+        account representing cash the organisation is committed to paying
+        out but hasn't yet - cleared only once the advance is actually
+        disbursed (action_issue). Always posts a real entry, regardless of
+        the 'Book Advances to the Ledger' toggle - which only ever governed
+        the older direct-issue path's bookkeeping choice, not this new,
+        mandatory accrual step."""
         for a in self:
             if a.state != "draft":
-                raise UserError(_("Only draft advances can be issued."))
+                raise UserError(_("Only draft advances can be locked."))
             if not a.amount or a.amount <= 0:
-                raise UserError(_("The advance amount must be greater than zero before issuing."))
+                raise UserError(_("The advance amount must be greater than zero before locking."))
             if a.advance_type == "employee" and not a.partner_id:
                 raise UserError(_(
-                    "Please set the Advance To (Partner) before issuing an employee advance."
+                    "Please set the Advance To (Partner) before locking an employee advance."
                 ))
-            if a.company_id.arcs_advance_book:
+            a.lock_move_id = a._create_lock_move().id
+        return self._transition("locked", "lock")
+
+    def action_issue(self, journal_id=False):
+        """Physically disburse an already-LOCKED advance. Locking first is
+        mandatory - see action_lock() - so the holder is always debited via
+        a real accrual entry before any cash moves; this method only ever
+        clears that already-booked liability, it never touches the Advance
+        (Receivable) Account itself again.
+
+        Two distinct paths for the disbursement leg specifically, by
+        design:
+
+        - Called with no `journal_id` (the original signature, used by any
+          existing direct caller): posts the disbursement entry only if the
+          company's 'Book Advances to the Ledger' toggle is on, through the
+          company's fixed default journal/cash account - zero behavior
+          change, for that leg only, from any advance not going through the
+          new Disbursement wizard.
+        - Called with an explicit `journal_id` (the Disbursement wizard, on
+          arcs.advance directly or via an acquisition's 'Disburse
+          Advance'): ALWAYS posts, through the caller's chosen bank/cash
+          journal, using that journal's own default account for the cash
+          leg - a real amount is physically leaving that account, so it
+          needs a real, reconciliation-ready entry regardless of the
+          ledger-booking toggle. Same principle already applied to Settle
+          Advance."""
+        for a in self:
+            if a.state != "locked":
+                raise UserError(_(
+                    "Only locked advances can be disbursed. Lock the advance first - "
+                    "this debits the holder and commits the amount before any cash "
+                    "moves."))
+            if journal_id:
+                a.move_id = a._create_issue_move(journal_id=journal_id).id
+            elif a.company_id.arcs_advance_book:
                 a.move_id = a._create_issue_move().id
         return self._transition("issued", "issue")
 
@@ -347,7 +459,27 @@ class ArcsAdvance(models.Model):
                     "Cannot cancel advance '%(name)s' because it already has liquidation records. "
                     "Cancel or delete the liquidations first."
                 ) % {"name": a.name})
+            if a.state == "locked" and a.lock_move_id:
+                # The holder was already debited at lock time - reverse that
+                # accrual so cancelling a locked (never actually disbursed)
+                # advance doesn't leave a dangling receivable/payable pair
+                # sitting in the books forever.
+                a._reverse_move(a.lock_move_id, _("Advance cancelled: %s") % a.name)
         return self._transition("cancelled", "cancel", comment=reason)
+
+    def _reverse_move(self, move, ref):
+        """Post a standard Odoo reversal of `move` (same mechanism used
+        throughout Accounting for undoing a posted entry) rather than
+        unlinking it - a posted move is part of the permanent audit trail
+        and must stay visible, reversed rather than erased."""
+        self.ensure_one()
+        if not move or move.state != "posted":
+            return self.env["account.move"]
+        reversal = move._reverse_moves(default_values_list=[{
+            "date": fields.Date.context_today(self), "ref": ref,
+        }])
+        reversal.action_post()
+        return reversal
 
     # ── Journal entry helpers ─────────────────────────────────────────────────
 
@@ -360,19 +492,24 @@ class ArcsAdvance(models.Model):
             )
         return amount
 
-    def _create_issue_move(self):
+    def _create_lock_move(self):
+        """The accrual leg, posted by action_lock(): Dr Advance (Receivable)
+        Account / Cr Advances Payable / Clearing Account. Always uses the
+        company's own Advance Journal (a miscellaneous/accrual journal - no
+        real cash journal is involved yet, nothing has been paid out)."""
         self.ensure_one()
         c = self.company_id
-        journal = c.arcs_advance_journal_id
         adv = c.arcs_advance_account_id
-        cash = c.arcs_advance_cash_account_id
-        if not journal or not adv or not cash:
+        payable = c.arcs_advance_payable_account_id
+        journal = c.arcs_advance_journal_id
+        if not adv or not payable or not journal:
             raise UserError(_(
-                "Please configure the Advance Journal and Accounts under "
-                "Settings → ARCS Configuration before issuing advances."
+                "Please configure the Advance Journal, the Advance (Receivable) "
+                "Account, and the Advances Payable / Clearing Account under "
+                "Settings → ARCS Configuration before locking advances."
             ))
         amount = self._company_amount(self.amount)
-        ref = _("Advance: %s") % self.name
+        ref = _("Advance locked (accrual): %s") % self.name
         move_vals = {
             "move_type": "entry",
             "journal_id": journal.id,
@@ -383,6 +520,70 @@ class ArcsAdvance(models.Model):
                 (0, 0, {
                     "name": ref,
                     "account_id": adv.id,
+                    "partner_id": self.partner_id.id if self.partner_id else False,
+                    "debit": amount,
+                    "credit": 0.0,
+                }),
+                (0, 0, {
+                    "name": ref,
+                    "account_id": payable.id,
+                    "partner_id": self.partner_id.id if self.partner_id else False,
+                    "debit": 0.0,
+                    "credit": amount,
+                }),
+            ],
+        }
+        move = self.env["account.move"].sudo().create(move_vals)
+        move.action_post()
+        return move
+
+    def _create_issue_move(self, journal_id=False):
+        """The actual-disbursement leg, posted by action_issue(): Dr
+        Advances Payable / Clearing Account (clearing the liability booked
+        at lock time - never the Advance Receivable account again, that
+        was already debited by _create_lock_move) / Cr Cash. Combined with
+        the lock move, the net effect across both entries is exactly
+        Dr Advance (Receivable) / Cr Cash - identical to the pre-locking
+        single-entry design, just split into two audit-trail-visible,
+        separately-timestamped moves."""
+        self.ensure_one()
+        c = self.company_id
+        payable = c.arcs_advance_payable_account_id
+        if not payable:
+            raise UserError(_(
+                "Please configure the Advances Payable / Clearing Account under "
+                "Settings → ARCS Configuration before disbursing advances."
+            ))
+        if journal_id:
+            # Explicit real disbursement: use the chosen journal's own
+            # default account for the cash leg, so this entry actually
+            # reconciles against that journal's bank statement - matching
+            # exactly how Settle Advance's journal entries are built.
+            journal = self.env["account.journal"].browse(journal_id)
+            cash = journal.default_account_id
+            if not cash:
+                raise UserError(_(
+                    "The journal '%s' has no default account set.") % journal.name)
+        else:
+            journal = c.arcs_advance_journal_id
+            cash = c.arcs_advance_cash_account_id
+            if not journal or not cash:
+                raise UserError(_(
+                    "Please configure the Advance Journal and Advance Cash/Bank Account "
+                    "under Settings → ARCS Configuration before issuing advances."
+                ))
+        amount = self._company_amount(self.amount)
+        ref = _("Advance disbursed: %s") % self.name
+        move_vals = {
+            "move_type": "entry",
+            "journal_id": journal.id,
+            "date": self.date,
+            "ref": ref,
+            "company_id": c.id,
+            "line_ids": [
+                (0, 0, {
+                    "name": ref,
+                    "account_id": payable.id,
                     "partner_id": self.partner_id.id if self.partner_id else False,
                     "debit": amount,
                     "credit": 0.0,
@@ -409,6 +610,15 @@ class ArcsAdvance(models.Model):
             "view_mode": "form",
         }
 
+    def action_view_lock_move(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "account.move",
+            "res_id": self.lock_move_id.id,
+            "view_mode": "form",
+        }
+
     def _compute_liquidation_count(self):
         for a in self:
             a.liquidation_count = len(a.liquidation_ids)
@@ -423,6 +633,21 @@ class ArcsAdvance(models.Model):
             "res_model": "arcs.advance.liquidation",
             "view_mode": "form",
             "target": "current",
+            "context": {"default_advance_id": self.id},
+        }
+
+    def action_open_disbursement_wizard(self):
+        self.ensure_one()
+        if self.state != "locked":
+            raise UserError(_(
+                "Only locked advances can be disbursed. Use 'Lock Advance' first - "
+                "this debits the holder and commits the amount before any cash moves."))
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Disburse Advance"),
+            "res_model": "arcs.advance.disbursement.wizard",
+            "view_mode": "form",
+            "target": "new",
             "context": {"default_advance_id": self.id},
         }
 

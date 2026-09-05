@@ -17,8 +17,13 @@ class TestArcsSpendRequestEmployeeAdvance(TransactionCase):
             {"name": "Programme", "code": "ARCSREQADV600", "account_type": "expense"})
         cls.adv_account = cls.env["account.account"].create(
             {"name": "Advances to Staff", "code": "ARCSREQADV120", "account_type": "asset_current"})
+        cls.payable_account = cls.env["account.account"].create(
+            {"name": "Advances Payable", "code": "ARCSREQADV220", "account_type": "liability_current"})
         cls.company.write({
+            "arcs_advance_journal_id": cls.env["account.journal"].search(
+                [("type", "=", "general")], limit=1).id,
             "arcs_advance_account_id": cls.adv_account.id,
+            "arcs_advance_payable_account_id": cls.payable_account.id,
             "arcs_expense_clearing_account_id": cls.adv_account.id,
         })
         cls.cash_journal = cls.env["account.journal"].search([("type", "=", "cash")], limit=1)
@@ -40,7 +45,21 @@ class TestArcsSpendRequestEmployeeAdvance(TransactionCase):
 
         cls.department = cls.env["hr.department"].create({"name": "Programs"})
         cls.employee = cls.env["hr.employee"].create({
-            "name": "Amina Yusuf", "department_id": cls.department.id})
+            "name": "Amina Yusuf", "employee_code": "REQADV-EMP-1",
+            "department_id": cls.department.id})
+        # This employee deliberately has no linked res.users login (the
+        # common case for field staff) - locking their advance must still
+        # resolve a real debtor Partner via arcs.advance's own fallback
+        # (work_contact_id / address_home_id), not fail outright. Make that
+        # deterministic here regardless of which of those two fields this
+        # Odoo build happens to auto-manage for a bare employee.create().
+        Advance = cls.env["arcs.advance"]
+        if not Advance._derive_employee_partner(cls.employee):
+            for field_name in ("work_contact_id", "address_home_id"):
+                if field_name in cls.employee._fields:
+                    cls.employee[field_name] = cls.env["res.partner"].create(
+                        {"name": cls.employee.name}).id
+                    break
 
         cls.vendor = cls.env["res.partner"].create({"name": "Acme Supplies"})
         cls.attachment = cls.env["ir.attachment"].create({
@@ -76,14 +95,19 @@ class TestArcsSpendRequestEmployeeAdvance(TransactionCase):
         return expense
 
     def _disburse(self, request):
-        """Drives the full new disbursement flow: action_disburse_advance()
-        creates the draft advance and opens the wizard; this fills in the
-        journal + required attachment and confirms it - mirroring exactly
-        what a user does in the UI."""
+        """Drives the full flow, mirroring exactly what a user does in the
+        UI: action_disburse_advance() creates the advance and opens ITS
+        OWN FORM (still Draft); from there, Lock it (debits the employee
+        via a real accrual entry) and only then open the Disbursement
+        wizard, fill in the journal + required attachment, and confirm."""
         action = request.action_disburse_advance()
-        self.assertEqual(action["res_model"], "arcs.advance.disbursement.wizard")
+        self.assertEqual(action["res_model"], "arcs.advance")
+        self.assertEqual(action["res_id"], request.advance_id.id)
+        request.advance_id.action_lock()
+
+        wizard_action = request.advance_id.action_open_disbursement_wizard()
         wizard = self.env["arcs.advance.disbursement.wizard"].with_context(
-            action["context"]).create({})
+            wizard_action["context"]).create({})
         self.assertEqual(wizard.advance_id, request.advance_id)
         wizard.journal_id = self.cash_journal.id
         wizard.attachment_ids = [(6, 0, [self.env["ir.attachment"].create({
@@ -96,24 +120,44 @@ class TestArcsSpendRequestEmployeeAdvance(TransactionCase):
         request = self.env["arcs.spend.request"].create({"budget_line_id": self.line.id})
         self.assertEqual(request.requested_by._name, "hr.employee")
 
-    def test_disburse_advance_creates_draft_and_opens_wizard(self):
+    def test_disburse_advance_creates_and_opens_advance_form(self):
+        """action_disburse_advance() no longer locks silently on the
+        employee's behalf - it creates the (still Draft) advance and opens
+        its own form, so Finance can review every detail - including the
+        Employee Code, to confirm it's the right person, and the debtor
+        Partner, which isn't always derivable automatically - before
+        locking it themselves. This is what makes a missing Partner
+        recoverable instead of a dead-end error dialog."""
         request = self._approved_request(1000.0)
         self.assertFalse(request.advance_id)
         action = request.action_disburse_advance()
 
-        # The draft advance is created and linked immediately...
         self.assertTrue(request.advance_id)
-        self.assertEqual(request.advance_id.state, "draft")
+        self.assertEqual(request.advance_id.state, "draft")  # not locked yet
+        self.assertFalse(request.advance_id.lock_move_id)
         self.assertEqual(request.advance_id.employee_id, self.employee)
         self.assertEqual(request.advance_id.amount, 1000.0)
         self.assertEqual(request.advance_id.spend_request_id, request)
         self.assertTrue(request.advance_id.allow_over_liquidation)
-        # ...but the money hasn't moved yet - that's the wizard's job.
         self.assertFalse(request.advance_id.move_id)
-        self.assertEqual(action["res_model"], "arcs.advance.disbursement.wizard")
+        # Opens the advance's own form, not the disbursement wizard directly.
+        self.assertEqual(action["res_model"], "arcs.advance")
+        self.assertEqual(action["res_id"], request.advance_id.id)
 
+        # Calling it again (e.g. Finance navigated away) just re-opens the
+        # SAME advance's form - a resume path, not an error - as long as it
+        # hasn't been fully issued yet.
+        same_advance = request.advance_id
+        action2 = request.action_disburse_advance()
+        self.assertEqual(action2["res_id"], same_advance.id)
+        self.assertEqual(request.advance_id, same_advance)  # no second advance created
+
+    def test_disburse_advance_blocked_once_issued(self):
+        request = self._approved_request(1000.0)
+        self._disburse(request)
+        self.assertEqual(request.advance_id.state, "issued")
         with self.assertRaises(UserError):
-            request.action_disburse_advance()  # already has an advance (draft or not)
+            request.action_disburse_advance()
 
     def test_disburse_advance_links_and_pays_employee(self):
         request = self._approved_request(1000.0)
@@ -127,22 +171,39 @@ class TestArcsSpendRequestEmployeeAdvance(TransactionCase):
         # The cash leg used the journal's own account, not a fixed company default.
         cash_lines = move.line_ids.filtered(lambda l: l.credit)
         self.assertEqual(cash_lines.account_id, self.cash_journal.default_account_id)
+        # The DISBURSEMENT move clears the Payable/Clearing liability booked
+        # at lock time - it never debits the Advance Receivable account a
+        # second time.
         debit_lines = move.line_ids.filtered(lambda l: l.debit)
-        self.assertEqual(debit_lines.account_id, self.adv_account)
+        self.assertEqual(debit_lines.account_id, self.payable_account)
         self.assertEqual(debit_lines.debit, 1000.0)
 
-    def test_complete_disbursement_resumes_after_abandoned_wizard(self):
+        # And the LOCK entry (posted when Finance clicked 'Lock Advance' on
+        # the advance's own form) is the one that actually debited the
+        # employee.
+        lock_move = request.advance_id.lock_move_id
+        self.assertTrue(lock_move)
+        lock_debit = lock_move.line_ids.filtered(lambda l: l.debit)
+        self.assertEqual(lock_debit.account_id, self.adv_account)
+        self.assertEqual(lock_debit.debit, 1000.0)
+
+    def test_complete_disbursement_resumes_after_navigating_away(self):
         request = self._approved_request(1000.0)
-        request.action_disburse_advance()  # wizard opened but never confirmed
+        request.action_disburse_advance()  # advance created (Draft), form opened
         self.assertEqual(request.advance_id.state, "draft")
 
+        # Finance navigated away before locking anything - resuming just
+        # reopens the same advance's form, from wherever it's currently at.
         action = request.action_complete_disbursement()
-        self.assertEqual(action["res_model"], "arcs.advance.disbursement.wizard")
-        self.assertEqual(action["context"]["default_advance_id"], request.advance_id.id)
+        self.assertEqual(action["res_model"], "arcs.advance")
+        self.assertEqual(action["res_id"], request.advance_id.id)
 
-        # And it actually works end to end from there:
+        # And it actually works end to end from there, exactly like a user
+        # clicking through the advance's own Lock -> Issue buttons:
+        request.advance_id.action_lock()
+        wizard_action = request.advance_id.action_open_disbursement_wizard()
         wizard = self.env["arcs.advance.disbursement.wizard"].with_context(
-            action["context"]).create({})
+            wizard_action["context"]).create({})
         wizard.journal_id = self.cash_journal.id
         wizard.attachment_ids = [(6, 0, [self.env["ir.attachment"].create({
             "name": "voucher.pdf", "datas": base64.b64encode(b"dummy"),

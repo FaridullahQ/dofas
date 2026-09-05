@@ -89,5 +89,13 @@
         <field name="res_model">arcs.project.closure</field>
         <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_arcs_closure_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Start closing out a grant</p>
+            <p>
+                Checks that every expense is posted and every donor report approved,
+                works out the final received-vs-actual balance, and records any funds
+                returned to the donor.
+            </p>
+        </field>
     </record>
 </odoo>

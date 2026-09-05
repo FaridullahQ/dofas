@@ -9,6 +9,7 @@
                 <field name="name"/>
                 <field name="from_line_id"/>
                 <field name="to_line_id"/>
+                <field name="reference" optional="show"/>
                 <field name="amount" sum="Total"/>
                 <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge"
@@ -25,8 +26,7 @@
             <form string="Internal Budget Transfer">
                 <header>
                     <button name="action_submit" string="Submit" type="object"
-                            class="oe_highlight" invisible="state != 'draft'"
-                            confirm="Submitting this transfer will send it to Finance for approval and lock it from further edits. Do you want to continue?"/>
+                            class="oe_highlight" invisible="state != 'draft'"/>
                     <button name="action_approve" string="Approve" type="object"
                             class="oe_highlight" invisible="state != 'submitted'"
                             groups="arcs_base.group_finance_manager"
@@ -40,6 +40,14 @@
                            statusbar_visible="draft,submitted,approved"/>
                 </header>
                 <sheet>
+                    <field name="attachment_present" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'draft' or attachment_present">
+                        <strong>Supporting document required.</strong>
+                        Attach the reference document (approval memo, related acquisition,
+                        quotation, etc.) in the chatter below, and fill in the Reference field,
+                        before submitting for approval.
+                    </div>
                     <div class="oe_title">
                         <h1>
                             <field name="name" readonly="1"/>
@@ -60,7 +68,12 @@
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
-                    <group string="Justification" col="1">
+                    <group string="Justification">
+                        <field name="reference" readonly="state != 'draft'"
+                               placeholder="Approval memo, related acquisition, quotation…"/>
+                        <field name="attachment_count" string="Attachments" readonly="1"/>
+                    </group>
+                    <group col="1">
                         <field name="reason" nolabel="1" readonly="state != 'draft'"
                                placeholder="Why is this transfer needed? e.g. cover a shortfall on..."/>
                     </group>
@@ -78,7 +91,7 @@
         <field name="arch" type="xml">
             <search string="Search Budget Transfers">
                 <field name="name" string="Transfer"
-                       filter_domain="['|',('name','ilike',self),('reason','ilike',self)]"/>
+                       filter_domain="['|','|',('name','ilike',self),('reason','ilike',self),('reference','ilike',self)]"/>
                 <field name="from_line_id"/>
                 <field name="to_line_id"/>
                 <separator/>

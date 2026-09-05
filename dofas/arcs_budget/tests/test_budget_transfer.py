@@ -1,4 +1,6 @@
-from odoo.exceptions import UserError
+import base64
+
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 
 
@@ -24,13 +26,49 @@ class TestArcsBudgetTransfer(TransactionCase):
             "budget_id": cls.budget.id, "name": "Line B", "planned_amount": 1000.0})
         cls.budget.action_approve()
 
+    def _attachment(self):
+        return self.env["ir.attachment"].create({
+            "name": "memo.pdf", "datas": base64.b64encode(b"dummy memo"),
+        })
+
+    def _submit(self, transfer):
+        transfer.reference = "MEMO-0001"
+        transfer.message_post(attachment_ids=self._attachment().ids)
+        transfer.action_submit()
+        return transfer
+
     def _transfer(self, amount):
         t = self.env["arcs.budget.transfer"].create({
             "from_line_id": self.line_a.id, "to_line_id": self.line_b.id,
             "amount": amount, "reason": "Reallocate to cover printing costs",
         })
+        return self._submit(t)
+
+    def test_submit_requires_reference_and_attachment(self):
+        t = self.env["arcs.budget.transfer"].create({
+            "from_line_id": self.line_a.id, "to_line_id": self.line_b.id,
+            "amount": 100.0, "reason": "Reallocate to cover printing costs",
+        })
+        with self.assertRaises(UserError):
+            t.action_submit()  # no reference, no attachment
+        t.reference = "MEMO-0002"
+        with self.assertRaises(UserError):
+            t.action_submit()  # reference set, still no attachment
+        t.message_post(attachment_ids=self._attachment().ids)
         t.action_submit()
-        return t
+        self.assertEqual(t.state, "submitted")
+
+    def test_from_line_domain_excludes_to_line_and_vice_versa(self):
+        t = self.env["arcs.budget.transfer"].create({
+            "to_line_id": self.line_b.id, "amount": 100.0, "reason": "test",
+        })
+        # The view-level domain (from_line_id excludes to_line_id, and vice
+        # versa) is a UX aid that only affects the dropdown - the real
+        # safety net is the existing _check_lines() constraint; confirm it
+        # still rejects the same-line case even if a client bypassed the
+        # domain and tried to set both to the same line directly.
+        with self.assertRaises(ValidationError):
+            t.from_line_id = self.line_b.id
 
     def test_approved_transfer_leaves_planned_amount_untouched(self):
         t = self._transfer(300.0)
@@ -84,7 +122,7 @@ class TestArcsBudgetTransfer(TransactionCase):
             "from_line_id": self.line_b.id, "to_line_id": self.line_a.id,
             "amount": 300.0, "reason": "Reverting the earlier reallocation",
         })
-        reversal.action_submit()
+        self._submit(reversal)
         reversal.action_approve()
 
         self.line_a.invalidate_recordset()

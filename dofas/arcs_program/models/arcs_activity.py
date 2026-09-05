@@ -21,9 +21,6 @@ class ArcsActivity(models.Model):
     grant_id = fields.Many2one(related="project_id.grant_id", store=True)
     company_id = fields.Many2one(related="project_id.company_id", store=True)
     currency_id = fields.Many2one(related="grant_id.currency_id", store=True)
-    budget_line_id = fields.Many2one(
-        "arcs.budget.line", string="Budget Line",
-        domain="[('grant_id','=',grant_id), ('budget_state','=','approved')]")
     date_start = fields.Date(required=True)
     date_end = fields.Date(required=True)
     planned_cost = fields.Monetary(currency_field="currency_id")
@@ -58,24 +55,41 @@ class ArcsActivity(models.Model):
                         "Activity dates must fall within the project period (%(s)s to %(e)s).",
                         s=p.date_start, e=p.date_end))
 
-    @api.constrains("planned_cost", "budget_line_id")
-    def _check_planned_within_budget(self):
-        for a in self.filtered("budget_line_id"):
-            if float_compare(a.planned_cost, a.budget_line_id.available_amount,
-                             precision_rounding=a.currency_id.rounding) > 0:
-                raise ValidationError(_(
-                    "Planned cost exceeds the available budget on line '%s'.",
-                    a.budget_line_id.name))
-
     @api.constrains("planned_cost", "project_id")
     def _check_planned_within_project(self):
         for a in self.filtered("project_id"):
             project = a.project_id
-            if float_compare(a.planned_cost, project.planned_cost,
+            remaining = a._project_remaining_for_planning(project)
+            if float_compare(a.planned_cost, remaining,
                              precision_rounding=a.currency_id.rounding) > 0:
                 raise ValidationError(_(
-                    "Planned cost exceeds Project '%s''s own Planned Cost.",
-                    project.name))
+                    "Planned cost exceeds what's still available under Project "
+                    "'%(proj)s' once other activities' own Planned Cost is taken "
+                    "into account: %(remaining).2f %(cur)s remains for this one to "
+                    "plan against.") % {
+                    "proj": project.name, "remaining": remaining,
+                    "cur": a.currency_id.name or ""})
+
+    def _project_remaining_for_planning(self, project):
+        """How much of `project`'s own Planned Cost is still unclaimed by
+        OTHER activities already planned under it - mirrors
+        arcs.project._program_remaining_for_planning() one level down, same
+        reasoning: several activities sharing one project can never
+        together plan more than the project actually has. Activity and
+        Project always share the same currency (both derive from the same
+        grant), so no conversion is needed here.
+
+        Excludes this activity's OWN prior claim (via `self._origin`, safe
+        to call from an onchange on an unsaved record too)."""
+        self.ensure_one()
+        if not project:
+            return 0.0
+        domain = [("project_id", "=", project.id)]
+        if self._origin.id:
+            domain.append(("id", "!=", self._origin.id))
+        others = self.env["arcs.activity"].search(domain)
+        others_planned = sum(others.mapped("planned_cost"))
+        return project.planned_cost - others_planned
 
     @api.depends("planned_cost", "commitment_ids.amount", "commitment_ids.state")
     def _compute_amounts(self):
@@ -108,7 +122,8 @@ class ArcsActivity(models.Model):
     @api.onchange("project_id")
     def _onchange_project_id(self):
         if self.project_id and not self.planned_cost:
-            self.planned_cost = self.project_id.planned_cost
+            self.planned_cost = max(
+                self._project_remaining_for_planning(self.project_id), 0.0)
 
     @api.constrains("code")
     def _check_code_format(self):
