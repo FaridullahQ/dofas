@@ -1,16 +1,25 @@
 {
     "name": "ARCS Donor Mgmt - Fund Program Allocation",
-    "version": "17.0.1.0.0",
+    "version": "17.0.1.2.0",
     "category": "Accounting",
-    "summary": "Allocate donor fund receipts across programs/projects; surfaces the "
-               "breakdown on the Thank-You letter and donor acknowledgement email.",
+    "summary": "Auto-generates a Program -> Project -> Activity breakdown (each with its own "
+               "Planned Cost) for every Donor Fund Receipt, straight from the grant's own "
+               "plan - surfaced on the receipt, the Thank-You letter, and the "
+               "acknowledgement email.",
     "description": """
 Fund Receipt -> Program Allocation
 ===================================
-Adds a Program Allocation table to Donor Fund Receipts so a single receipt
-can be broken down by Program (and optionally Project). The breakdown is
-shown on the receipt form, the printed Thank-You letter, and prefilled into
-the donor acknowledgement email body.
+Every Donor Fund Receipt automatically gets a hierarchical Program ->
+Project -> Activity breakdown of the grant it's against - every Program
+related to that grant, every one of its Projects under that grant, and
+every one of their Activities, each carrying its own Planned Cost exactly
+as already entered in arcs_program. Nothing is typed in by hand: picking
+the Grant fills it in immediately, and a Refresh button re-syncs it if the
+underlying plan changes later. The same hierarchical breakdown is shown on
+the receipt form, the printed Thank-You letter, and prefilled into the
+donor acknowledgement email body - so a donor can see, in the same
+structure the organisation itself plans in, exactly how their contribution
+maps onto real programs, projects and activities.
 
 Kept as a separate module (rather than added into arcs_fund) because
 arcs_program depends on arcs_fund indirectly through arcs_expense; arcs_fund

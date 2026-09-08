@@ -103,6 +103,9 @@
                             <field name="receivable_account_id"/>
                             <field name="currency_id"/>
                             <field name="exchange_rate"/>
+                            <field name="amount_percentage" widget="percentage"
+                                   invisible="not grant_id"
+                                   help="Optional - enter a percentage of the Grant's Approved Amount instead of typing Amount directly below."/>
                             <field name="amount" placeholder="Enter received amount"/>
                             <field name="amount_words"/>
                         </group>

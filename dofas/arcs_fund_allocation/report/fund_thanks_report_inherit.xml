@@ -6,24 +6,25 @@
                 <div style="font-size:13px; font-weight:bold; color:#1F3A5F; margin-bottom:8px;">
                     Program Allocation
                 </div>
+                <div style="font-size:10px; color:#6B7280; margin-bottom:8px;">
+                    The organisation's spending plan under this grant - a Program's own
+                    figure already includes its Projects' and Activities', so this is not
+                    expected to add up to the amount above.
+                </div>
                 <table style="width:100%; border-collapse:collapse; font-size:12px;">
                     <tr>
                         <td style="border:1px solid #1F3A5F; background:#1F3A5F; color:#fff; padding:6px 8px; font-weight:bold;">
-                            Program
+                            Program / Project / Activity
                         </td>
-                        <td style="border:1px solid #1F3A5F; background:#1F3A5F; color:#fff; padding:6px 8px; font-weight:bold;">
-                            Project
-                        </td>
-                        <td style="border:1px solid #1F3A5F; background:#1F3A5F; color:#fff; padding:6px 8px; font-weight:bold; text-align:right;">
-                            Amount
+                        <td style="border:1px solid #1F3A5F; background:#1F3A5F; color:#fff; padding:6px 8px; font-weight:bold; text-align:right; width:25%;">
+                            Planned Cost
                         </td>
                     </tr>
                     <tr t-foreach="o.allocation_ids" t-as="line">
-                        <td style="border:1px solid #1F3A5F; padding:6px 8px;">
-                            <span t-field="line.program_id.name"/>
-                        </td>
-                        <td style="border:1px solid #1F3A5F; padding:6px 8px;">
-                            <span t-field="line.project_id.name"/>
+                        <td t-attf-style="border:1px solid #1F3A5F; padding:6px 8px 6px #{24 if line.level == 'activity' else (16 if line.level == 'project' else 8)}px; font-weight:#{'bold' if line.level == 'program' else ('600' if line.level == 'project' else 'normal')};">
+                            <span t-if="line.level == 'program'" t-field="line.program_id.name"/>
+                            <span t-if="line.level == 'project'" t-field="line.project_id.name"/>
+                            <span t-if="line.level == 'activity'" t-field="line.activity_id.name"/>
                         </td>
                         <td style="border:1px solid #1F3A5F; padding:6px 8px; text-align:right;">
                             <span t-field="line.amount"

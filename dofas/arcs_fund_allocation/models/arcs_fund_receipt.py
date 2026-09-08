@@ -1,6 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
-from odoo.tools import float_compare
+from odoo.exceptions import UserError
 
 
 class ArcsFundReceipt(models.Model):
@@ -8,61 +7,141 @@ class ArcsFundReceipt(models.Model):
 
     allocation_ids = fields.One2many(
         "arcs.fund.receipt.allocation", "fund_receipt_id",
-        string="Program Allocation")
-    allocated_amount = fields.Monetary(
-        string="Allocated", currency_field="currency_id",
-        compute="_compute_allocation_totals", store=True)
-    unallocated_amount = fields.Monetary(
-        string="Unallocated", currency_field="currency_id",
-        compute="_compute_allocation_totals", store=True)
-    is_fully_allocated = fields.Boolean(
-        string="Fully Allocated", compute="_compute_allocation_totals", store=True)
+        string="Program Allocation",
+        help="Auto-generated snapshot of every Program, Project and Activity related "
+             "to this receipt's Grant, each with its own Planned Cost - not typed in "
+             "by hand. Regenerated automatically when the Grant is set/changed; use "
+             "'Refresh Program Allocation' below to re-sync if the underlying plan "
+             "has changed since.")
+    program_planned_total = fields.Monetary(
+        string="Total Planned (this Grant)", currency_field="currency_id",
+        compute="_compute_program_planned_total",
+        help="Sum of the Planned Cost of every top-level Program shown below - not "
+             "a sum of every row (a Program's own figure already includes its "
+             "Projects', which already include their Activities', so summing every "
+             "row would count the same money several times over).")
 
-    @api.depends("amount", "allocation_ids.amount")
-    def _compute_allocation_totals(self):
+    @api.depends("allocation_ids.amount", "allocation_ids.level")
+    def _compute_program_planned_total(self):
         for r in self:
-            allocated = sum(r.allocation_ids.mapped("amount"))
-            r.allocated_amount = allocated
-            r.unallocated_amount = (r.amount or 0.0) - allocated
-            precision = r.currency_id.rounding if r.currency_id else 0.01
-            r.is_fully_allocated = float_compare(
-                allocated, r.amount or 0.0, precision_rounding=precision) == 0
+            r.program_planned_total = sum(
+                r.allocation_ids.filtered(lambda l: l.level == "program").mapped("amount"))
 
-    @api.constrains("amount", "allocation_ids.amount")
-    def _check_allocation_not_over_amount(self):
-        for r in self:
-            if not r.allocation_ids:
-                continue
-            allocated = sum(r.allocation_ids.mapped("amount"))
-            precision = r.currency_id.rounding if r.currency_id else 0.01
-            if float_compare(allocated, r.amount or 0.0, precision_rounding=precision) > 0:
-                raise ValidationError(_(
-                    "The Program Allocation total (%(allocated)s) cannot exceed the "
-                    "receipt amount (%(amount)s).",
-                    allocated=allocated, amount=r.amount))
+    # ---------------- auto-generation: Program -> Project -> Activity ----------------
+    def _build_allocation_vals(self, grant):
+        """Every Program related to `grant` (has at least one Project under
+        it, or its own Budget Line belongs to it), each of its Projects
+        under that grant, and each of THEIR Activities - one plain dict per
+        row (no fund_receipt_id/id), in correct nesting order via
+        `sequence`. Shared between the interactive onchange (wrapped as
+        (0, 0, vals) commands - nothing is written to the database) and
+        the real regenerate action (given a fund_receipt_id and passed to
+        .create())."""
+        self.ensure_one()
+        if not grant:
+            return []
+        programs = self.env["arcs.program"].search([
+            "|",
+            ("project_ids.grant_id", "=", grant.id),
+            ("budget_line_id.grant_id", "=", grant.id),
+        ])
+        vals_list = []
+        seq = 0
+        for program in programs:
+            seq += 10
+            vals_list.append({
+                "level": "program", "sequence": seq,
+                "program_id": program.id, "amount": program.planned_cost,
+            })
+            projects = program.project_ids.filtered(lambda p: p.grant_id == grant)
+            for project in projects:
+                seq += 10
+                vals_list.append({
+                    "level": "project", "sequence": seq,
+                    "program_id": program.id, "project_id": project.id,
+                    "amount": project.planned_cost,
+                })
+                for activity in project.activity_ids:
+                    seq += 10
+                    vals_list.append({
+                        "level": "activity", "sequence": seq,
+                        "program_id": program.id, "project_id": project.id,
+                        "activity_id": activity.id, "amount": activity.planned_cost,
+                    })
+        return vals_list
+
+    @api.onchange("grant_id")
+    def _onchange_grant_id_allocation(self):
+        """Picking (or changing) the Grant immediately rebuilds the
+        Program Allocation from that grant's own Program -> Project ->
+        Activity plan - the client's own ask: the breakdown should fill in
+        by itself, not be typed in line by line."""
+        vals_list = self._build_allocation_vals(self.grant_id)
+        self.allocation_ids = [(5, 0, 0)] + [(0, 0, v) for v in vals_list]
+
+    def action_refresh_program_allocation(self):
+        """Manual re-sync for anything the onchange above wouldn't have
+        caught: a receipt created without going through the form (import,
+        API, demo data), or the underlying plan (a Program's Planned Cost,
+        a newly-added Project/Activity) changing after the receipt already
+        has its allocation. Wipes and rebuilds from scratch - draft only,
+        same as every other structural edit on this receipt.
+
+        Unlinking is scoped to sudo() deliberately narrowly here (only
+        this method, only this model, only the rows already tied to a
+        receipt the calling user could already open) rather than granting
+        Finance Officer/Manager blanket unlink rights on the allocation
+        model in the ACLs - which would let them delete rows through any
+        other path too, a bigger permission expansion than this single
+        regenerate action actually needs."""
+        self.ensure_one()
+        if self.state != "draft":
+            raise UserError(_(
+                "Only draft receipts can have their Program Allocation refreshed."))
+        self.allocation_ids.sudo().unlink()
+        vals_list = self._build_allocation_vals(self.grant_id)
+        for v in vals_list:
+            v["fund_receipt_id"] = self.id
+        if vals_list:
+            self.env["arcs.fund.receipt.allocation"].sudo().create(vals_list)
 
     # ---------------- donor acknowledgement email: allocation section ----------------
     def _allocation_email_html(self):
-        """HTML fragment listing the Program Allocation, for splicing into the
-        donor acknowledgement email body. Empty string if nothing to show."""
+        """HTML fragment listing the Program -> Project -> Activity
+        breakdown, hierarchically indented, for splicing into the donor
+        acknowledgement email body. Empty string if nothing to show."""
         self.ensure_one()
         if not self.allocation_ids:
             return ""
+        currency = self.currency_id.name or ""
         rows = []
+        indent_by_level = {"program": 0, "project": 20, "activity": 40}
+        weight_by_level = {"program": "bold", "project": "600", "activity": "normal"}
         for line in self.allocation_ids:
-            label = line.program_id.display_name
-            if line.project_id:
-                label = "%s &#8212; %s" % (label, line.project_id.display_name)
-            amount = "{:,.2f} {}".format(line.amount or 0.0, self.currency_id.name or "")
+            label = {
+                "program": line.program_id.display_name,
+                "project": line.project_id.display_name,
+                "activity": line.activity_id.display_name,
+            }.get(line.level, "")
+            amount = "{:,.2f} {}".format(line.amount or 0.0, currency)
             rows.append(
                 "<tr>"
-                "<td style=\"padding:4px 8px;border-bottom:1px solid #e0e0e0;\">%s</td>"
-                "<td style=\"padding:4px 8px;border-bottom:1px solid #e0e0e0;text-align:right;\">%s</td>"
-                "</tr>" % (label, amount)
+                "<td style=\"padding:4px 8px;border-bottom:1px solid #e0e0e0;"
+                "padding-left:%(indent)spx;font-weight:%(weight)s;\">%(label)s</td>"
+                "<td style=\"padding:4px 8px;border-bottom:1px solid #e0e0e0;"
+                "text-align:right;\">%(amount)s</td>"
+                "</tr>" % {
+                    "indent": 8 + indent_by_level.get(line.level, 0),
+                    "weight": weight_by_level.get(line.level, "normal"),
+                    "label": label, "amount": amount,
+                }
             )
         return (
             "<p>%s</p>"
             "<table style=\"width:100%%;border-collapse:collapse;font-size:13px;margin:8px 0;\">"
             "%s"
             "</table>"
-        ) % (_("Your contribution is being directed to the following programs:"), "".join(rows))
+        ) % (_(
+            "Your contribution is being directed to the following programs, "
+            "projects and activities under this grant:"
+        ), "".join(rows))

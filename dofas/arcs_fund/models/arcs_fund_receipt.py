@@ -2,6 +2,7 @@ import base64
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import float_compare
 
 
 class ArcsFundReceipt(models.Model):
@@ -33,6 +34,14 @@ class ArcsFundReceipt(models.Model):
     currency_id = fields.Many2one("res.currency", required=True,
                                   default=lambda s: s.env.company.currency_id)
     exchange_rate = fields.Float(string="Exchange Rate", digits=(12, 6), default=1.0)
+    amount_percentage = fields.Float(
+        string="% of Grant", digits=(5, 4),
+        help="Percentage of the Grant's Approved Amount this receipt represents "
+             "(e.g. enter 25% to represent a quarter of the grant). Entering a "
+             "percentage here calculates Amount below automatically (Approved "
+             "Amount x this percentage); editing Amount directly instead keeps "
+             "this percentage in sync with whatever was actually typed, so the "
+             "two never drift apart regardless of which one is used.")
     amount = fields.Monetary(string="Amount", currency_field="currency_id", tracking=True)
     amount_words = fields.Char(string="Amount in Words", compute="_compute_amount_words")
     received_date = fields.Date(string="Received Date", required=True,
@@ -70,6 +79,44 @@ class ArcsFundReceipt(models.Model):
                                   if r.currency_id else "")
             except Exception:
                 r.amount_words = ""
+
+    # ---------------- percentage-of-grant <-> amount, kept in sync both ways ----------------
+    @api.onchange("amount_percentage")
+    def _onchange_amount_percentage(self):
+        """Typing a percentage calculates Amount for you: Grant's Approved
+        Amount x this percentage (stored as a fraction, e.g. 0.25 for 25% -
+        the same convention the percentage widget itself uses). Guarded
+        with float_compare so this never fires back-and-forth with
+        _onchange_amount_sync_percentage below over floating-point noise -
+        once the two agree, neither re-triggers the other."""
+        if self.grant_id and self.grant_id.approved_amount:
+            new_amount = self.grant_id.approved_amount * self.amount_percentage
+            if float_compare(new_amount, self.amount or 0.0,
+                             precision_rounding=self.currency_id.rounding or 0.01) != 0:
+                self.amount = new_amount
+
+    @api.onchange("amount")
+    def _onchange_amount_sync_percentage(self):
+        """The reverse direction: typing (or pasting) an Amount directly
+        keeps % of Grant showing the true percentage that amount actually
+        represents, rather than leaving a stale/wrong percentage sitting
+        there from before. Either field can be the one actually typed -
+        both always agree with each other afterwards."""
+        if self.grant_id and self.grant_id.approved_amount:
+            new_percentage = (self.amount or 0.0) / self.grant_id.approved_amount
+            if float_compare(new_percentage, self.amount_percentage or 0.0,
+                             precision_digits=4) != 0:
+                self.amount_percentage = new_percentage
+
+    @api.onchange("grant_id")
+    def _onchange_grant_id_amount_percentage(self):
+        """Switching Grant (or picking one for the first time after a
+        percentage was already typed) recalculates Amount against the NEW
+        grant's own Approved Amount, so the two stay consistent with
+        whichever grant is actually selected - never left over from a
+        previously-selected one."""
+        if self.grant_id and self.grant_id.approved_amount and self.amount_percentage:
+            self.amount = self.grant_id.approved_amount * self.amount_percentage
 
     def _compute_move_count(self):
         for r in self:
