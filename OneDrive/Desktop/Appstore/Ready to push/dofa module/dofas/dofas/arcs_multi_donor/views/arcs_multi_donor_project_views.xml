@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_multi_donor_project_tree" model="ir.ui.view">
+        <field name="name">arcs.multi.donor.project.tree</field>
+        <field name="model">arcs.multi.donor.project</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state=='closed'" decoration-success="state=='active'">
+                <field name="name"/>
+                <field name="member_count"/>
+                <field name="shared_cost_count"/>
+                <field name="total_allocation_pct"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state=='closed'" decoration-success="state=='active'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_multi_donor_project_form" model="ir.ui.view">
+        <field name="name">arcs.multi.donor.project.form</field>
+        <field name="model">arcs.multi.donor.project</field>
+        <field name="arch" type="xml">
+            <form string="Multi-Donor Project">
+                <header>
+                    <button name="action_activate" string="Activate" type="object" class="oe_highlight"
+                            invisible="state != 'draft'"
+                            confirm="Activating locks every member's percentage share. Do you want to continue?"/>
+                    <button name="action_close" string="Close" type="object"
+                            invisible="state != 'active'"/>
+                    <button name="action_reset_draft" string="Reset to Draft" type="object"
+                            invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_shared_costs" type="object" class="oe_stat_button"
+                                icon="fa-share-alt">
+                            <field name="shared_cost_count" widget="statinfo" string="Shared Costs"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="state != 'draft'"/></h1>
+                    </div>
+                    <group>
+                        <field name="description" nolabel="1" placeholder="What is this shared project?"/>
+                    </group>
+                    <notebook>
+                        <page name="members" string="Member Grants">
+                            <field name="member_ids" readonly="state != 'draft'">
+                                <tree editable="bottom">
+                                    <field name="project_state" column_invisible="1"/>
+                                    <field name="grant_id"/>
+                                    <field name="donor_id"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="allocation_pct"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="total_allocation_pct" string="Total (%)"/>
+                            </group>
+                            <p class="text-muted ms-1" invisible="state != 'draft'">
+                                Percentages must add up to exactly 100% before this project can be Activated.
+                            </p>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_arcs_multi_donor_project_search" model="ir.ui.view">
+        <field name="name">arcs.multi.donor.project.search</field>
+        <field name="model">arcs.multi.donor.project</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter name="active" string="Active" domain="[('state','=','active')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_arcs_multi_donor_project" model="ir.actions.act_window">
+        <field name="name">Multi-Donor Projects</field>
+        <field name="res_model">arcs.multi.donor.project</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_arcs_multi_donor_project_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Link several donors' grants as co-funders of one project</p>
+        </field>
+    </record>
+</odoo>

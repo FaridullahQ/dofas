@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_expenses" name="Expenses" parent="arcs_budget.menu_arcs_budget_root" action="action_arcs_expense" sequence="40"/>
+</odoo>

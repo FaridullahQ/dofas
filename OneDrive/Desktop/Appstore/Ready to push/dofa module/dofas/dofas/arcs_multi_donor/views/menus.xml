@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_multi_donor_project" name="Multi-Donor Projects"
+              parent="arcs_grant.menu_arcs_funding_root"
+              action="action_arcs_multi_donor_project" sequence="27"/>
+    <menuitem id="menu_arcs_multi_donor_shared_cost" name="Multi-Donor Shared Costs"
+              parent="arcs_grant.menu_arcs_funding_root"
+              action="action_arcs_multi_donor_shared_cost" sequence="28"/>
+</odoo>

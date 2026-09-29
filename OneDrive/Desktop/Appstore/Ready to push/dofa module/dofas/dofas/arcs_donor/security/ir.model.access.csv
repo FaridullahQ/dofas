@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_donor_read,arcs.donor read,model_arcs_donor,base.group_user,1,0,0,0
+access_arcs_donor_officer,arcs.donor officer,model_arcs_donor,arcs_base.group_donor_officer,1,1,1,0
+access_arcs_donor_admin,arcs.donor admin,model_arcs_donor,arcs_base.group_system_admin,1,1,1,1

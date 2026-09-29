@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_acquisition_request_summary" model="ir.actions.report">
+        <field name="name">Acquisition Request Summary</field>
+        <field name="model">arcs.spend.request</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">arcs_request.report_acquisition_request_summary</field>
+        <field name="report_file">arcs_request.report_acquisition_request_summary</field>
+        <field name="print_report_name">'Acquisition Request Summary - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_arcs_spend_request"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_acquisition_request_summary">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2 style="color:#1F3A5F;margin-bottom:0;">Acquisition Request Summary</h2>
+                        <div style="color:#6B7280;margin-bottom:8px;">
+                            Reference used to collect vendor quotations - not a commitment of funds.
+                        </div>
+
+                        <table class="table table-sm" style="margin-bottom:14px;">
+                            <tr>
+                                <td style="width:18%;"><strong>Reference</strong></td>
+                                <td style="width:32%;"><span t-field="o.name"/></td>
+                                <td style="width:18%;"><strong>Date</strong></td>
+                                <td><span t-field="o.date_request"/></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status</strong></td>
+                                <td><span t-field="o.state"/></td>
+                                <td><strong>Prepared by</strong></td>
+                                <td><span t-field="o.create_uid"/></td>
+                            </tr>
+                        </table>
+
+                        <div class="row" style="margin-bottom:10px;">
+                            <div class="col-4">
+                                <h4 style="color:#1F3A5F;font-size:13px;">Requesting Unit</h4>
+                                <table class="table table-sm table-borderless" style="font-size:12px;">
+                                    <tr><td class="text-muted">Requested By</td>
+                                        <td><span t-field="o.requested_by"/></td></tr>
+                                    <tr t-if="o.requested_by_employee_code">
+                                        <td class="text-muted">Employee Code</td>
+                                        <td><span t-field="o.requested_by_employee_code"/></td></tr>
+                                    <tr t-if="o.region_id"><td class="text-muted">Region</td>
+                                        <td><span t-field="o.region_id"/></td></tr>
+                                    <tr t-if="o.zone_id"><td class="text-muted">Province</td>
+                                        <td><span t-field="o.zone_id"/></td></tr>
+                                    <tr t-if="o.department_id"><td class="text-muted">Department</td>
+                                        <td><span t-field="o.department_id"/></td></tr>
+                                    <tr t-if="o.department_manager_id">
+                                        <td class="text-muted">Dept. Manager</td>
+                                        <td><span t-field="o.department_manager_id"/></td></tr>
+                                    <tr t-if="o.budget_holder_id"><td class="text-muted">Budget Holder</td>
+                                        <td><span t-field="o.budget_holder_id"/></td></tr>
+                                </table>
+                            </div>
+                            <div class="col-4">
+                                <h4 style="color:#1F3A5F;font-size:13px;">Activity / Project / Program</h4>
+                                <table class="table table-sm table-borderless" style="font-size:12px;">
+                                    <tr t-if="o.activity_id">
+                                        <td class="text-muted">Activity</td>
+                                        <td><span t-field="o.activity_id"/></td></tr>
+                                    <tr t-if="o.project_id">
+                                        <td class="text-muted">Project</td>
+                                        <td><span t-field="o.project_id"/></td></tr>
+                                    <tr t-if="o.program_id">
+                                        <td class="text-muted">Program</td>
+                                        <td><span t-field="o.program_id"/></td></tr>
+                                    <tr t-if="not (o.activity_id or o.project_id or o.program_id)">
+                                        <td class="text-muted" colspan="2">Not linked to a specific
+                                            activity/project/program.</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-4">
+                                <h4 style="color:#1F3A5F;font-size:13px;">Budget Line &amp; Funding</h4>
+                                <table class="table table-sm table-borderless" style="font-size:12px;">
+                                    <tr><td class="text-muted">Budget Line</td>
+                                        <td><span t-field="o.budget_line_id"/></td></tr>
+                                    <tr t-if="o.grant_id"><td class="text-muted">Grant</td>
+                                        <td><span t-field="o.grant_id"/></td></tr>
+                                    <tr><td class="text-muted">Available on Line</td>
+                                        <td><span t-field="o.available_on_line"
+                                                  t-options='{"widget":"monetary","display_currency":o.currency_id}'/></td></tr>
+                                    <tr><td class="text-muted">Estimated Amount</td>
+                                        <td><span t-field="o.estimated_amount"
+                                                  t-options='{"widget":"monetary","display_currency":o.currency_id}'/></td></tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <h4 style="color:#1F3A5F;">Requested Items</h4>
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr style="background-color:#1F3A5F;color:#ffffff;">
+                                    <th>Item</th>
+                                    <th class="text-end">Quantity</th>
+                                    <th class="text-end">Est. Unit Price</th>
+                                    <th class="text-end">Est. Amount</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.line_ids" t-as="l">
+                                    <td><span t-field="l.name"/></td>
+                                    <td class="text-end"><span t-field="l.quantity"/></td>
+                                    <td class="text-end"><span t-field="l.unit_estimate"
+                                              t-options='{"widget":"monetary","display_currency":o.currency_id}'/></td>
+                                    <td class="text-end"><span t-field="l.amount"
+                                              t-options='{"widget":"monetary","display_currency":o.currency_id}'/></td>
+                                    <td><span t-field="l.note"/></td>
+                                </tr>
+                                <tr t-if="not o.line_ids"><td colspan="5" class="text-muted">No items.</td></tr>
+                            </tbody>
+                            <tfoot>
+                                <tr style="font-weight:bold;border-top:2px solid #1F3A5F;">
+                                    <td colspan="3">Total Estimated</td>
+                                    <td class="text-end"><span t-field="o.estimated_amount"
+                                              t-options='{"widget":"monetary","display_currency":o.currency_id}'/></td>
+                                    <td/>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <t t-if="o.note">
+                            <h4 style="color:#1F3A5F;">Notes</h4>
+                            <p style="white-space:pre-line;"><span t-field="o.note"/></p>
+                        </t>
+
+                        <h4 style="color:#1F3A5F;margin-top:20px;">For Vendor Quotation</h4>
+                        <div style="color:#6B7280;margin-bottom:6px;font-size:11px;">
+                            To be completed by the quoting vendor and returned with this sheet -
+                            used to record the real price via 'Confirm Real Price'.
+                        </div>
+                        <table style="width:100%;">
+                            <tr>
+                                <td style="width:50%;padding:6px 12px 6px 0;">Vendor Name: ________________________</td>
+                                <td style="width:50%;padding:6px 0 6px 12px;">Quotation Ref: ________________________</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:6px 12px 6px 0;">Contact: ________________________</td>
+                                <td style="padding:6px 0 6px 12px;">Date: ________________________</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:6px 12px 6px 0;" colspan="2">Total Quoted Amount: ________________________</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:18px 12px 0 0;">Vendor Signature: ________________________</td>
+                                <td style="padding:18px 0 0 12px;">Prepared by (staff): ________________________</td>
+                            </tr>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

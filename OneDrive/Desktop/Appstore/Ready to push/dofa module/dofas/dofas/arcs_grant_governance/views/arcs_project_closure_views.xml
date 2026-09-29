@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_closure_form_governance" model="ir.ui.view">
+        <field name="name">arcs.project.closure.form.governance</field>
+        <field name="model">arcs.project.closure</field>
+        <field name="inherit_id" ref="arcs_closure.view_arcs_closure_form"/>
+        <field name="arch" type="xml">
+            <field name="all_reports_approved" position="after">
+                <field name="grant_is_restricted" invisible="1"/>
+                <field name="grant_unresolved_count" invisible="1"/>
+                <field name="final_report_id" invisible="not grant_is_restricted"/>
+                <field name="donor_feedback_state" widget="badge" invisible="not grant_is_restricted"/>
+                <div class="alert alert-warning" role="alert"
+                     invisible="not grant_is_restricted or grant_unresolved_count == 0">
+                    This grant has unresolved flagged or rejected compliance items - resolve or
+                    waive them before verifying closure.
+                </div>
+            </field>
+        </field>
+    </record>
+</odoo>

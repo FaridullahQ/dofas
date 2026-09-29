@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="rule_arcs_grant_agreement_company" model="ir.rule">
+        <field name="name">Grant Agreement: multi-company</field>
+        <field name="model_id" ref="model_arcs_grant_agreement"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_arcs_grant_agreement_donor_officer" model="ir.rule">
+        <field name="name">Grant Agreement — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_arcs_grant_agreement"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('grant_id.donor_id', 'in', user.arcs_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_arcs_grant_agreement_admin_bypass" model="ir.rule">
+        <field name="name">Grant Agreement — System Admin unrestricted</field>
+        <field name="model_id" ref="model_arcs_grant_agreement"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_arcs_release_schedule_company" model="ir.rule">
+        <field name="name">Release Schedule: multi-company</field>
+        <field name="model_id" ref="model_arcs_grant_release_schedule_line"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_arcs_release_schedule_donor_officer" model="ir.rule">
+        <field name="name">Release Schedule — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_arcs_grant_release_schedule_line"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('grant_id.donor_id', 'in', user.arcs_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_arcs_release_schedule_admin_bypass" model="ir.rule">
+        <field name="name">Release Schedule — System Admin unrestricted</field>
+        <field name="model_id" ref="model_arcs_grant_release_schedule_line"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_arcs_compliance_verification_company" model="ir.rule">
+        <field name="name">Compliance Verification: multi-company</field>
+        <field name="model_id" ref="model_arcs_compliance_verification"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_arcs_compliance_verification_donor_officer" model="ir.rule">
+        <field name="name">Compliance Verification — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_arcs_compliance_verification"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('grant_id.donor_id', 'in', user.arcs_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_arcs_compliance_verification_admin_bypass" model="ir.rule">
+        <field name="name">Compliance Verification — System Admin unrestricted</field>
+        <field name="model_id" ref="model_arcs_compliance_verification"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>

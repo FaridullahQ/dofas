@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_revolving_cycle_read,arcs.revolving.cycle read,model_arcs_revolving_cycle,base.group_user,1,0,0,0
+access_arcs_revolving_cycle_officer,arcs.revolving.cycle finance officer,model_arcs_revolving_cycle,arcs_base.group_finance_officer,1,1,1,0
+access_arcs_revolving_cycle_mgr,arcs.revolving.cycle finance manager,model_arcs_revolving_cycle,arcs_base.group_finance_manager,1,1,1,0
+access_arcs_revolving_cycle_admin,arcs.revolving.cycle admin,model_arcs_revolving_cycle,arcs_base.group_system_admin,1,1,1,1
+access_arcs_revolving_cycle_line_read,arcs.revolving.cycle.line read,model_arcs_revolving_cycle_line,base.group_user,1,0,0,0
+access_arcs_revolving_cycle_line_officer,arcs.revolving.cycle.line finance officer,model_arcs_revolving_cycle_line,arcs_base.group_finance_officer,1,1,1,1
+access_arcs_revolving_cycle_line_mgr,arcs.revolving.cycle.line finance manager,model_arcs_revolving_cycle_line,arcs_base.group_finance_manager,1,1,1,1
+access_arcs_revolving_cycle_line_admin,arcs.revolving.cycle.line admin,model_arcs_revolving_cycle_line,arcs_base.group_system_admin,1,1,1,1
+access_arcs_revolving_replenishment_wizard,arcs.revolving.replenishment.send.wizard,model_arcs_revolving_replenishment_send_wizard,arcs_base.group_finance_officer,1,1,1,1

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_about_config_settings" model="ir.ui.view">
+        <field name="name">arcs.about.config.settings</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="arcs_base.view_arcs_config_settings"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='arcs_donor_management']" position="inside">
+                <block title="About &amp; Help" name="arcs_about_block">
+                    <setting string="About &amp; Help menu"
+                             help="Show an 'About &amp; Help' menu with company info, the overall process flow and a glossary of terms.">
+                        <field name="group_arcs_show_about"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

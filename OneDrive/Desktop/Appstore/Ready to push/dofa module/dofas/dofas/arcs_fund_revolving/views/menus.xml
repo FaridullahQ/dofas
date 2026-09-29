@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_revolving_cycle" name="Revolving Fund Cycles"
+              parent="arcs_grant.menu_arcs_funding_root"
+              action="action_arcs_revolving_cycle" sequence="25"/>
+</odoo>

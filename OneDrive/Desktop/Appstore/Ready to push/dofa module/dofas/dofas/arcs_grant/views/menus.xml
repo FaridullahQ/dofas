@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_funding_root" name="Funding &amp; Grants" parent="arcs_base.menu_arcs_root" sequence="10"/>
+    <menuitem id="menu_arcs_grants" name="Grants" parent="menu_arcs_funding_root"
+              action="action_arcs_grant" sequence="10"/>
+</odoo>

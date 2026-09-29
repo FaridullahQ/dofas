@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_advance_form_inherit_request" model="ir.ui.view">
+        <field name="name">arcs.advance.form.inherit.arcs_request</field>
+        <field name="model">arcs.advance</field>
+        <field name="inherit_id" ref="arcs_advance.view_arcs_advance_form"/>
+        <field name="arch" type="xml">
+            <field name="reference" position="after">
+                <field name="spend_request_id" readonly="1" invisible="not spend_request_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_arcs_advance_tree_inherit_request" model="ir.ui.view">
+        <field name="name">arcs.advance.tree.inherit.arcs_request</field>
+        <field name="model">arcs.advance</field>
+        <field name="inherit_id" ref="arcs_advance.view_arcs_advance_tree"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="spend_request_id" optional="show" string="Acquisition"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_arcs_advance_search_inherit_request" model="ir.ui.view">
+        <field name="name">arcs.advance.search.inherit.arcs_request</field>
+        <field name="model">arcs.advance</field>
+        <field name="inherit_id" ref="arcs_advance.view_arcs_advance_search"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="spend_request_id" string="Acquisition"/>
+            </field>
+        </field>
+    </record>
+</odoo>

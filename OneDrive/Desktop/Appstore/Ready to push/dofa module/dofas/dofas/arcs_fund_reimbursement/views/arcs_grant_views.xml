@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_grant_form_reimbursement" model="ir.ui.view">
+        <field name="name">arcs.grant.form.reimbursement</field>
+        <field name="model">arcs.grant</field>
+        <field name="inherit_id" ref="arcs_grant.view_arcs_grant_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <field name="funding_model" invisible="1"/>
+                <button name="action_view_reimbursement_claims" type="object"
+                        class="oe_stat_button" icon="fa-undo"
+                        invisible="funding_model != 'reimbursement'">
+                    <field name="reimbursement_claim_count" widget="statinfo" string="Claims"/>
+                </button>
+            </xpath>
+            <xpath expr="//page[@name='financial']" position="inside">
+                <group string="Reimbursement" invisible="funding_model != 'reimbursement'">
+                    <field name="reimbursement_claimed_total"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

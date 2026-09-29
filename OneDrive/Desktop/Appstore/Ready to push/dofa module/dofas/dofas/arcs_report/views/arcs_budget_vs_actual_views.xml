@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_budget_vs_actual_tree" model="ir.ui.view">
+        <field name="name">arcs.budget.line.tree.vs.actual</field>
+        <field name="model">arcs.budget.line</field>
+        <field name="arch" type="xml">
+            <tree string="Budget vs Actual" create="false" edit="false" delete="false">
+                <field name="grant_id"/>
+                <field name="budget_id"/>
+                <field name="name"/>
+                <field name="planned_amount" sum="Planned"/>
+                <field name="transferred_in_amount" sum="Transferred In" optional="hide"/>
+                <field name="transferred_out_amount" sum="Transferred Out" optional="hide"/>
+                <field name="effective_planned_amount" sum="Net Planned"/>
+                <field name="committed_amount" sum="Committed"/>
+                <field name="actual_amount" sum="Actual"/>
+                <field name="available_amount" sum="Available"/>
+                <field name="utilization" string="Utilisation (%)"/>
+                <field name="currency_id" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_budget_vs_actual_pivot" model="ir.ui.view">
+        <field name="name">arcs.budget.line.pivot.vs.actual</field>
+        <field name="model">arcs.budget.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Budget vs Actual">
+                <field name="grant_id" type="row"/>
+                <field name="name" type="row"/>
+                <field name="planned_amount" type="measure"/>
+                <field name="committed_amount" type="measure"/>
+                <field name="actual_amount" type="measure"/>
+                <field name="available_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_arcs_budget_vs_actual_search" model="ir.ui.view">
+        <field name="name">arcs.budget.line.search.vs.actual</field>
+        <field name="model">arcs.budget.line</field>
+        <field name="arch" type="xml">
+            <search string="Search Budget vs Actual">
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="budget_id"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="g_budget" string="Budget Version" context="{'group_by':'budget_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_arcs_budget_vs_actual" model="ir.actions.act_window">
+        <field name="name">Budget vs Actual</field>
+        <field name="res_model">arcs.budget.line</field>
+        <field name="view_mode">tree,pivot</field>
+        <field name="search_view_id" ref="view_arcs_budget_vs_actual_search"/>
+        <field name="context">{'search_default_g_grant': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No budget lines to report on yet</p>
+            <p>
+                Every budget line across every grant, side by side: originally
+                Planned, the effect of any internal transfers, what's Committed
+                (reserved), what's actually Actual (posted), and what's still
+                Available.
+            </p>
+        </field>
+    </record>
+</odoo>

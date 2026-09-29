@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extends the REAL hr.department views (department is no longer a
+         separate ARCS-only model) - only adds the Province link and the
+         optional ARCS code, everything else about hr.department (Manager,
+         Company, sub-departments, employee counts, etc.) is untouched. -->
+    <record id="view_hr_department_form_arcs_zone" model="ir.ui.view">
+        <field name="name">hr.department.form.arcs.zone</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_form"/>
+        <field name="arch" type="xml">
+            <field name="manager_id" position="after">
+                <field name="code" placeholder="e.g. HEALTH"/>
+                <field name="zone_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_hr_department_tree_arcs_zone" model="ir.ui.view">
+        <field name="name">hr.department.tree.arcs.zone</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_tree"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="code" optional="show"/>
+                <field name="zone_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_hr_department_search_arcs_zone" model="ir.ui.view">
+        <field name="name">hr.department.search.arcs.zone</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_filter"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="code"/>
+                <field name="zone_id"/>
+            </field>
+            <xpath expr="//search" position="inside">
+                <group expand="0" string="Group By">
+                    <filter name="g_arcs_zone" string="Province" context="{'group_by':'zone_id'}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Same xmlid as the action this replaces, so views/menus.xml (which
+         already points menu_arcs_department at action_arcs_department)
+         needs no change at all. -->
+    <record id="action_arcs_department" model="ir.actions.act_window">
+        <field name="name">Departments</field>
+        <field name="res_model">hr.department</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_hr_department_search_arcs_zone"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first department</p>
+            <p>Departments are the functional units used to classify requests and expenses -
+                the standard Odoo hr.department, with a Province link added for ARCS
+                field-office tracking.</p>
+        </field>
+    </record>
+</odoo>

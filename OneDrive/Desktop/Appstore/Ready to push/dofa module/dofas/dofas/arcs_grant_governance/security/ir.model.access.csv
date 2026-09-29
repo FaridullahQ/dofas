@@ -1,0 +1,12 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_grant_agreement_read,arcs.grant.agreement read,model_arcs_grant_agreement,base.group_user,1,0,0,0
+access_arcs_grant_agreement_officer,arcs.grant.agreement finance officer,model_arcs_grant_agreement,arcs_base.group_finance_officer,1,1,1,0
+access_arcs_grant_agreement_mgr,arcs.grant.agreement finance manager,model_arcs_grant_agreement,arcs_base.group_finance_manager,1,1,1,0
+access_arcs_grant_agreement_admin,arcs.grant.agreement admin,model_arcs_grant_agreement,arcs_base.group_system_admin,1,1,1,1
+access_arcs_release_schedule_read,arcs.grant.release.schedule.line read,model_arcs_grant_release_schedule_line,base.group_user,1,0,0,0
+access_arcs_release_schedule_officer,arcs.grant.release.schedule.line finance officer,model_arcs_grant_release_schedule_line,arcs_base.group_finance_officer,1,1,1,1
+access_arcs_release_schedule_mgr,arcs.grant.release.schedule.line finance manager,model_arcs_grant_release_schedule_line,arcs_base.group_finance_manager,1,1,1,1
+access_arcs_release_schedule_admin,arcs.grant.release.schedule.line admin,model_arcs_grant_release_schedule_line,arcs_base.group_system_admin,1,1,1,1
+access_arcs_compliance_verification_read,arcs.compliance.verification read,model_arcs_compliance_verification,base.group_user,1,0,0,0
+access_arcs_compliance_verification_officer,arcs.compliance.verification compliance officer,model_arcs_compliance_verification,arcs_base.group_compliance_officer,1,1,1,0
+access_arcs_compliance_verification_admin,arcs.compliance.verification admin,model_arcs_compliance_verification,arcs_base.group_system_admin,1,1,1,1

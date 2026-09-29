@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_donor_report_form_dmp" model="ir.ui.view">
+        <field name="name">arcs.donor.report.form.dmp</field>
+        <field name="model">arcs.donor.report</field>
+        <field name="inherit_id" ref="arcs_report.view_arcs_donor_report_form"/>
+        <field name="arch" type="xml">
+            <field name="report_type" position="after">
+                <field name="project_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

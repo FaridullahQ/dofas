@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_expense_form_earmarked" model="ir.ui.view">
+        <field name="name">arcs.expense.form.earmarked</field>
+        <field name="model">arcs.expense</field>
+        <field name="inherit_id" ref="arcs_program.view_arcs_expense_form_program"/>
+        <field name="arch" type="xml">
+            <field name="activity_id" position="before">
+                <field name="grant_funding_model" invisible="1"/>
+            </field>
+            <field name="activity_id" position="attributes">
+                <attribute name="required">grant_funding_model == 'earmarked'</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_reimbursement_claim_tree" model="ir.ui.view">
+        <field name="name">arcs.reimbursement.claim.tree</field>
+        <field name="model">arcs.reimbursement.claim</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state=='cancelled'" decoration-success="state in ('funded','reported')"
+                  decoration-danger="state=='rejected'"
+                  decoration-warning="state in ('compiling','submitted','approved')">
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="donor_id" optional="show"/>
+                <field name="expense_count"/>
+                <field name="claimed_amount" sum="Claimed"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state=='cancelled'" decoration-success="state in ('funded','reported')"
+                       decoration-danger="state=='rejected'"
+                       decoration-warning="state in ('compiling','submitted','approved')"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_reimbursement_claim_form" model="ir.ui.view">
+        <field name="name">arcs.reimbursement.claim.form</field>
+        <field name="model">arcs.reimbursement.claim</field>
+        <field name="arch" type="xml">
+            <form string="Reimbursement Claim">
+                <header>
+                    <button name="action_submit" string="Submit to Donor" type="object"
+                            class="oe_highlight" invisible="state != 'compiling'"
+                            confirm="Submitting locks these expenses into this claim package. Do you want to continue?"/>
+                    <button name="action_validate_approve" string="Record Donor Approval"
+                            type="object" class="oe_highlight" invisible="state != 'submitted'"/>
+                    <button name="action_validate_reject" string="Record Donor Rejection"
+                            type="object" invisible="state != 'submitted'"/>
+                    <button name="action_resubmit" string="Reopen for Corrections" type="object"
+                            class="oe_highlight" invisible="state != 'rejected'"/>
+                    <button name="action_open_fund_receipt" string="Record Fund Transfer"
+                            type="object" class="oe_highlight" invisible="state != 'approved'"/>
+                    <button name="action_open_final_report" string="Prepare Final Report"
+                            type="object" class="oe_highlight" invisible="state != 'funded'"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state in ('funded','reported','cancelled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="compiling,submitted,approved,funded,reported"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="fund_receipt_id" invisible="1"/>
+                        <button name="action_view_fund_receipt" type="object" class="oe_stat_button"
+                                icon="fa-money" invisible="not fund_receipt_id">
+                            <span>Fund Receipt</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="grant_id" readonly="state != 'compiling'"/>
+                            <field name="donor_id" readonly="1"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="claimed_amount"/>
+                            <field name="expense_count"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Donor Validation" invisible="state not in ('submitted','approved','rejected')">
+                        <field name="validation_date" readonly="1"/>
+                        <field name="validation_notes" readonly="state != 'submitted'"
+                               placeholder="Required before Record Donor Rejection; optional for approval."/>
+                    </group>
+                    <group string="Final Report" invisible="state not in ('funded','reported')">
+                        <field name="donor_report_id" readonly="1"/>
+                    </group>
+                    <notebook>
+                        <page name="expenses" string="Claimed Expenses">
+                            <field name="expense_ids" readonly="state != 'compiling'">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="budget_line_id"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="state" widget="badge"/>
+                                </tree>
+                            </field>
+                            <p class="text-muted ms-1" invisible="state != 'compiling'">
+                                Only expenses already Approved or Posted count toward the Claimed
+                                Amount above; attach the proof package (receipts, invoices,
+                                compliance forms) in the chatter below before submitting.
+                            </p>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_arcs_reimbursement_claim_search" model="ir.ui.view">
+        <field name="name">arcs.reimbursement.claim.search</field>
+        <field name="model">arcs.reimbursement.claim</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="donor_id"/>
+                <filter name="open" string="In Progress"
+                        domain="[('state','not in',('reported','cancelled'))]"/>
+                <filter name="awaiting_validation" string="Awaiting Donor"
+                        domain="[('state','=','submitted')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_arcs_reimbursement_claim" model="ir.actions.act_window">
+        <field name="name">Reimbursement Claims</field>
+        <field name="res_model">arcs.reimbursement.claim</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_arcs_reimbursement_claim_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Bundle approved expenses into a claim</p>
+        </field>
+    </record>
+</odoo>

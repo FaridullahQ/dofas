@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_reporting" name="Reporting" parent="arcs_base.menu_arcs_root" sequence="60"/>
+
+    <menuitem id="menu_arcs_financial_reports" name="Financial Reports" parent="menu_arcs_reporting" sequence="10"/>
+    <menuitem id="menu_arcs_donor_reports" name="Donor Reports" parent="menu_arcs_financial_reports"
+              action="action_arcs_donor_report" sequence="10"/>
+    <menuitem id="menu_arcs_budget_vs_actual" name="Budget vs Actual" parent="menu_arcs_financial_reports"
+              action="action_arcs_budget_vs_actual" sequence="20"/>
+
+    <menuitem id="menu_arcs_program_dept_reports" name="Program &amp; Department Reports" parent="menu_arcs_reporting" sequence="20"/>
+    <menuitem id="menu_arcs_dept_reports" name="Department Reports" parent="menu_arcs_program_dept_reports"
+              action="action_arcs_dept_report" sequence="10"/>
+    <menuitem id="menu_arcs_activity_reports" name="Project/Activity Reports" parent="menu_arcs_program_dept_reports"
+              action="action_arcs_activity_report" sequence="20"/>
+
+    <menuitem id="menu_arcs_rtemplates" name="Report Templates" parent="arcs_base.menu_arcs_config"
+              action="action_arcs_rtemplate" sequence="40"/>
+</odoo>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_faq_form" model="ir.ui.view">
+        <field name="name">arcs.about.form.faq</field>
+        <field name="model">arcs.about</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Frequently Asked Questions</h1>
+                        <p class="text-muted">
+                            ARCS Donor Management Suite &#8212;
+                            version <field name="suite_version" readonly="1" class="oe_inline"/>
+                        </p>
+                    </div>
+
+                    <div class="ms-2">
+                        <dl class="row mb-0" style="line-height: 1.7;">
+                            <dt class="col-sm-4">Why can't I select a budget line on an acquisition?</dt>
+                            <dd class="col-sm-8">Only budget lines belonging to an <b>Approved</b> budget
+                                version are selectable. Ask Finance to approve the budget version first.</dd>
+
+                            <dt class="col-sm-4">Why is "Commit &amp; Reserve" greyed out?</dt>
+                            <dd class="col-sm-8">A real vendor price must be confirmed first via "Confirm Real
+                                Price" &#8212; the confirmed amount, not the original estimate, is what gets
+                                reserved.</dd>
+
+                            <dt class="col-sm-4">My acquisition says "Insufficient Funds" - what now?</dt>
+                            <dd class="col-sm-8">Choose a different budget line, split the amount across
+                                several budget lines, request an internal budget transfer, or request
+                                supplementary donor funding - all from the acquisition's own form.</dd>
+
+                            <dt class="col-sm-4">Why can't I approve a donor supplementary funding request?</dt>
+                            <dd class="col-sm-8">Recording the donor's approval requires both an "Amount
+                                Confirmed" and the donor's bank receipt attached (via the chatter paperclip)
+                                first.</dd>
+
+                            <dt class="col-sm-4">Who can approve an internal budget transfer?</dt>
+                            <dd class="col-sm-8">Only a Finance Manager. The transfer never changes either
+                                line's original Planned amount - the effect shows separately as Transferred
+                                In / Transferred Out.</dd>
+
+                            <dt class="col-sm-4">What's the difference between an Advance and a Liquidation?</dt>
+                            <dd class="col-sm-8">An Advance is cash sent to a zone or employee, who becomes a
+                                debtor. A Liquidation reports and clears that advance with justified, posted
+                                expenses.</dd>
+
+                            <dt class="col-sm-4">I rejected/cancelled something by mistake - is there a record
+                                of why?</dt>
+                            <dd class="col-sm-8">Yes - every Reject, Cancel, and Reset to Draft action requires
+                                a typed justification, which is posted directly to that record's own chatter
+                                as well as the audit log.</dd>
+                        </dl>
+                    </div>
+
+                    <p class="text-muted mt-3">
+                        Don't see your question here? See the <b>User Guide</b> for the full
+                        process flow and glossary, or use <b>Support Contact</b> to reach us directly.
+                    </p>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_arcs_faq" model="ir.actions.act_window">
+        <field name="name">FAQs</field>
+        <field name="res_model">arcs.about</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_arcs_faq_form"/>
+        <field name="target">current</field>
+    </record>
+</odoo>

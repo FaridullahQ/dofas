@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_release_schedule_tree" model="ir.ui.view">
+        <field name="name">arcs.grant.release.schedule.line.tree</field>
+        <field name="model">arcs.grant.release.schedule.line</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom" decoration-danger="status=='overdue'" decoration-success="status=='received'">
+                <field name="grant_id" column_invisible="1"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="installment_no" readonly="1"/>
+                <field name="planned_date"/>
+                <field name="planned_amount"/>
+                <field name="notes"/>
+                <field name="fund_receipt_id"/>
+                <field name="received_amount" readonly="1"/>
+                <field name="status" widget="badge" readonly="1"
+                       decoration-danger="status=='overdue'" decoration-success="status=='received'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_arcs_release_schedule" model="ir.actions.act_window">
+        <field name="name">Fund Release Schedule</field>
+        <field name="res_model">arcs.grant.release.schedule.line</field>
+        <field name="view_mode">tree</field>
+    </record>
+</odoo>

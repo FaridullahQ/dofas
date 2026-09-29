@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- arcs_grant core (17.0.1.6.0+) always provides an empty button_box on
+         the sheet, specifically so extension modules never need to compete
+         over creating it - just add into it. -->
+    <record id="view_arcs_grant_form_revolving" model="ir.ui.view">
+        <field name="name">arcs.grant.form.revolving</field>
+        <field name="model">arcs.grant</field>
+        <field name="inherit_id" ref="arcs_grant.view_arcs_grant_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_revolving_cycles" type="object"
+                        class="oe_stat_button" icon="fa-refresh"
+                        invisible="funding_model != 'revolving_fund'">
+                    <field name="revolving_cycle_count" widget="statinfo" string="Cycles"/>
+                </button>
+            </xpath>
+            <xpath expr="//page[@name='financial']" position="inside">
+                <group string="Revolving Fund" invisible="funding_model != 'revolving_fund'">
+                    <field name="total_committed_amount"/>
+                    <field name="remaining_to_commit"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_checklist_tree" model="ir.ui.view">
+        <field name="name">arcs.compliance.checklist.tree</field>
+        <field name="model">arcs.compliance.checklist</field>
+        <field name="arch" type="xml">
+            <tree string="Compliance Checklists" decoration-muted="not active">
+                <field name="name"/>
+                <field name="donor_id" optional="show"/>
+                <field name="line_count" string="Items"/>
+                <field name="active" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_arcs_checklist_form" model="ir.ui.view">
+        <field name="name">arcs.compliance.checklist.form</field>
+        <field name="model">arcs.compliance.checklist</field>
+        <field name="arch" type="xml">
+            <form string="Compliance Checklist">
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <field name="active" invisible="1"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. ECHO Standard Requirements"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="donor_id"
+                               help="Link to a donor so its grants automatically inherit these requirements. Leave empty for a general checklist."/>
+                    </group>
+                    <separator string="Requirements"/>
+                    <field name="line_ids">
+                        <tree editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="name" placeholder="e.g. Quarterly financial report"/>
+                            <field name="required" widget="boolean_toggle"/>
+                        </tree>
+                    </field>
+                    <p class="text-muted ms-1">Drag the handle to reorder. Toggle “Required” for mandatory items.</p>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <record id="view_arcs_checklist_search" model="ir.ui.view">
+        <field name="name">arcs.compliance.checklist.search</field>
+        <field name="model">arcs.compliance.checklist</field>
+        <field name="arch" type="xml">
+            <search string="Search Compliance Checklists">
+                <field name="name" string="Checklist"
+                       filter_domain="['|',('name','ilike',self),('donor_id','ilike',self)]"/>
+                <field name="donor_id"/>
+                <separator/>
+                <filter name="general" string="General (no donor)" domain="[('donor_id','=',False)]"/>
+                <filter name="archived" string="Archived" domain="[('active','=',False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_donor" string="Donor" context="{'group_by':'donor_id'}"/>
+                </group>
+                <searchpanel>
+                    <field name="donor_id" icon="fa-heart" select="multi" enable_counters="1"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+    <record id="action_arcs_checklist" model="ir.actions.act_window">
+        <field name="name">Compliance Checklists</field>
+        <field name="res_model">arcs.compliance.checklist</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_arcs_checklist_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first compliance checklist</p>
+            <p>Define the requirements a donor expects; its grants will inherit them automatically.</p>
+        </field>
+    </record>
+
+    <record id="view_arcs_grant_form_compliance" model="ir.ui.view">
+        <field name="name">arcs.grant.form.compliance</field>
+        <field name="model">arcs.grant</field>
+        <field name="inherit_id" ref="arcs_grant.view_arcs_grant_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='compliance']" position="inside">
+                <field name="agreement_attached" invisible="1"/>
+                <div class="alert alert-success d-flex align-items-center" role="status"
+                     invisible="not agreement_attached">
+                    <i class="fa fa-check-circle me-2" title="Ready"/>
+                    <span>Signed agreement is attached — this grant can be approved.</span>
+                </div>
+                <div class="alert alert-warning d-flex align-items-center" role="alert" invisible="agreement_attached">
+                    <i class="fa fa-exclamation-triangle me-2" title="Action needed"/>
+                    <span>No signed agreement attached yet. Add it in the <b>Documents</b> tab before approving.
+                    </span>
+                </div>
+                <group>
+                    <group string="Agreement">
+                        <field name="attachment_count"/>
+                    </group>
+                    <group string="Restriction">
+                        <field name="funding_model" readonly="1"/>
+                        <field name="is_restricted" readonly="1"/>
+                    </group>
+                </group>
+                <separator string="Donor compliance requirements"/>
+                <field name="donor_checklist_line_ids" readonly="1">
+                    <tree>
+                        <field name="name"/>
+                        <field name="required" widget="boolean_toggle" readonly="1"/>
+                    </tree>
+                </field>
+                <p class="text-muted oe_grey">
+                    Requirements are taken from the donor's active compliance checklist(s).
+                </p>
+            </xpath>
+        </field>
+    </record>
+</odoo>

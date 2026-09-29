@@ -1,0 +1,17 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_multi_donor_project_read,arcs.multi.donor.project read,model_arcs_multi_donor_project,base.group_user,1,0,0,0
+access_arcs_multi_donor_project_officer,arcs.multi.donor.project finance officer,model_arcs_multi_donor_project,arcs_base.group_finance_officer,1,1,1,0
+access_arcs_multi_donor_project_mgr,arcs.multi.donor.project finance manager,model_arcs_multi_donor_project,arcs_base.group_finance_manager,1,1,1,0
+access_arcs_multi_donor_project_admin,arcs.multi.donor.project admin,model_arcs_multi_donor_project,arcs_base.group_system_admin,1,1,1,1
+access_arcs_multi_donor_member_read,arcs.multi.donor.project.member read,model_arcs_multi_donor_project_member,base.group_user,1,0,0,0
+access_arcs_multi_donor_member_officer,arcs.multi.donor.project.member finance officer,model_arcs_multi_donor_project_member,arcs_base.group_finance_officer,1,1,1,1
+access_arcs_multi_donor_member_mgr,arcs.multi.donor.project.member finance manager,model_arcs_multi_donor_project_member,arcs_base.group_finance_manager,1,1,1,1
+access_arcs_multi_donor_member_admin,arcs.multi.donor.project.member admin,model_arcs_multi_donor_project_member,arcs_base.group_system_admin,1,1,1,1
+access_arcs_multi_donor_shared_cost_read,arcs.multi.donor.shared.cost read,model_arcs_multi_donor_shared_cost,base.group_user,1,0,0,0
+access_arcs_multi_donor_shared_cost_officer,arcs.multi.donor.shared.cost finance officer,model_arcs_multi_donor_shared_cost,arcs_base.group_finance_officer,1,1,1,0
+access_arcs_multi_donor_shared_cost_mgr,arcs.multi.donor.shared.cost finance manager,model_arcs_multi_donor_shared_cost,arcs_base.group_finance_manager,1,1,1,0
+access_arcs_multi_donor_shared_cost_admin,arcs.multi.donor.shared.cost admin,model_arcs_multi_donor_shared_cost,arcs_base.group_system_admin,1,1,1,1
+access_arcs_multi_donor_shared_cost_line_read,arcs.multi.donor.shared.cost.line read,model_arcs_multi_donor_shared_cost_line,base.group_user,1,0,0,0
+access_arcs_multi_donor_shared_cost_line_officer,arcs.multi.donor.shared.cost.line finance officer,model_arcs_multi_donor_shared_cost_line,arcs_base.group_finance_officer,1,1,1,1
+access_arcs_multi_donor_shared_cost_line_mgr,arcs.multi.donor.shared.cost.line finance manager,model_arcs_multi_donor_shared_cost_line,arcs_base.group_finance_manager,1,1,1,1
+access_arcs_multi_donor_shared_cost_line_admin,arcs.multi.donor.shared.cost.line admin,model_arcs_multi_donor_shared_cost_line,arcs_base.group_system_admin,1,1,1,1

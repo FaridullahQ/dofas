@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_reimbursement_claim" name="Reimbursement Claims"
+              parent="arcs_grant.menu_arcs_funding_root"
+              action="action_arcs_reimbursement_claim" sequence="26"/>
+</odoo>

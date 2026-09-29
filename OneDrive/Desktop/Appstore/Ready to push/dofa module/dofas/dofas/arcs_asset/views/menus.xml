@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_assets" name="Asset Register"
+              parent="arcs_base.menu_arcs_procurement_assets"
+              action="action_arcs_asset" sequence="20"/>
+    <menuitem id="menu_arcs_asset_settings" name="Inventory Setup"
+              parent="arcs_base.menu_arcs_config"
+              action="action_arcs_asset_settings" sequence="30"
+              groups="arcs_base.group_system_admin"/>
+</odoo>

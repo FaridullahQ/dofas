@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_grant_form_governance" model="ir.ui.view">
+        <field name="name">arcs.grant.form.governance</field>
+        <field name="model">arcs.grant</field>
+        <field name="inherit_id" ref="arcs_grant.view_arcs_grant_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <field name="is_restricted" invisible="1"/>
+                <button name="action_view_agreements" type="object" class="oe_stat_button"
+                        icon="fa-file-text-o" invisible="not is_restricted">
+                    <field name="agreement_version_count" widget="statinfo" string="Agreements"/>
+                </button>
+                <button name="action_view_compliance_verifications" type="object"
+                        class="oe_stat_button" icon="fa-shield"
+                        invisible="compliance_unresolved_count == 0">
+                    <field name="compliance_unresolved_count" widget="statinfo" string="Unresolved"/>
+                </button>
+            </xpath>
+            <xpath expr="//page[@name='financial']" position="inside">
+                <separator string="Fund Release Schedule" invisible="not is_restricted"/>
+                <field name="release_schedule_ids" invisible="not is_restricted">
+                    <tree editable="bottom" decoration-danger="status=='overdue'" decoration-success="status=='received'">
+                        <field name="grant_id" column_invisible="1"/>
+                        <field name="currency_id" column_invisible="1"/>
+                        <field name="installment_no" readonly="1"/>
+                        <field name="planned_date"/>
+                        <field name="planned_amount"/>
+                        <field name="notes"/>
+                        <field name="fund_receipt_id"/>
+                        <field name="received_amount" readonly="1"/>
+                        <field name="status" widget="badge" readonly="1"
+                               decoration-danger="status=='overdue'" decoration-success="status=='received'"/>
+                    </tree>
+                </field>
+            </xpath>
+            <xpath expr="//page[@name='compliance']" position="inside">
+                <field name="funding_model" invisible="1"/>
+                <group invisible="funding_model != 'unrestricted'">
+                    <field name="donor_suggestion" placeholder="Any non-binding suggestion the donor made on how funds might be used..."/>
+                </group>
+                <separator string="Agreement Versions" invisible="not is_restricted"/>
+                <field name="current_agreement_id" readonly="1" invisible="not is_restricted"/>
+                <field name="agreement_ids" invisible="not is_restricted" readonly="1">
+                    <tree decoration-muted="state=='superseded'" decoration-success="state=='active'">
+                        <field name="version"/>
+                        <field name="reference"/>
+                        <field name="signed_date"/>
+                        <field name="state" widget="badge"/>
+                    </tree>
+                </field>
+            </xpath>
+        </field>
+    </record>
+</odoo>

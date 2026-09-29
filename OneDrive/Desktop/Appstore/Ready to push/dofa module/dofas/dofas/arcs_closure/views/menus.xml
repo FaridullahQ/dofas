@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_closure" name="Grant Closure" parent="arcs_grant.menu_arcs_funding_root"
+              action="action_arcs_closure" sequence="40" groups="arcs_base.group_finance_manager"/>
+</odoo>

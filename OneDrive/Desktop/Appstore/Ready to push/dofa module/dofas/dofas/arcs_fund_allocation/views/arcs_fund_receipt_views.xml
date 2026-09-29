@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_fund_receipt_form_allocation" model="ir.ui.view">
+        <field name="name">arcs.fund.receipt.form.allocation</field>
+        <field name="model">arcs.fund.receipt</field>
+        <field name="inherit_id" ref="arcs_fund.view_arcs_fund_receipt_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group" position="after">
+                <group string="Program Allocation">
+                    <div class="o_form_label text-muted mb-2" colspan="2">
+                        Auto-filled from every Program, Project and Activity related to
+                        the Grant above, each with its own Planned Cost - picking or
+                        changing the Grant regenerates it. Remove a row, or add one back
+                        by picking Program / Project / Activity - Planned Cost fills in
+                        automatically either way. This shows the organisation's spending
+                        plan for this grant; it is not expected to add up to the receipt
+                        amount, since a Program's own figure already includes its
+                        Projects' and Activities'.
+                    </div>
+                    <button name="action_refresh_program_allocation" type="object"
+                            string="Refresh Program Allocation" class="btn-secondary"
+                            icon="fa-refresh" colspan="2"
+                            invisible="state != 'draft' or not grant_id"
+                            confirm="This replaces the Program Allocation below with a fresh copy of the current plan under this Grant - any rows you removed or added by hand will be lost. Continue?"/>
+                    <field name="allocation_ids" nolabel="1" colspan="2"
+                           readonly="state != 'draft'">
+                        <tree editable="bottom" decoration-bf="level=='program'">
+                            <field name="sequence" widget="handle"/>
+                            <field name="level" column_invisible="1"/>
+                            <field name="grant_id" column_invisible="1"/>
+                            <field name="currency_id" column_invisible="1"/>
+                            <field name="name" column_invisible="1"/>
+                            <field name="program_id" options="{'no_create': True}"/>
+                            <field name="project_id" options="{'no_create': True}"
+                                   placeholder="(whole program)"/>
+                            <field name="activity_id" options="{'no_create': True}"
+                                   placeholder="(whole project)"/>
+                            <field name="amount" sum="Total Planned (see note above)"/>
+                        </tree>
+                    </field>
+                    <field name="program_planned_total" invisible="not allocation_ids"/>
+                    <div class="alert alert-secondary" role="alert" colspan="2"
+                         invisible="grant_id or allocation_ids">
+                        Select a Grant above to auto-fill the Program Allocation.
+                    </div>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

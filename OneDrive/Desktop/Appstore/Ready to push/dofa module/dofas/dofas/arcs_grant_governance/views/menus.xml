@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_compliance_verification" name="Compliance Reviews"
+              parent="arcs_base.menu_arcs_audit" action="action_arcs_compliance_verification"
+              sequence="21" groups="arcs_base.group_compliance_officer"/>
+    <menuitem id="menu_arcs_release_schedule" name="Fund Release Schedule"
+              parent="arcs_report.menu_arcs_reporting" action="action_arcs_release_schedule"
+              sequence="35"/>
+    <menuitem id="menu_arcs_grant_agreement" name="Grant Agreements"
+              parent="arcs_base.menu_arcs_audit" action="action_arcs_grant_agreement"
+              sequence="22"/>
+</odoo>

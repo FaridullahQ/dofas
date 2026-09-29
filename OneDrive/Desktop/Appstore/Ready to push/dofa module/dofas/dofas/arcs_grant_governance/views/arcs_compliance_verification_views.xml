@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_compliance_verification_tree" model="ir.ui.view">
+        <field name="name">arcs.compliance.verification.tree</field>
+        <field name="model">arcs.compliance.verification</field>
+        <field name="arch" type="xml">
+            <tree decoration-warning="state=='flagged'" decoration-danger="state=='rejected'"
+                  decoration-muted="state in ('passed','waived')">
+                <field name="grant_id"/>
+                <field name="requirement_name"/>
+                <field name="trigger" optional="hide"/>
+                <field name="source_display_name"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state=='flagged'" decoration-danger="state=='rejected'"
+                       decoration-muted="state in ('passed','waived')"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_compliance_verification_form" model="ir.ui.view">
+        <field name="name">arcs.compliance.verification.form</field>
+        <field name="model">arcs.compliance.verification</field>
+        <field name="arch" type="xml">
+            <form string="Compliance Verification">
+                <header>
+                    <button name="action_pass" string="Pass" type="object" class="oe_highlight"
+                            invisible="state in ('waived', 'passed')"/>
+                    <button name="action_flag" string="Flag" type="object"
+                            invisible="state in ('waived', 'flagged')"/>
+                    <button name="action_reject" string="Reject" type="object"
+                            invisible="state in ('waived', 'rejected')"/>
+                    <button name="action_waive" string="Waive" type="object"
+                            invisible="state == 'waived'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,passed,flagged,rejected,waived"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="grant_id" readonly="1"/>
+                            <field name="checklist_line_id" readonly="1"/>
+                            <field name="trigger" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="source_display_name" readonly="1"/>
+                            <field name="verified_by" readonly="1"/>
+                            <field name="verified_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="flagged_reason" placeholder="Why is this flagged? Fill in before clicking Flag."/>
+                        <field name="rejected_reason" placeholder="Why is this rejected? Fill in before clicking Reject."/>
+                        <field name="waived_reason" placeholder="Why is this being waived? Fill in before clicking Waive."/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_arcs_compliance_verification_search" model="ir.ui.view">
+        <field name="name">arcs.compliance.verification.search</field>
+        <field name="model">arcs.compliance.verification</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="grant_id"/>
+                <field name="requirement_name"/>
+                <filter name="pending" string="Pending" domain="[('state','=','pending')]"/>
+                <filter name="flagged" string="Flagged" domain="[('state','=','flagged')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state','=','rejected')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_arcs_compliance_verification" model="ir.actions.act_window">
+        <field name="name">Compliance Reviews</field>
+        <field name="res_model">arcs.compliance.verification</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_arcs_compliance_verification_search"/>
+        <field name="context">{'search_default_pending': 1, 'search_default_flagged': 1, 'search_default_rejected': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No compliance items raised yet</p>
+            <p>Items appear here automatically when an expense is submitted or a donor
+               report is submitted, for any donor requirement configured to auto-raise.</p>
+        </field>
+    </record>
+</odoo>

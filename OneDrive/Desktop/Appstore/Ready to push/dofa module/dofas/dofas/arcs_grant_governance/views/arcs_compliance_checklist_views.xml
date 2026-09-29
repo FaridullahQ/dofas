@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_checklist_form_governance" model="ir.ui.view">
+        <field name="name">arcs.compliance.checklist.form.governance</field>
+        <field name="model">arcs.compliance.checklist</field>
+        <field name="inherit_id" ref="arcs_compliance.view_arcs_checklist_form"/>
+        <field name="arch" type="xml">
+            <field name="required" position="after">
+                <field name="verification_trigger"/>
+                <field name="enforcement"/>
+            </field>
+            <p class="text-muted ms-1" position="after">
+                <p class="text-muted ms-1">
+                    "Auto-Raise On" controls when a requirement is automatically raised as a
+                    Compliance Verification for review. "Enforcement" controls what happens if
+                    it's left unresolved: Advisory never blocks the transaction that raised it
+                    (only that grant's closure, if left Flagged or Rejected); Gate blocks the
+                    very next step (expense Approval, or report Review) until the item is
+                    Passed or Waived.
+                </p>
+            </p>
+        </field>
+    </record>
+</odoo>

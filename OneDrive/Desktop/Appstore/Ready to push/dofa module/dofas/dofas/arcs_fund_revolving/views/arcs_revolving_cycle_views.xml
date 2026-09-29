@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_revolving_cycle_tree" model="ir.ui.view">
+        <field name="name">arcs.revolving.cycle.tree</field>
+        <field name="model">arcs.revolving.cycle</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state in ('cancelled',)" decoration-success="state=='closed'"
+                  decoration-info="state in ('committed','funded')"
+                  decoration-warning="state in ('utilizing','reporting','replenishment_requested')">
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="donor_id" optional="show"/>
+                <field name="sequence_no"/>
+                <field name="amount_committed" sum="Committed"/>
+                <field name="amount_spent" sum="Spent"/>
+                <field name="amount_available" sum="Available"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state in ('cancelled',)"
+                       decoration-success="state=='closed'"
+                       decoration-info="state in ('committed','funded')"
+                       decoration-warning="state in ('utilizing','reporting','replenishment_requested')"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_revolving_cycle_form" model="ir.ui.view">
+        <field name="name">arcs.revolving.cycle.form</field>
+        <field name="model">arcs.revolving.cycle</field>
+        <field name="arch" type="xml">
+            <form string="Revolving Fund Cycle">
+                <header>
+                    <button name="action_commit" string="Commit" type="object" class="oe_highlight"
+                            invisible="state != 'draft'"
+                            confirm="Committing locks the amount and its budget-line allocation. Do you want to continue?"/>
+                    <button name="action_open_fund_receipt" string="Record Fund Transfer"
+                            type="object" class="oe_highlight" invisible="state != 'committed'"/>
+                    <button name="action_open_utilization_report" string="Prepare Utilization Report"
+                            type="object" class="oe_highlight" invisible="state != 'utilizing'"/>
+                    <button name="action_request_replenishment" string="Request Replenishment"
+                            type="object" class="oe_highlight" invisible="state != 'reporting'"/>
+                    <button name="action_open_send_wizard" string="Send Email" type="object"
+                            class="btn-secondary" invisible="state != 'replenishment_requested'"/>
+                    <button name="action_close" string="Close Cycle" type="object" class="oe_highlight"
+                            invisible="state != 'replenishment_requested'"
+                            confirm="Closing this cycle marks it complete. Open the next cycle afterwards if the project continues. Do you want to continue?"/>
+                    <button name="action_create_next_cycle" string="Open Next Cycle" type="object"
+                            invisible="state not in ('closed','cancelled')"/>
+                    <button name="action_cancel_wizard" string="Cancel" type="object"
+                            invisible="state in ('closed','cancelled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,committed,funded,utilizing,reporting,replenishment_requested,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="fund_receipt_id" invisible="1"/>
+                        <button name="action_view_fund_receipt" type="object" class="oe_stat_button"
+                                icon="fa-money" invisible="not fund_receipt_id">
+                            <span>Fund Receipt</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="grant_id" readonly="state != 'draft'"/>
+                            <field name="donor_id" readonly="1"/>
+                            <field name="sequence_no" readonly="1"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="percentage_committed" widget="percentage" readonly="state != 'draft'"/>
+                            <field name="amount_committed" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description" readonly="state != 'draft'" nolabel="1"
+                               placeholder="Compliance notes or special instructions for this tranche..."/>
+                    </group>
+                    <notebook>
+                        <page name="allocation" string="Expense Line Allocation">
+                            <field name="allocation_line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom">
+                                    <field name="grant_id" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="budget_line_id"/>
+                                    <field name="amount"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="allocation_total"/>
+                            </group>
+                        </page>
+                        <page name="progress" string="Utilization Progress">
+                            <group>
+                                <field name="amount_spent"/>
+                                <field name="amount_available"/>
+                                <field name="utilization_pct" widget="progressbar"/>
+                            </group>
+                            <field name="expense_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="budget_line_id"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="state" widget="badge"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page name="replenishment" string="Reporting &amp; Replenishment">
+                            <group>
+                                <field name="donor_report_id" readonly="1"/>
+                                <field name="replenishment_amount_requested"
+                                       readonly="state not in ('reporting','replenishment_requested')"/>
+                                <field name="replenishment_requested_date" readonly="1"/>
+                                <field name="email_sent" readonly="1"/>
+                                <field name="email_sent_date" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_arcs_revolving_cycle_search" model="ir.ui.view">
+        <field name="name">arcs.revolving.cycle.search</field>
+        <field name="model">arcs.revolving.cycle</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="grant_id"/>
+                <field name="donor_id"/>
+                <filter name="open" string="Open Cycles"
+                        domain="[('state','not in',('closed','cancelled'))]"/>
+                <filter name="closed" string="Closed" domain="[('state','=','closed')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_grant" string="Grant" context="{'group_by':'grant_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_arcs_revolving_cycle" model="ir.actions.act_window">
+        <field name="name">Revolving Fund Cycles</field>
+        <field name="res_model">arcs.revolving.cycle</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_arcs_revolving_cycle_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Commit the first tranche of a Revolving Fund grant</p>
+        </field>
+    </record>
+</odoo>

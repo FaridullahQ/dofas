@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_budget_transfer_form_inherit_request" model="ir.ui.view">
+        <field name="name">arcs.budget.transfer.form.inherit.arcs.request</field>
+        <field name="model">arcs.budget.transfer</field>
+        <field name="inherit_id" ref="arcs_budget.view_arcs_budget_transfer_form"/>
+        <field name="arch" type="xml">
+            <field name="to_line_id" position="after">
+                <field name="spend_request_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_arcs_budget_transfer_search_inherit_request" model="ir.ui.view">
+        <field name="name">arcs.budget.transfer.search.inherit.arcs.request</field>
+        <field name="model">arcs.budget.transfer</field>
+        <field name="inherit_id" ref="arcs_budget.view_arcs_budget_transfer_search"/>
+        <field name="arch" type="xml">
+            <field name="to_line_id" position="after">
+                <field name="spend_request_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

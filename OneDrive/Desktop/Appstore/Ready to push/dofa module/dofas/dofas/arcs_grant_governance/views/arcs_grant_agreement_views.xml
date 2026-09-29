@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_grant_agreement_tree" model="ir.ui.view">
+        <field name="name">arcs.grant.agreement.tree</field>
+        <field name="model">arcs.grant.agreement</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state=='superseded'" decoration-success="state=='active'">
+                <field name="grant_id"/>
+                <field name="version"/>
+                <field name="reference"/>
+                <field name="signed_date"/>
+                <field name="effective_date" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state=='superseded'" decoration-success="state=='active'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_grant_agreement_form" model="ir.ui.view">
+        <field name="name">arcs.grant.agreement.form</field>
+        <field name="model">arcs.grant.agreement</field>
+        <field name="arch" type="xml">
+            <form string="Grant Agreement Version">
+                <header>
+                    <button name="action_activate" string="Activate" type="object" class="oe_highlight"
+                            invisible="state != 'draft'"
+                            confirm="Activating this version supersedes any currently active version for this grant. Do you want to continue?"/>
+                    <button name="action_reset_draft" string="Reset to Draft" type="object"
+                            invisible="state == 'active'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,superseded"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="version"/>
+                        <h1><field name="version" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="grant_id" readonly="state != 'draft'"/>
+                            <field name="reference"/>
+                        </group>
+                        <group>
+                            <field name="signed_date"/>
+                            <field name="effective_date"/>
+                            <field name="attachment_count"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notes" nolabel="1" placeholder="Notes about this version, e.g. what changed from the previous one..."/>
+                    </group>
+                    <p class="text-muted">Attach the signed document itself in the chatter below before activating.</p>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_arcs_grant_agreement" model="ir.actions.act_window">
+        <field name="name">Grant Agreements</field>
+        <field name="res_model">arcs.grant.agreement</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

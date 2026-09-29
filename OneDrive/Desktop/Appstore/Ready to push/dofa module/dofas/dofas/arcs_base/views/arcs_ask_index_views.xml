@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_ask_index_form" model="ir.ui.view">
+        <field name="name">arcs.ask.index.form</field>
+        <field name="model">arcs.ask.index</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Ask DoFAS Index</h1>
+                    </div>
+                    <div class="alert alert-info" role="status">
+                        <i class="fa fa-info-circle me-2"/>
+                        This is a placeholder for a planned feature - not yet available.
+                    </div>
+                    <field name="note" readonly="1" nolabel="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_arcs_ask_index" model="ir.actions.act_window">
+        <field name="name">Ask DoFAS Index</field>
+        <field name="res_model">arcs.ask.index</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+</odoo>

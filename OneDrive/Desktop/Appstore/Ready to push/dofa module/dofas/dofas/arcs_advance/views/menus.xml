@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_advance_root" name="Advances &amp; Liquidations" parent="arcs_base.menu_arcs_root" sequence="40"/>
+    <menuitem id="menu_arcs_advance" name="Advances" parent="menu_arcs_advance_root"
+              action="action_arcs_advance" sequence="10"/>
+    <menuitem id="menu_arcs_employee_advance" name="Employee Advances" parent="menu_arcs_advance_root"
+              action="action_arcs_employee_advance" sequence="15"/>
+    <menuitem id="menu_arcs_liq" name="Liquidations" parent="menu_arcs_advance_root"
+              action="action_arcs_liq" sequence="20"/>
+    <menuitem id="menu_arcs_advance_tracking" name="Advance Tracking"
+              parent="menu_arcs_advance_root"
+              action="action_arcs_advance_tracking" sequence="30"/>
+</odoo>

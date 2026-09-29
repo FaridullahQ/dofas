@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_donor_report_form_governance" model="ir.ui.view">
+        <field name="name">arcs.donor.report.form.governance</field>
+        <field name="model">arcs.donor.report</field>
+        <field name="inherit_id" ref="arcs_report.view_arcs_donor_report_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group" position="after">
+                <group string="Donor Feedback"
+                       help="What the donor actually said back after receiving this report - separate from the internal review status above.">
+                    <field name="donor_feedback_state" widget="badge"/>
+                    <field name="donor_feedback_date"/>
+                    <field name="donor_feedback_notes"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

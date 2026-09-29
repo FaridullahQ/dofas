@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extends the REAL hr.employee views - Employee Code is just one
+         more field on the standard HR record, visible and editable
+         wherever an employee's own profile is opened, exactly the same
+         approach already used for hr.department's Code/Province in
+         hr_department_views.xml. -->
+    <record id="view_hr_employee_form_arcs_zone" model="ir.ui.view">
+        <field name="name">hr.employee.form.arcs.zone</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="employee_code" placeholder="e.g. EMP-0042"
+                       help="Unique identifier for this employee - lets Finance and Programs tell apart employees who share the same name."/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_hr_employee_tree_arcs_zone" model="ir.ui.view">
+        <field name="name">hr.employee.tree.arcs.zone</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name'][1]" position="after">
+                <field name="employee_code" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_hr_employee_search_arcs_zone" model="ir.ui.view">
+        <field name="name">hr.employee.search.arcs.zone</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name'][1]" position="after">
+                <field name="employee_code"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

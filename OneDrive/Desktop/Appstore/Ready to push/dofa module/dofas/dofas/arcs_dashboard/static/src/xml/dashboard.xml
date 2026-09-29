@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="arcs_dashboard.Dashboard" owl="1">
+        <div class="o_arcs_dashboard">
+
+            <div class="o_arcs_db_bar">
+                <div>
+                    <h2 class="o_arcs_db_title">Grant Portfolio Dashboard</h2>
+                    <span class="o_arcs_db_subtitle">Donor funds, budget control and spend</span>
+                    <div t-if="state.data.multi_currency" class="o_arcs_db_fxnote">
+                        <i class="fa fa-info-circle"/> Amounts in <t t-esc="state.data.currency_name"/>,
+                        converted at the <t t-esc="state.data.rate_policy"/> rate.
+                    </div>
+                </div>
+                <div class="o_arcs_db_bar_right">
+                    <span t-if="state.lastUpdated" class="o_arcs_db_updated">
+                        <i class="fa fa-clock-o"/> Updated <t t-esc="lastUpdatedLabel"/>
+                    </span>
+                    <button class="o_arcs_refresh" t-on-click="() => this.refresh()" title="Refresh now">
+                        <i t-attf-class="fa fa-refresh {{ state.loading ? 'fa-spin' : '' }}"/> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- ===================== FILTER BAR (pill selects, right aligned) ===================== -->
+            <div class="o_arcs_filters">
+                <div class="o_arcs_presets">
+                    <button t-attf-class="o_arcs_chip {{ state.activePreset === 'month' ? 'o_active' : '' }}"
+                            t-on-click="() => this.applyPreset('month')">This Month</button>
+                    <button t-attf-class="o_arcs_chip {{ state.activePreset === 'quarter' ? 'o_active' : '' }}"
+                            t-on-click="() => this.applyPreset('quarter')">This Quarter</button>
+                    <button t-attf-class="o_arcs_chip {{ state.activePreset === 'year' ? 'o_active' : '' }}"
+                            t-on-click="() => this.applyPreset('year')">This Year</button>
+                    <button t-attf-class="o_arcs_chip {{ !state.activePreset &amp;&amp; !state.filters.date_from ? 'o_active' : '' }}"
+                            t-on-click="() => this.applyPreset('all')">All Time</button>
+                </div>
+                <div class="o_arcs_fselects">
+                    <div class="o_arcs_fld">
+                        <input type="date" t-att-value="state.filters.date_from" title="Date from"
+                               t-on-change="(ev) => this.onFilterChange('date_from', ev)"/>
+                    </div>
+                    <div class="o_arcs_fld">
+                        <input type="date" t-att-value="state.filters.date_to" title="Date to"
+                               t-on-change="(ev) => this.onFilterChange('date_to', ev)"/>
+                    </div>
+                    <div class="o_arcs_fld">
+                        <select t-on-change="(ev) => this.onFilterChange('program_id', ev)" title="Program">
+                            <option value="">All programs</option>
+                            <t t-foreach="state.options.programs" t-as="o" t-key="o.id">
+                                <option t-att-value="o.id" t-att-selected="sel('program_id', o.id)" t-esc="o.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <div class="o_arcs_fld">
+                        <select t-on-change="(ev) => this.onFilterChange('project_id', ev)" title="Project">
+                            <option value="">All projects</option>
+                            <t t-foreach="projects" t-as="o" t-key="o.id">
+                                <option t-att-value="o.id" t-att-selected="sel('project_id', o.id)" t-esc="o.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <div class="o_arcs_fld">
+                        <select t-on-change="(ev) => this.onFilterChange('activity_id', ev)" title="Activity">
+                            <option value="">All activities</option>
+                            <t t-foreach="activities" t-as="o" t-key="o.id">
+                                <option t-att-value="o.id" t-att-selected="sel('activity_id', o.id)" t-esc="o.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <div class="o_arcs_fld">
+                        <select t-on-change="(ev) => this.onFilterChange('grant_id', ev)" title="Grant">
+                            <option value="">All grants</option>
+                            <t t-foreach="state.options.grants" t-as="o" t-key="o.id">
+                                <option t-att-value="o.id" t-att-selected="sel('grant_id', o.id)" t-esc="o.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <div class="o_arcs_fld">
+                        <select t-on-change="(ev) => this.onFilterChange('donor_id', ev)" title="Donor">
+                            <option value="">All donors</option>
+                            <t t-foreach="state.options.donors" t-as="o" t-key="o.id">
+                                <option t-att-value="o.id" t-att-selected="sel('donor_id', o.id)" t-esc="o.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <div class="o_arcs_fld">
+                        <select t-on-change="(ev) => this.onFilterChange('budget_line_id', ev)" title="Budget line">
+                            <option value="">All budget lines</option>
+                            <t t-foreach="lines" t-as="o" t-key="o.id">
+                                <option t-att-value="o.id" t-att-selected="sel('budget_line_id', o.id)" t-esc="o.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <div class="o_arcs_fld" t-if="state.options.zones.length">
+                        <select t-on-change="(ev) => this.onFilterChange('zone_id', ev)" title="Region">
+                            <option value="">All regions</option>
+                            <t t-foreach="state.options.zones" t-as="o" t-key="o.id">
+                                <option t-att-value="o.id" t-att-selected="sel('zone_id', o.id)" t-esc="o.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <button class="o_arcs_reset" t-on-click="() => this.reset()" t-att-disabled="!activeFilterCount"
+                            title="Clear all filters">
+                        <i class="fa fa-times-circle-o"/>
+                        <span t-if="activeFilterCount"><t t-esc="activeFilterCount"/></span>
+                    </button>
+                </div>
+            </div>
+
+            <div t-if="state.loading" class="o_arcs_skeleton">
+                <div class="o_arcs_cards">
+                    <t t-foreach="[1,2,3,4,5,6,7,8]" t-as="n" t-key="n">
+                        <div class="o_arcs_card o_skel"><div class="o_skel_line" style="width:60%"/><div class="o_skel_line" style="width:40%;height:20px;margin-top:8px"/></div>
+                    </t>
+                </div>
+                <div class="o_arcs_panel o_skel"><div class="o_skel_line" style="width:220px"/><div class="o_skel_block"/></div>
+            </div>
+
+            <t t-else="">
+                <!-- ===================== KPI CARDS ===================== -->
+                <div class="o_arcs_cards">
+                    <t t-foreach="cards" t-as="cd" t-key="cd.key">
+                        <div t-attf-class="o_arcs_card {{ cd.onClick ? 'o_clickable' : '' }}"
+                             t-on-click="cd.onClick || (() => {})">
+                            <div class="o_arcs_card_lbl"><t t-esc="cd.label"/></div>
+                            <div class="o_arcs_card_val" t-esc="cd.val"/>
+                            <div class="o_arcs_card_sub">
+                                <i t-attf-class="fa {{ cd.icon }}" t-attf-style="color:{{ cd.accent }}"/>
+                                <t t-esc="cd.sub"/>
+                            </div>
+                            <i t-if="cd.onClick" class="fa fa-angle-right o_arcs_card_go"/>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- ===================== ROW: SPEND OVER TIME + PIPELINE BY STATUS ===================== -->
+                <div class="o_arcs_grid_21">
+                    <div class="o_arcs_panel">
+                        <div class="o_arcs_panel_title">Spend over time <span class="o_arcs_panel_sub">monthly actual</span></div>
+                        <t t-if="!state.data.time_series.length">
+                            <div class="o_arcs_empty"><i class="fa fa-bar-chart"/><span>No posted expenses in range.</span></div>
+                        </t>
+                        <div t-else="" class="o_arcs_chart">
+                            <div class="o_arcs_yaxis">
+                                <t t-foreach="tsTicks" t-as="tick" t-key="tick_index">
+                                    <span t-esc="fmt(tick)"/>
+                                </t>
+                            </div>
+                            <div class="o_arcs_plot">
+                                <div class="o_arcs_gridlines">
+                                    <t t-foreach="tsTicks" t-as="tick" t-key="tick_index"><div class="o_arcs_gline"/></t>
+                                </div>
+                                <div class="o_arcs_spark">
+                                    <t t-foreach="state.data.time_series" t-as="p" t-key="p_index">
+                                        <div class="o_arcs_scol">
+                                            <div class="o_arcs_sbar" t-attf-style="height: {{ tsHeight(p.value) }}%;" t-att-title="fmt(p.value)"/>
+                                            <div class="o_arcs_sx" t-esc="p.label"/>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="o_arcs_panel">
+                        <div class="o_arcs_panel_title">Pipeline by status</div>
+                        <t t-if="!statusDonut.rows.length">
+                            <div class="o_arcs_empty"><i class="fa fa-pie-chart"/><span>No data.</span></div>
+                        </t>
+                        <t t-else="">
+                            <div class="o_arcs_donut_wrap">
+                                <div class="o_arcs_donut" t-attf-style="background: {{ statusDonut.gradient }}">
+                                    <div class="o_arcs_donut_hole">
+                                        <div class="o_arcs_donut_center_val" t-esc="statusDonut.total"/>
+                                        <div class="o_arcs_donut_center_lbl">grants</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_arcs_dlegend">
+                                <t t-foreach="statusDonut.rows" t-as="r" t-key="r_index">
+                                    <div class="o_arcs_dlegend_row">
+                                        <span class="o_sw" t-attf-style="background:{{ r.color }}"/>
+                                        <span class="o_arcs_dlegend_lbl" t-esc="r.label"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <!-- ===================== ROW: CATEGORY DONUT + PROGRAM BARS + TOP GRANTS ===================== -->
+                <div class="o_arcs_grid_111">
+                    <div class="o_arcs_panel">
+                        <div class="o_arcs_panel_title">Portfolio cost structure</div>
+                        <t t-if="!categoryDonut.rows.length">
+                            <div class="o_arcs_empty"><i class="fa fa-pie-chart"/><span>No data.</span></div>
+                        </t>
+                        <t t-else="">
+                            <div class="o_arcs_donut_wrap o_arcs_donut_wrap_sm">
+                                <div class="o_arcs_donut" t-attf-style="background: {{ categoryDonut.gradient }}">
+                                    <div class="o_arcs_donut_hole">
+                                        <div class="o_arcs_donut_center_val" t-esc="fmt(categoryDonut.total)"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_arcs_dlegend">
+                                <t t-foreach="categoryDonut.rows" t-as="r" t-key="r_index">
+                                    <div class="o_arcs_dlegend_row">
+                                        <span class="o_sw" t-attf-style="background:{{ r.color }}"/>
+                                        <span class="o_arcs_dlegend_lbl" t-esc="r.label"/>
+                                        <span class="o_arcs_dlegend_val" t-esc="r.pct + '%'"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </div>
+
+                    <div class="o_arcs_panel">
+                        <div class="o_arcs_panel_title">Budget vs actual, by program</div>
+                        <div class="o_arcs_legend">
+                            <span><i class="o_sw" style="background:#1F3A5F"/>Planned</span>
+                            <span><i class="o_sw" style="background:#C9A24B"/>Committed</span>
+                            <span><i class="o_sw" style="background:#1D9E75"/>Actual</span>
+                        </div>
+                        <t t-if="!state.data.programs.length">
+                            <div class="o_arcs_empty"><i class="fa fa-sitemap"/><span>No data.</span></div>
+                        </t>
+                        <t t-foreach="state.data.programs" t-as="p" t-key="p_index">
+                            <div class="o_arcs_prow">
+                                <div class="o_arcs_pl"><span t-esc="p.label"/><span class="text-muted" t-esc="fmt(p.actual)"/></div>
+                                <div class="o_arcs_track" t-att-title="'Planned: ' + fmt(p.planned)"><div t-attf-style="width: {{ progPct(p.planned) }}%; background:#1F3A5F;"/></div>
+                                <div class="o_arcs_track" t-att-title="'Committed: ' + fmt(p.committed)"><div t-attf-style="width: {{ progPct(p.committed) }}%; background:#C9A24B;"/></div>
+                                <div class="o_arcs_track" t-att-title="'Actual: ' + fmt(p.actual)"><div t-attf-style="width: {{ progPct(p.actual) }}%; background:#1D9E75;"/></div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <div class="o_arcs_panel">
+                        <div class="o_arcs_panel_title">Top grants by value</div>
+                        <t t-if="!topGrantsByValue.length">
+                            <div class="o_arcs_empty"><i class="fa fa-trophy"/><span>No data.</span></div>
+                        </t>
+                        <div class="o_arcs_toplist">
+                            <t t-foreach="topGrantsByValue" t-as="g" t-key="g.id">
+                                <div class="o_arcs_toprow" t-on-click="() => this.openGrant(g.id)">
+                                    <div class="o_arcs_topline">
+                                        <span class="o_arcs_toplabel" t-esc="g.code"/>
+                                        <span class="o_arcs_topval" t-esc="fmt(g.approved)"/>
+                                    </div>
+                                    <div class="o_arcs_toptrack"><div class="o_arcs_topfill" t-attf-style="width: {{ g.barPct }}%;"/></div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===================== ROW: RECENT GRANTS + GRANT DEEP-DIVE ===================== -->
+                <div class="o_arcs_grid_21">
+                    <div class="o_arcs_panel">
+                        <div class="o_arcs_panel_title">
+                            Recent grants
+                            <button class="o_arcs_panel_action" t-on-click="() => this.openGrants()">
+                                View all <i class="fa fa-angle-right"/>
+                            </button>
+                        </div>
+                        <t t-if="!recentGrants.length">
+                            <div class="o_arcs_empty"><i class="fa fa-inbox"/><span>No grants in scope.</span></div>
+                        </t>
+                        <div class="o_arcs_rlist">
+                            <t t-foreach="recentGrants" t-as="g" t-key="g.id">
+                                <div class="o_arcs_rrow" t-on-click="() => this.openGrant(g.id)">
+                                    <div class="o_arcs_rmain">
+                                        <div class="o_arcs_rtitle" t-esc="g.code"/>
+                                        <div class="o_arcs_rsub" t-esc="g.donor"/>
+                                    </div>
+                                    <div class="o_arcs_rright">
+                                        <div class="o_arcs_rval" t-esc="fmt(g.approved)"/>
+                                        <span t-attf-class="o_arcs_pill {{ statusBadgeClass(g.status) }}" t-esc="g.status"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <div class="o_arcs_panel">
+                        <div class="o_arcs_panel_title">Grant deep-dive</div>
+                        <select class="o_arcs_deepdive_select" t-on-change="(ev) => this.onSelectGrant(ev)">
+                            <option value="">Select a grant...</option>
+                            <t t-foreach="state.data.grants" t-as="g" t-key="g.id">
+                                <option t-att-value="g.id" t-att-selected="state.selectedGrantId === g.id" t-esc="g.code"/>
+                            </t>
+                        </select>
+                        <t t-if="!selectedGrant">
+                            <div class="o_arcs_empty o_arcs_empty_sm">
+                                <i class="fa fa-mouse-pointer"/>
+                                <span>Pick a grant to see its approved, committed, actual and available amounts.</span>
+                            </div>
+                        </t>
+                        <div t-else="" class="o_arcs_deepdive_body">
+                            <div class="o_arcs_dd_row"><span>Donor</span><strong t-esc="selectedGrant.donor"/></div>
+                            <div class="o_arcs_dd_row"><span>Status</span>
+                                <span t-attf-class="o_arcs_pill {{ statusBadgeClass(selectedGrant.status) }}" t-esc="selectedGrant.status"/>
+                            </div>
+                            <div class="o_arcs_dd_row"><span>Approved</span><strong t-esc="fmt(selectedGrant.approved)"/></div>
+                            <div class="o_arcs_dd_row"><span>Committed</span><strong t-esc="fmt(selectedGrant.committed)"/></div>
+                            <div class="o_arcs_dd_row"><span>Actual</span><strong t-esc="fmt(selectedGrant.actual)"/></div>
+                            <div class="o_arcs_dd_row"><span>Available</span><strong t-esc="fmt(selectedGrant.available)"/></div>
+                            <div class="o_arcs_dd_util">
+                                <div class="o_arcs_ubar o_arcs_ubar_lg">
+                                    <div t-attf-class="o_arcs_ufill {{ toneClass(selectedGrant.utilization) }}"
+                                         t-attf-style="width: {{ Math.min(selectedGrant.utilization, 100) }}%;"/>
+                                </div>
+                                <span class="o_arcs_upct" t-esc="pct(selectedGrant.utilization) + ' utilization'"/>
+                            </div>
+                            <button class="o_arcs_dd_open" t-on-click="() => this.openGrant(selectedGrant.id)">
+                                Open grant <i class="fa fa-angle-right"/>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===================== ROW: SPEND BY ZONE + ADVANCES ===================== -->
+                <div class="o_arcs_grid2">
+                    <div class="o_arcs_panel" t-if="state.data.zones.length">
+                        <div class="o_arcs_panel_title">Spend by region / province</div>
+                        <t t-foreach="state.data.zones" t-as="z" t-key="z_index">
+                            <div class="o_arcs_prow">
+                                <div class="o_arcs_pl"><span t-esc="z.label"/><span class="text-muted" t-esc="fmt(z.value)"/></div>
+                                <div class="o_arcs_track"><div t-attf-style="width: {{ zonePct(z.value) }}%; background:#378ADD;"/></div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <div class="o_arcs_panel" t-if="state.data.advances.length">
+                        <div class="o_arcs_panel_title">
+                            Advance tracking
+                            <button class="o_arcs_panel_action" t-on-click="() => this.openAdvances()">
+                                View all <i class="fa fa-angle-right"/>
+                            </button>
+                        </div>
+                        <div class="o_arcs_table_scroll">
+                            <table class="o_arcs_table">
+                                <thead><tr><th>Region</th><th class="o_r">Sent</th><th class="o_r">Reported</th><th class="o_r">Outstanding</th></tr></thead>
+                                <tbody>
+                                    <t t-foreach="state.data.advances" t-as="a" t-key="a_index">
+                                        <tr>
+                                            <td t-esc="a.label"/>
+                                            <td class="o_r" t-esc="fmt(a.sent)"/>
+                                            <td class="o_r" t-esc="fmt(a.reported)"/>
+                                            <td class="o_r o_util_bad_t" t-esc="fmt(a.outstanding)"/>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOP BUDGET LINES -->
+                <div class="o_arcs_panel">
+                    <div class="o_arcs_panel_title">Top budget lines by utilization</div>
+                    <div class="o_arcs_table_scroll">
+                        <table class="o_arcs_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_sortable" t-on-click="() => this.sortBy('top_lines', 'name')">Budget line <i t-attf-class="fa {{ sortIcon('top_lines', 'name') }}"/></th>
+                                    <th>Grant</th>
+                                    <th class="o_r o_sortable" t-on-click="() => this.sortBy('top_lines', 'planned')">Planned <i t-attf-class="fa {{ sortIcon('top_lines', 'planned') }}"/></th>
+                                    <th class="o_r o_sortable" t-on-click="() => this.sortBy('top_lines', 'actual')">Actual <i t-attf-class="fa {{ sortIcon('top_lines', 'actual') }}"/></th>
+                                    <th style="width:130px;" class="o_sortable" t-on-click="() => this.sortBy('top_lines', 'utilization')">Utilization <i t-attf-class="fa {{ sortIcon('top_lines', 'utilization') }}"/></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="sortedTopLines" t-as="l" t-key="l_index">
+                                    <tr>
+                                        <td t-esc="l.name"/><td t-esc="l.grant"/>
+                                        <td class="o_r" t-esc="fmt(l.planned)"/><td class="o_r" t-esc="fmt(l.actual)"/>
+                                        <td>
+                                            <div class="o_arcs_ubar">
+                                                <div t-attf-class="o_arcs_ufill {{ toneClass(l.utilization) }}"
+                                                     t-attf-style="width: {{ Math.min(l.utilization, 100) }}%;"/>
+                                            </div>
+                                            <span class="o_arcs_upct" t-esc="pct(l.utilization)"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ALERTS -->
+                <div class="o_arcs_panel">
+                    <div class="o_arcs_panel_title">Alerts &amp; compliance</div>
+                    <t t-if="!state.data.alerts.length">
+                        <div class="o_arcs_empty"><i class="fa fa-check-circle"/><span>No active alerts.</span></div>
+                    </t>
+                    <t t-foreach="state.data.alerts" t-as="a" t-key="a_index">
+                        <div t-attf-class="o_arcs_alert o_arcs_alert_{{ a.level }}">
+                            <i t-att-class="'fa ' + a.icon"/> <span t-esc="a.text"/>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- GRANTS TABLE -->
+                <div class="o_arcs_panel">
+                    <div class="o_arcs_panel_title">
+                        Grants in scope
+                        <button class="o_arcs_panel_action" t-on-click="() => this.exportGrantsCsv()">
+                            <i class="fa fa-download"/> Export CSV
+                        </button>
+                    </div>
+                    <div class="o_arcs_table_scroll">
+                        <table class="o_arcs_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_sortable" t-on-click="() => this.sortBy('grants', 'code')">Grant <i t-attf-class="fa {{ sortIcon('grants', 'code') }}"/></th>
+                                    <th class="o_sortable" t-on-click="() => this.sortBy('grants', 'donor')">Donor <i t-attf-class="fa {{ sortIcon('grants', 'donor') }}"/></th>
+                                    <th class="o_r o_sortable" t-on-click="() => this.sortBy('grants', 'approved')">Approved <i t-attf-class="fa {{ sortIcon('grants', 'approved') }}"/></th>
+                                    <th class="o_r o_sortable" t-on-click="() => this.sortBy('grants', 'committed')">Committed <i t-attf-class="fa {{ sortIcon('grants', 'committed') }}"/></th>
+                                    <th class="o_r o_sortable" t-on-click="() => this.sortBy('grants', 'actual')">Actual <i t-attf-class="fa {{ sortIcon('grants', 'actual') }}"/></th>
+                                    <th class="o_r o_sortable" t-on-click="() => this.sortBy('grants', 'available')">Available <i t-attf-class="fa {{ sortIcon('grants', 'available') }}"/></th>
+                                    <th class="o_r o_sortable" t-on-click="() => this.sortBy('grants', 'utilization')">Util <i t-attf-class="fa {{ sortIcon('grants', 'utilization') }}"/></th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="sortedGrants" t-as="g" t-key="g.id">
+                                    <tr class="o_clickable_row" t-on-click="() => this.openGrant(g.id)">
+                                        <td t-esc="g.code"/><td t-esc="g.donor"/>
+                                        <td class="o_r" t-esc="fmt(g.approved)"/><td class="o_r" t-esc="fmt(g.committed)"/>
+                                        <td class="o_r" t-esc="fmt(g.actual)"/><td class="o_r" t-esc="fmt(g.available)"/>
+                                        <td t-attf-class="o_r {{ toneClass(g.utilization) }}_t" t-esc="pct(g.utilization)"/>
+                                        <td><span t-attf-class="o_arcs_pill {{ statusBadgeClass(g.status) }}" t-esc="g.status"/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_fund_thanks" model="ir.actions.report">
+        <field name="name">Donor Thank-You Letter</field>
+        <field name="model">arcs.fund.receipt</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">arcs_fund.report_fund_thanks</field>
+        <field name="report_file">arcs_fund.report_fund_thanks</field>
+        <field name="print_report_name">'Thank-You - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_arcs_fund_receipt"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_fund_thanks">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page" style="font-family: 'Helvetica Neue', Arial, sans-serif; color:#1a1a1a;">
+
+                        <!-- Title band -->
+                        <div style="border-top:3px solid #1F3A5F; border-bottom:3px solid #1F3A5F; padding:14px 0; margin-bottom:24px; text-align:center;">
+                            <h2 style="margin:0; color:#1F3A5F; letter-spacing:1px;">ACKNOWLEDGEMENT &amp; THANK-YOU
+                            </h2>
+                            <div style="color:#6B7280; font-size:12px; margin-top:4px;">Confirmation of Fund Receipt
+                            </div>
+                        </div>
+
+                        <!-- Reference line -->
+                        <div style="font-size:12px; margin-bottom:20px;">
+                            <div style="margin-bottom:8px;">
+                                <strong style="color:#E08214;">Receipt No:</strong>
+                                <span t-field="o.name" style="margin-left:4px;"/>
+                            </div>
+                            <div>
+                                <strong style="color:#E08214;">Date:</strong>
+                                <span t-field="o.received_date" style="margin-left:4px;"/>
+                            </div>
+                        </div>
+                        <!-- Salutation -->
+                        <p style="font-size:13px;">Dear
+                            <strong>
+                                <span t-field="o.donor_id.name"/>
+                            </strong>
+                            ,
+                        </p>
+
+                        <p style="font-size:13px; line-height:1.7; text-align:justify;">
+                            On behalf of
+                            <strong>
+                                <span t-field="o.company_id.name"/>
+                            </strong>
+                            , we gratefully acknowledge
+                            and confirm the receipt of your generous contribution. Your continued partnership enables us
+                            to deliver vital humanitarian assistance to the communities we serve. We confirm the details
+                            of the funds received below.
+                        </p>
+
+                        <!-- Details table -->
+                        <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:12px;">
+                            <tr>
+                                <td style="border:1px solid #1F3A5F; background:#1F3A5F; color:#fff; padding:8px; width:38%; font-weight:bold;">
+                                    Donor
+                                </td>
+                                <td style="border:1px solid #1F3A5F; padding:8px;">
+                                    <span t-field="o.donor_id.name"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #1F3A5F; background:#f5f3ec; padding:8px; font-weight:bold;">
+                                    Grant / Agreement
+                                </td>
+                                <td style="border:1px solid #1F3A5F; padding:8px;">
+                                    <span t-field="o.grant_id.name"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #1F3A5F; background:#f5f3ec; padding:8px; font-weight:bold;">
+                                    Bank Voucher Reference
+                                </td>
+                                <td style="border:1px solid #1F3A5F; padding:8px;">
+                                    <span t-field="o.bank_voucher_ref"/>
+                                </td>
+                            </tr>
+                            <tr t-if="o.journal_id">
+                                <td style="border:1px solid #1F3A5F; background:#f5f3ec; padding:8px; font-weight:bold;">
+                                    Received Into
+                                </td>
+                                <td style="border:1px solid #1F3A5F; padding:8px;">
+                                    <span t-field="o.journal_id.name"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #1F3A5F; background:#1F3A5F; color:#fff; padding:8px; font-weight:bold;">
+                                    Amount
+                                </td>
+                                <td style="border:1px solid #1F3A5F; padding:8px; font-size:14px; font-weight:bold; color:#1F3A5F;">
+                                    <span t-field="o.amount"
+                                          t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #1F3A5F; background:#f5f3ec; padding:8px; font-weight:bold;">
+                                    Amount in Words
+                                </td>
+                                <td style="border:1px solid #1F3A5F; padding:8px; font-style:italic;">
+                                    <span t-field="o.amount_words"/>
+                                </td>
+                            </tr>
+                            <tr t-if="o.purpose">
+                                <td style="border:1px solid #1F3A5F; background:#f5f3ec; padding:8px; font-weight:bold;">
+                                    Purpose of Funds
+                                </td>
+                                <td style="border:1px solid #1F3A5F; padding:8px;">
+                                    <span t-field="o.purpose"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #1F3A5F; background:#f5f3ec; padding:8px; font-weight:bold;">
+                                    Date Received
+                                </td>
+                                <td style="border:1px solid #1F3A5F; padding:8px;">
+                                    <span t-field="o.received_date"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="font-size:13px; line-height:1.7; text-align:justify;">
+                            These funds will be applied strictly in accordance with the terms of the agreement and our
+                            financial governance and compliance standards. A full financial report will be provided in
+                            line with the agreed reporting schedule.
+                        </p>
+
+                        <p style="font-size:13px; line-height:1.7;">
+                            We sincerely thank you for your trust and support.
+                        </p>
+
+                        <!-- Signature block -->
+                        <div class="row mt-5">
+                            <div class="col-6 text-center">
+                                <div class="border-top pt-2" style="font-size:12px;">
+                                    <strong>Finance Manager</strong>
+                                    <br/>
+                                    <span t-field="o.company_id.name"/>
+                                </div>
+                            </div>
+                            <div class="col-6 text-center">
+                                <div class="border-top pt-2" style="font-size:12px;">
+                                    <strong>Authorised Signatory</strong>
+                                    <br/>
+                                    Date: ______________
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:36px; border-top:1px solid #1F3A5F; padding-top:8px; font-size:10px; color:#6B7280; text-align:center;">
+                            This is a system-generated acknowledgement from the DoFA system.
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_compliance" name="Compliance Monitoring" parent="arcs_base.menu_arcs_audit"
+              action="action_arcs_checklist" sequence="20" groups="arcs_base.group_compliance_officer"/>
+    <menuitem id="menu_arcs_compliance_report" name="Compliance Reports" parent="arcs_report.menu_arcs_reporting"
+              action="action_arcs_compliance_report" sequence="30" groups="arcs_base.group_compliance_officer"/>
+</odoo>

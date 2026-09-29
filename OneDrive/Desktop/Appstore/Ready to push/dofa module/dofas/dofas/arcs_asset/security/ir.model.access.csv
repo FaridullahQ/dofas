@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_arcs_asset_user,arcs.asset read,model_arcs_asset,base.group_user,1,0,0,0
+access_arcs_asset_proc,arcs.asset procurement officer,model_arcs_asset,arcs_base.group_procurement_officer,1,1,1,0
+access_arcs_asset_fin_off,arcs.asset finance officer,model_arcs_asset,arcs_base.group_finance_officer,1,1,1,0
+access_arcs_asset_pm,arcs.asset project manager,model_arcs_asset,arcs_base.group_project_manager,1,1,1,0
+access_arcs_asset_fin_mgr,arcs.asset finance manager,model_arcs_asset,arcs_base.group_finance_manager,1,1,1,0
+access_arcs_asset_mgr,arcs.asset asset manager,model_arcs_asset,arcs_asset.group_asset_manager,1,1,1,1
+access_arcs_asset_admin,arcs.asset admin,model_arcs_asset,arcs_base.group_system_admin,1,1,1,1
+access_arcs_asset_transfer_wiz,arcs.asset.transfer.wizard,model_arcs_asset_transfer_wizard,base.group_user,1,1,1,1
+access_arcs_asset_dispose_wiz,arcs.asset.dispose.wizard,model_arcs_asset_dispose_wizard,base.group_user,1,1,1,1
+access_arcs_asset_lost_wiz,arcs.asset.lost.wizard,model_arcs_asset_lost_wizard,base.group_user,1,1,1,1

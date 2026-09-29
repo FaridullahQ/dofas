@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="arcs_budget_company_rule" model="ir.rule">
+        <field name="name">Budget: multi-company</field>
+        <field name="model_id" ref="model_arcs_budget"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id','in',company_ids)]</field>
+    </record>
+    <record id="arcs_budget_transfer_company_rule" model="ir.rule">
+        <field name="name">Budget Transfer: multi-company</field>
+        <field name="model_id" ref="model_arcs_budget_transfer"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id','in',company_ids)]</field>
+    </record>
+
+    <!-- Donor Officer: scoped to Managed Donors, via grant_id.donor_id.
+         System Admin implicitly inherits group_donor_officer, hence the
+         explicit bypass rules below. -->
+    <record id="rule_arcs_budget_donor_officer_scope" model="ir.rule">
+        <field name="name">arcs.budget — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_arcs_budget"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('grant_id.donor_id', 'in', user.arcs_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_arcs_budget_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">arcs.budget — System Admin unrestricted</field>
+        <field name="model_id" ref="model_arcs_budget"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_arcs_budget_line_donor_officer_scope" model="ir.rule">
+        <field name="name">arcs.budget.line — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_arcs_budget_line"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('grant_id.donor_id', 'in', user.arcs_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_arcs_budget_line_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">arcs.budget.line — System Admin unrestricted</field>
+        <field name="model_id" ref="model_arcs_budget_line"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_arcs_budget_transfer_donor_officer_scope" model="ir.rule">
+        <field name="name">arcs.budget.transfer — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_arcs_budget_transfer"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('to_line_id.grant_id.donor_id', 'in', user.arcs_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_arcs_budget_transfer_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">arcs.budget.transfer — System Admin unrestricted</field>
+        <field name="model_id" ref="model_arcs_budget_transfer"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Commitment: donor-officer scoping (Commitments ledger, per client
+         decision to grant full budget access including this). -->
+    <record id="rule_arcs_commitment_donor_officer_scope" model="ir.rule">
+        <field name="name">arcs.commitment — Donor Officer sees only Managed Donors</field>
+        <field name="model_id" ref="model_arcs_commitment"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_donor_officer'))]"/>
+        <field name="domain_force">[('grant_id.donor_id', 'in', user.arcs_donor_ids.ids)]</field>
+    </record>
+    <record id="rule_arcs_commitment_donor_officer_admin_bypass" model="ir.rule">
+        <field name="name">arcs.commitment — System Admin unrestricted</field>
+        <field name="model_id" ref="model_arcs_commitment"/>
+        <field name="groups" eval="[(4, ref('arcs_base.group_system_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>

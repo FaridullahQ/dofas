@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_multi_donor_shared_cost_tree" model="ir.ui.view">
+        <field name="name">arcs.multi.donor.shared.cost.tree</field>
+        <field name="model">arcs.multi.donor.shared.cost</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state=='cancelled'" decoration-success="state=='posted'"
+                  decoration-info="state=='split'">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="date"/>
+                <field name="total_amount" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state=='cancelled'" decoration-success="state=='posted'"
+                       decoration-info="state=='split'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_arcs_multi_donor_shared_cost_form" model="ir.ui.view">
+        <field name="name">arcs.multi.donor.shared.cost.form</field>
+        <field name="model">arcs.multi.donor.shared.cost</field>
+        <field name="arch" type="xml">
+            <form string="Multi-Donor Shared Cost">
+                <header>
+                    <button name="action_generate_default_split" string="Generate Default Split"
+                            type="object" invisible="state != 'draft'"/>
+                    <button name="action_split" string="Split" type="object" class="oe_highlight"
+                            invisible="state != 'draft'"
+                            confirm="This creates one draft expense per member grant, for exactly their share. Do you want to continue?"/>
+                    <button name="action_mark_posted" string="Mark Fully Posted" type="object"
+                            class="oe_highlight" invisible="state != 'split'"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state != 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,split,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="project_id" readonly="state != 'draft'"/>
+                            <field name="date" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" readonly="state != 'draft'"/>
+                            <field name="total_amount" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description" nolabel="1" placeholder="What is this shared cost for?"/>
+                    </group>
+                    <notebook>
+                        <page name="split" string="Split Across Members">
+                            <field name="split_line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom">
+                                    <field name="project_id" column_invisible="1"/>
+                                    <field name="grant_id" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="member_id"/>
+                                    <field name="donor_id"/>
+                                    <field name="allocation_pct"/>
+                                    <field name="budget_line_id"/>
+                                    <field name="account_id"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="expense_id" readonly="1"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="split_total_pct" string="Total (%)"/>
+                                <field name="split_total_amount" string="Total Amount"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_arcs_multi_donor_shared_cost_search" model="ir.ui.view">
+        <field name="name">arcs.multi.donor.shared.cost.search</field>
+        <field name="model">arcs.multi.donor.shared.cost</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="project_id"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_project" string="Project" context="{'group_by':'project_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_arcs_multi_donor_shared_cost" model="ir.actions.act_window">
+        <field name="name">Multi-Donor Shared Costs</field>
+        <field name="res_model">arcs.multi.donor.shared.cost</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_arcs_multi_donor_shared_cost_search"/>
+    </record>
+</odoo>

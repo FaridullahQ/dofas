@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_arcs_programs" name="Programs" parent="arcs_base.menu_arcs_master" action="action_arcs_program" sequence="20"/>
+    <menuitem id="menu_arcs_projects" name="Projects" parent="arcs_base.menu_arcs_master" action="action_arcs_project" sequence="30"/>
+    <menuitem id="menu_arcs_activities" name="Activities" parent="arcs_base.menu_arcs_master" action="action_arcs_activity" sequence="40"/>
+</odoo>

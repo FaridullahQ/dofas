@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_fund_receipt_form_reimbursement" model="ir.ui.view">
+        <field name="name">arcs.fund.receipt.form.reimbursement</field>
+        <field name="model">arcs.fund.receipt</field>
+        <field name="inherit_id" ref="arcs_fund.view_arcs_fund_receipt_form"/>
+        <field name="arch" type="xml">
+            <field name="installment" position="after">
+                <field name="grant_funding_model" invisible="1"/>
+                <field name="reimbursement_claim_id"
+                       invisible="grant_funding_model != 'reimbursement'"/>
+            </field>
+        </field>
+    </record>
+</odoo>

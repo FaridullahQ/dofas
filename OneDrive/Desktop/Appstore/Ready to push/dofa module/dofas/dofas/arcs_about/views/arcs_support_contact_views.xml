@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_arcs_support_contact_form" model="ir.ui.view">
+        <field name="name">arcs.about.form.support.contact</field>
+        <field name="model">arcs.about</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <div class="row mb-4">
+                        <div class="col-md-3 text-center">
+                            <field name="company_logo" widget="image" class="oe_avatar" options="{'size': [120, 120]}"/>
+                        </div>
+                        <div class="col-md-9">
+                            <h1 class="mb-1">Support Contact</h1>
+                            <p class="text-muted mb-2">
+                                For help with the ARCS Donor Management Suite, reach
+                                <field name="company_name" readonly="1" class="oe_inline"/> directly.
+                            </p>
+                            <group col="1" class="mt-2">
+                                <field name="company_email" readonly="1" widget="email" string="Email"/>
+                                <field name="company_phone" readonly="1" string="Phone"/>
+                                <field name="company_website" readonly="1" widget="url" string="Website"/>
+                                <field name="company_address" readonly="1" string="Address"/>
+                            </group>
+                        </div>
+                    </div>
+                    <div class="alert alert-light border" role="status">
+                        Before reaching out, check the <b>User Guide</b> for the step-by-step process
+                        flow and glossary, or <b>FAQs</b> for common questions - most issues (like a
+                        greyed-out button or a missing budget line) are covered there.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_arcs_support_contact" model="ir.actions.act_window">
+        <field name="name">Support Contact</field>
+        <field name="res_model">arcs.about</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_arcs_support_contact_form"/>
+        <field name="target">current</field>
+    </record>
+</odoo>
