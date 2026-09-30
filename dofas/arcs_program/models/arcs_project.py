@@ -36,6 +36,10 @@ class ArcsProject(models.Model):
     available_amount = fields.Monetary(
         compute="_compute_amounts", store=True, currency_field="currency_id",
         help="Planned Cost − Committed − Actual.")
+    activity_count = fields.Integer(
+        compute="_compute_activity_count",
+        help="Number of activities under this project - backs the "
+             "'Activities' smart button.")
     state = fields.Selection([("draft", "Draft"), ("active", "Active"), ("closed", "Closed")],
                              default="draft", tracking=True)
     component_ids = fields.One2many("arcs.project.component", "project_id", string="Components")
@@ -76,6 +80,38 @@ class ArcsProject(models.Model):
         self.invalidate_recordset(["committed_amount", "actual_amount", "available_amount"])
         return self.available_amount
 
+    @api.depends("activity_ids")
+    def _compute_activity_count(self):
+        for p in self:
+            p.activity_count = len(p.activity_ids)
+
+    def action_view_activities(self):
+        """Smart-button target: every Activity under this Project. Read-only
+        navigation only - does not create, write, or touch any other model."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Activities"),
+            "res_model": "arcs.activity",
+            "view_mode": "tree,form",
+            "domain": [("project_id", "=", self.id)],
+            "context": {"default_project_id": self.id},
+        }
+
+    def action_view_program(self):
+        """Smart-button target: the single parent Program this project rolls
+        up to. Only ever called when program_id is set (button is hidden
+        otherwise); read-only navigation only."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Program"),
+            "res_model": "arcs.program",
+            "res_id": self.program_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
+
     @api.onchange("code")
     def _onchange_code_upper(self):
         if self.code:
@@ -83,9 +119,17 @@ class ArcsProject(models.Model):
 
     @api.onchange("program_id")
     def _onchange_program_id(self):
-        if self.program_id and not self.planned_cost:
-            self.planned_cost = max(
-                self._program_remaining_for_planning(self.program_id), 0.0)
+        if self.program_id:
+            if not self.planned_cost:
+                self.planned_cost = max(
+                    self._program_remaining_for_planning(self.program_id), 0.0)
+            # Grant is selected once, at the Program - a project placed under
+            # a program that already has one just inherits it, no reselection
+            # needed. Only fills an empty Grant; never overrides a Grant the
+            # user already deliberately picked (e.g. a standalone project, or
+            # a program that intentionally spans several grants).
+            if self.program_id.grant_id and not self.grant_id:
+                self.grant_id = self.program_id.grant_id
 
     def _program_remaining_for_planning(self, program):
         """How much of `program`'s own Planned Cost (company currency,
@@ -125,6 +169,12 @@ class ArcsProject(models.Model):
                     "starting with a letter or digit. Example: HEALTH-001.",
                     code=r.code))
 
+    @api.constrains("planned_cost")
+    def _check_planned_cost_non_negative(self):
+        for p in self:
+            if p.planned_cost < 0:
+                raise ValidationError(_("Planned Cost cannot be negative."))
+
     @api.constrains("planned_cost", "program_id")
     def _check_planned_within_program(self):
         for p in self.filtered("program_id"):
@@ -157,6 +207,10 @@ class ArcsProject(models.Model):
         for p in self:
             if p.state != "draft":
                 raise UserError(_("Only draft projects can be activated."))
+            if p.planned_cost <= 0:
+                raise UserError(_(
+                    "'%(name)s' cannot be activated with a Planned Cost of zero. "
+                    "Set a Planned Cost first.", name=p.name))
         self.write({"state": "active"})
 
     def action_close(self):

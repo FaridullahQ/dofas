@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Management",
-    "version": "17.0.1.9.0",
+    "version": "17.0.1.15.0",
     "summary": "Complete donor, grant, fund, budget, project, compliance and reporting suite.",
     "description": "Umbrella app installing the full ARCS Donor Management suite.",
     "category": "Accounting/ARCS Donor Management",
@@ -10,6 +10,8 @@
         "arcs_expense", "arcs_program", "arcs_procurement", "arcs_compliance",
         "arcs_report", "arcs_closure", "arcs_dashboard", "arcs_asset",
         "arcs_zone", "arcs_request", "arcs_advance", "arcs_about", "arcs_fund_allocation",
+        "arcs_fund_revolving", "arcs_grant_governance", "arcs_fund_reimbursement",
+        "arcs_multi_donor", "arcs_fund_earmarked", "arcs_fund_donor_multi_project",
     ],
     "data": [],
     "application": True,

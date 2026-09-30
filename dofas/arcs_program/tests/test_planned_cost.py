@@ -1,4 +1,4 @@
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import Form, TransactionCase, tagged
 from odoo import fields
 
@@ -355,3 +355,271 @@ class TestArcsPlannedCost(TransactionCase):
         form.project_id = self.project
         form.activity_id = self.activity
         self.assertEqual(form.budget_line_id, line)
+
+
+@tagged("post_install", "-at_install", "arcs")
+class TestArcsProgramSmartButtons(TransactionCase):
+    """Program/Project/Activity cross-navigation smart buttons: each count
+    field and each action must reflect the real hierarchy and open the
+    correct target with no side effects on any other record."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.donor = cls.env["arcs.donor"].create(
+            {"name": "UNDP", "code": "UNDP-SB", "donor_type": "multilateral"})
+        cls.grant = cls.env["arcs.grant"].create({
+            "name": "Health", "grant_number": "GR-SB-1", "donor_id": cls.donor.id,
+            "currency_id": cls.env.company.currency_id.id, "funding_model": "grant_based",
+            "date_start": "2026-01-01", "date_end": "2026-12-31", "approved_amount": 5000.0})
+        cls.program = cls.env["arcs.program"].create(
+            {"name": "Health Program", "code": "SB-HEALTH", "planned_cost": 3000.0})
+        cls.project = cls.env["arcs.project"].create({
+            "name": "Wash Unit", "code": "SB-WASH-001", "grant_id": cls.grant.id,
+            "program_id": cls.program.id, "date_start": "2026-01-01",
+            "date_end": "2026-12-31", "planned_cost": 2000.0})
+        cls.activity = cls.env["arcs.activity"].create({
+            "name": "Workshop", "project_id": cls.project.id,
+            "date_start": "2026-01-01", "date_end": "2026-03-31", "planned_cost": 1000.0})
+
+    def test_program_project_count(self):
+        self.assertEqual(self.program.project_count, 1)
+        self.env["arcs.project"].create({
+            "name": "Second Project", "code": "SB-WASH-002", "grant_id": self.grant.id,
+            "program_id": self.program.id, "date_start": "2026-01-01",
+            "date_end": "2026-12-31", "planned_cost": 500.0})
+        self.program.invalidate_recordset()
+        self.assertEqual(self.program.project_count, 2)
+
+    def test_program_action_view_projects_domain(self):
+        action = self.program.action_view_projects()
+        self.assertEqual(action["res_model"], "arcs.project")
+        self.assertEqual(action["domain"], [("program_id", "=", self.program.id)])
+        self.assertEqual(action["context"]["default_program_id"], self.program.id)
+
+    def test_project_activity_count(self):
+        self.assertEqual(self.project.activity_count, 1)
+        self.env["arcs.activity"].create({
+            "name": "Second Workshop", "project_id": self.project.id,
+            "date_start": "2026-04-01", "date_end": "2026-06-30", "planned_cost": 500.0})
+        self.project.invalidate_recordset()
+        self.assertEqual(self.project.activity_count, 2)
+
+    def test_project_action_view_activities_domain(self):
+        action = self.project.action_view_activities()
+        self.assertEqual(action["res_model"], "arcs.activity")
+        self.assertEqual(action["domain"], [("project_id", "=", self.project.id)])
+        self.assertEqual(action["context"]["default_project_id"], self.project.id)
+
+    def test_project_action_view_program_opens_correct_record(self):
+        action = self.project.action_view_program()
+        self.assertEqual(action["res_model"], "arcs.program")
+        self.assertEqual(action["res_id"], self.program.id)
+        self.assertEqual(action["view_mode"], "form")
+
+    def test_project_without_program_has_no_program_link(self):
+        orphan = self.env["arcs.project"].create({
+            "name": "Standalone Project", "code": "SB-STANDALONE",
+            "grant_id": self.grant.id, "date_start": "2026-01-01",
+            "date_end": "2026-12-31", "planned_cost": 100.0})
+        self.assertFalse(orphan.program_id)
+        # action_view_program is only ever wired to a button that is
+        # invisible when program_id is falsy; calling it directly on such
+        # a record would open a non-existent record, so the view guards it
+        # rather than the method - documented here so the guard is not
+        # accidentally dropped later.
+        action = orphan.action_view_program()
+        self.assertFalse(action["res_id"])
+
+    def test_activity_action_view_project_opens_correct_record(self):
+        action = self.activity.action_view_project()
+        self.assertEqual(action["res_model"], "arcs.project")
+        self.assertEqual(action["res_id"], self.project.id)
+        self.assertEqual(action["view_mode"], "form")
+
+    def test_smart_button_actions_do_not_mutate_any_record(self):
+        """Pure navigation: calling every new action method must not create,
+        write, or unlink anything anywhere in the database."""
+        Program = self.env["arcs.program"]
+        Project = self.env["arcs.project"]
+        Activity = self.env["arcs.activity"]
+        before = (Program.search_count([]), Project.search_count([]),
+                  Activity.search_count([]))
+        self.program.action_view_projects()
+        self.project.action_view_activities()
+        self.project.action_view_program()
+        self.activity.action_view_project()
+        after = (Program.search_count([]), Project.search_count([]),
+                 Activity.search_count([]))
+        self.assertEqual(before, after)
+
+
+@tagged("post_install", "-at_install", "arcs")
+class TestArcsActivationGate(TransactionCase):
+    """A Program/Project with a zero (or negative) Planned Cost is not
+    considered ready to run: Activate must refuse it. Draft state itself
+    stays completely unrestricted - only the transition is gated."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.donor = cls.env["arcs.donor"].create(
+            {"name": "UNDP", "code": "UNDP-AG", "donor_type": "multilateral"})
+        cls.grant = cls.env["arcs.grant"].create({
+            "name": "Health", "grant_number": "GR-AG-1", "donor_id": cls.donor.id,
+            "currency_id": cls.env.company.currency_id.id, "funding_model": "grant_based",
+            "date_start": "2026-01-01", "date_end": "2026-12-31", "approved_amount": 5000.0})
+
+    def test_program_with_zero_planned_cost_cannot_activate(self):
+        program = self.env["arcs.program"].create(
+            {"name": "Empty Program", "code": "AG-EMPTY"})
+        self.assertEqual(program.planned_cost, 0.0)
+        with self.assertRaises(UserError):
+            program.action_activate()
+        self.assertEqual(program.state, "draft")
+
+    def test_program_with_positive_planned_cost_activates(self):
+        program = self.env["arcs.program"].create(
+            {"name": "Funded Program", "code": "AG-FUNDED", "planned_cost": 1000.0})
+        program.action_activate()
+        self.assertEqual(program.state, "active")
+
+    def test_program_negative_planned_cost_is_rejected_outright(self):
+        with self.assertRaises(ValidationError):
+            self.env["arcs.program"].create(
+                {"name": "Negative Program", "code": "AG-NEG", "planned_cost": -1.0})
+
+    def test_project_with_zero_planned_cost_cannot_activate(self):
+        project = self.env["arcs.project"].create({
+            "name": "Empty Project", "code": "AG-EMPTY-PJ", "grant_id": self.grant.id,
+            "date_start": "2026-01-01", "date_end": "2026-12-31"})
+        self.assertEqual(project.planned_cost, 0.0)
+        with self.assertRaises(UserError):
+            project.action_activate()
+        self.assertEqual(project.state, "draft")
+
+    def test_project_with_positive_planned_cost_activates(self):
+        project = self.env["arcs.project"].create({
+            "name": "Funded Project", "code": "AG-FUNDED-PJ", "grant_id": self.grant.id,
+            "date_start": "2026-01-01", "date_end": "2026-12-31", "planned_cost": 500.0})
+        project.action_activate()
+        self.assertEqual(project.state, "active")
+
+    def test_project_negative_planned_cost_is_rejected_outright(self):
+        with self.assertRaises(ValidationError):
+            self.env["arcs.project"].create({
+                "name": "Negative Project", "code": "AG-NEG-PJ", "grant_id": self.grant.id,
+                "date_start": "2026-01-01", "date_end": "2026-12-31", "planned_cost": -1.0})
+
+
+@tagged("post_install", "-at_install", "arcs")
+class TestArcsProgramGrantCascade(TransactionCase):
+    """Program.grant_id (optional) narrows the Budget Line picker and lets
+    Project inherit the Grant automatically instead of reselecting it -
+    without forcing every Program into a single-grant shape, since a
+    Program spanning several grants (documented, pre-existing behavior)
+    must keep working exactly as before."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.donor = cls.env["arcs.donor"].create(
+            {"name": "UNDP", "code": "UNDP-GC", "donor_type": "multilateral"})
+        cls.grant_a = cls.env["arcs.grant"].create({
+            "name": "Grant A", "grant_number": "GR-GC-A", "donor_id": cls.donor.id,
+            "currency_id": cls.env.company.currency_id.id, "funding_model": "grant_based",
+            "date_start": "2026-01-01", "date_end": "2026-12-31", "approved_amount": 5000.0})
+        cls.grant_b = cls.env["arcs.grant"].create({
+            "name": "Grant B", "grant_number": "GR-GC-B", "donor_id": cls.donor.id,
+            "currency_id": cls.env.company.currency_id.id, "funding_model": "grant_based",
+            "date_start": "2026-01-01", "date_end": "2026-12-31", "approved_amount": 5000.0})
+        cls.budget_a = cls.env["arcs.budget"].create({"grant_id": cls.grant_a.id})
+        cls.line_a = cls.env["arcs.budget.line"].create({
+            "budget_id": cls.budget_a.id, "name": "Line A", "planned_amount": 4000.0})
+        cls.budget_a.action_approve()
+        cls.budget_b = cls.env["arcs.budget"].create({"grant_id": cls.grant_b.id})
+        cls.line_b = cls.env["arcs.budget.line"].create({
+            "budget_id": cls.budget_b.id, "name": "Line B", "planned_amount": 4000.0})
+        cls.budget_b.action_approve()
+
+    def test_budget_line_domain_narrows_to_selected_grant(self):
+        program = self.env["arcs.program"].create(
+            {"name": "Pinned Program", "code": "GC-PINNED"})
+        program.grant_id = self.grant_a
+        result = program._onchange_grant_id()
+        self.assertIn(("grant_id", "=", self.grant_a.id), result["domain"]["budget_line_id"])
+
+    def test_budget_line_domain_unrestricted_without_grant(self):
+        program = self.env["arcs.program"].create(
+            {"name": "Open Program", "code": "GC-OPEN"})
+        result = program._onchange_grant_id()
+        self.assertEqual(result["domain"]["budget_line_id"],
+                         [("budget_state", "=", "approved")])
+
+    def test_mismatched_budget_line_cleared_when_grant_changes(self):
+        program = self.env["arcs.program"].create({
+            "name": "Switching Program", "code": "GC-SWITCH",
+            "budget_line_id": self.line_a.id})
+        form = Form(program)
+        form.grant_id = self.grant_b
+        program = form.save()
+        self.assertFalse(program.budget_line_id)
+
+    def test_matching_budget_line_kept_when_grant_set(self):
+        program = self.env["arcs.program"].create({
+            "name": "Consistent Program", "code": "GC-KEEP",
+            "budget_line_id": self.line_a.id})
+        form = Form(program)
+        form.grant_id = self.grant_a
+        program = form.save()
+        self.assertEqual(program.budget_line_id, self.line_a)
+
+    def test_grant_budget_line_mismatch_blocked_at_create(self):
+        """The onchange is a UI convenience only - direct ORM writes (API,
+        import, XML data) must still be rejected if they disagree."""
+        with self.assertRaises(ValidationError):
+            self.env["arcs.program"].create({
+                "name": "Bad Program", "code": "GC-BAD",
+                "grant_id": self.grant_a.id, "budget_line_id": self.line_b.id})
+
+    def test_project_inherits_grant_from_program_via_form(self):
+        program = self.env["arcs.program"].create(
+            {"name": "Grant-Pinned Program", "code": "GC-INHERIT",
+             "grant_id": self.grant_a.id})
+        form = Form(self.env["arcs.project"])
+        form.name = "Inheriting Project"
+        form.code = "GC-INH-PJ"
+        form.program_id = program
+        form.date_start = fields.Date.from_string("2026-01-01")
+        form.date_end = fields.Date.from_string("2026-12-31")
+        # grant_id was never touched by hand - picking the Program alone
+        # was enough.
+        self.assertEqual(form.grant_id, self.grant_a)
+        project = form.save()
+        self.assertEqual(project.grant_id, self.grant_a)
+
+    def test_project_grant_not_overwritten_if_already_chosen(self):
+        """Picking a Program never silently swaps a Grant the user already
+        deliberately chose (e.g. reassigning an existing standalone
+        project's program, or a program spanning several grants)."""
+        program = self.env["arcs.program"].create(
+            {"name": "Grant-Pinned Program 2", "code": "GC-INHERIT2",
+             "grant_id": self.grant_a.id})
+        form = Form(self.env["arcs.project"])
+        form.name = "Independent Project"
+        form.code = "GC-IND-PJ"
+        form.grant_id = self.grant_b
+        form.program_id = program
+        form.date_start = fields.Date.from_string("2026-01-01")
+        form.date_end = fields.Date.from_string("2026-12-31")
+        self.assertEqual(form.grant_id, self.grant_b)
+
+    def test_standalone_project_without_program_keeps_direct_grant_selection(self):
+        """A project under no Program (e.g. the One Donor, Multiple Projects
+        model) is completely unaffected by any of this - it keeps picking
+        its Grant directly, exactly as before."""
+        project = self.env["arcs.project"].create({
+            "name": "Standalone", "code": "GC-STANDALONE", "grant_id": self.grant_b.id,
+            "date_start": "2026-01-01", "date_end": "2026-12-31", "planned_cost": 100.0})
+        self.assertFalse(project.program_id)
+        self.assertEqual(project.grant_id, self.grant_b)

@@ -31,6 +31,15 @@
                                   t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
                         </td>
                     </tr>
+                    <tr>
+                        <td style="border:1px solid #1F3A5F; padding:6px 8px; font-weight:bold; background:#F3F4F6;">
+                            Total Planned Cost
+                        </td>
+                        <td style="border:1px solid #1F3A5F; padding:6px 8px; text-align:right; font-weight:bold; background:#F3F4F6;">
+                            <span t-esc="o._allocation_rows_total()"
+                                  t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                        </td>
+                    </tr>
                 </table>
             </div>
         </xpath>

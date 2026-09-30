@@ -12,6 +12,7 @@
                 <field name="active" column_invisible="1"/>
                 <field name="code"/>
                 <field name="name"/>
+                <field name="grant_id" optional="hide"/>
                 <field name="manager_id" optional="show"/>
                 <field name="state" widget="badge"
                        decoration-info="state=='draft'" decoration-success="state=='active'"
@@ -39,6 +40,12 @@
                 <sheet>
                     <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
                     <field name="active" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_projects" type="object"
+                                class="oe_stat_button" icon="fa-sitemap">
+                            <field name="project_count" widget="statinfo" string="Projects"/>
+                        </button>
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
@@ -50,6 +57,8 @@
                     </div>
                     <group>
                         <group string="Ownership">
+                            <field name="grant_id" options="{'no_create': True}"
+                                   help="Optional: pin this program to one donor grant. Once set, the Budget Line below is restricted to that grant's approved lines, and Projects placed under this Program will default to it too - leave empty only if this program intentionally spans several grants."/>
                             <field name="manager_id" help="The person accountable for this program and its projects."/>
                         </group>
                         <group string="Company" groups="base.group_multi_company">
@@ -99,6 +108,7 @@
                 <field name="name" string="Program" filter_domain="['|',('name','ilike',self),('code','ilike',self)]"/>
                 <field name="code"/>
                 <field name="manager_id"/>
+                <field name="grant_id"/>
                 <separator/>
                 <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
                 <filter name="active_state" string="Active" domain="[('state','=','active')]"/>
@@ -108,6 +118,7 @@
                 <group expand="0" string="Group By">
                     <filter name="g_state" string="Status" context="{'group_by':'state'}"/>
                     <filter name="g_manager" string="Manager" context="{'group_by':'manager_id'}"/>
+                    <filter name="g_grant" string="Grant" context="{'group_by':'grant_id'}"/>
                     <filter name="g_company" string="Company" context="{'group_by':'company_id'}"
                             groups="base.group_multi_company"/>
                 </group>
@@ -172,6 +183,19 @@
                 <sheet>
                     <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
                     <field name="active" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_program" type="object"
+                                class="oe_stat_button" icon="fa-folder-open"
+                                invisible="not program_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Program</span>
+                            </div>
+                        </button>
+                        <button name="action_view_activities" type="object"
+                                class="oe_stat_button" icon="fa-tasks">
+                            <field name="activity_count" widget="statinfo" string="Activities"/>
+                        </button>
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
@@ -183,9 +207,9 @@
                     </div>
                     <group>
                         <group string="Classification">
-                            <field name="program_id" help="Optional program this project rolls up to."/>
+                            <field name="program_id" help="Optional program this project rolls up to. If the program has a Grant set, this project's Grant is filled in from it automatically."/>
                             <field name="grant_id" options="{'no_create': True}"
-                                   help="The funding grant. The project's dates must fall inside the grant period."/>
+                                   help="The funding grant. Auto-filled from the Program above when it has one - only pick a different grant here for a standalone project or one under a multi-grant program. The project's dates must fall inside the grant period."/>
                             <field name="manager_id"/>
                         </group>
                         <group string="Period">
@@ -317,6 +341,15 @@
                            statusbar_visible="draft,submitted,approved,implemented,closed"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_project" type="object"
+                                class="oe_stat_button" icon="fa-folder"
+                                invisible="not project_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Project</span>
+                            </div>
+                        </button>
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>

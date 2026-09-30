@@ -90,6 +90,10 @@ class ArcsExpense(models.Model):
                                  precision_rounding=e.currency_id.rounding) > 0:
                     raise UserError(_(
                         "Insufficient funds received for this grant to cover the expense."))
+            # Funding-model-specific extension point (e.g. a Revolving Fund
+            # cycle's per-tranche cash guard). No-op unless a funding-model
+            # add-on module overrides it for this grant's funding_model.
+            e.grant_id._funding_model_check_expense_availability(e)
             # Budget hard stop (encumber).
             commitment = e.budget_line_id.reserve(e.amount, source_ref="%s,%s" % (e._name, e.id))
             e.commitment_id = commitment.id

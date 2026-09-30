@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Compliance",
-    "version": "17.0.1.2.0",
+    "version": "17.0.1.3.0",
     "summary": "Compliance checklists and mandatory-attachment gating, plus a cross-grant "
                "Compliance Reports overview.",
     "category": "Accounting/ARCS Donor Management",

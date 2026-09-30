@@ -52,13 +52,13 @@ class ArcsGrant(models.Model):
     @api.depends("donor_id")
     def _compute_donor_checklist(self):
         Checklist = self.env["arcs.compliance.checklist"]
-        Line = self.env["arcs.compliance.checklist.line"]
+        general_lists = Checklist.sudo().search([("donor_id", "=", False), ("active", "=", True)])
         for g in self:
-            lines = Line
+            lines = general_lists.line_ids
             if g.donor_id:
-                lists = Checklist.sudo().search(
+                donor_lists = Checklist.sudo().search(
                     [("donor_id", "=", g.donor_id.id), ("active", "=", True)])
-                lines = lists.line_ids
+                lines |= donor_lists.line_ids
             g.donor_checklist_line_ids = lines
 
     def action_approve(self):

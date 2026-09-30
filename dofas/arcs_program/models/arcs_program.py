@@ -23,6 +23,14 @@ class ArcsProgram(models.Model):
         [("draft", "Draft"), ("active", "Active"), ("closed", "Closed")],
         default="draft", required=True, tracking=True, copy=False)
     project_ids = fields.One2many("arcs.project", "program_id", string="Projects")
+    grant_id = fields.Many2one(
+        "arcs.grant", string="Grant",
+        help="Optional: pin this program to a single donor grant. Once set, the "
+             "Budget Line picker below is restricted to that grant's own approved "
+             "lines, and every Project placed under this Program will default to "
+             "(and can simply keep) this same Grant instead of reselecting it. "
+             "Leave empty only for a program that intentionally spans projects "
+             "funded by different grants.")
     budget_line_id = fields.Many2one(
         "arcs.budget.line", string="Budget Line",
         domain="[('budget_state', '=', 'approved')]",
@@ -47,6 +55,10 @@ class ArcsProgram(models.Model):
              "currency) - created when an acquisition linked to one of its activities "
              "is committed (Program/Project/Activity ceiling enforcement must be on in "
              "ARCS Settings for this to ever block anything).")
+    project_count = fields.Integer(
+        compute="_compute_project_count",
+        help="Number of projects rolled up under this program - backs the "
+             "'Projects' smart button.")
     actual_amount = fields.Monetary(
         compute="_compute_amounts", store=True, currency_field="currency_id",
         help="Sum of posted expenses linked to this program, in company currency.")
@@ -67,6 +79,21 @@ class ArcsProgram(models.Model):
         if self.budget_line_id:
             self.planned_cost = max(
                 self._budget_line_remaining_for_planning(self.budget_line_id), 0.0)
+
+    @api.onchange("grant_id")
+    def _onchange_grant_id(self):
+        """Narrows the Budget Line picker to the selected Grant's own approved
+        lines, and drops an already-picked Budget Line that belongs to a
+        different grant so the two fields can never silently disagree.
+        Leaving Grant empty restores the unrestricted picker (a program that
+        intentionally spans several grants)."""
+        if self.grant_id and self.budget_line_id \
+                and self.budget_line_id.grant_id != self.grant_id:
+            self.budget_line_id = False
+        domain = [("budget_state", "=", "approved")]
+        if self.grant_id:
+            domain.append(("grant_id", "=", self.grant_id.id))
+        return {"domain": {"budget_line_id": domain}}
 
     def _to_company_currency(self, amount, currency):
         """Shared conversion used everywhere this model compares or derives a
@@ -122,6 +149,21 @@ class ArcsProgram(models.Model):
                     "starting with a letter or digit. Example: HEALTH or HEALTH-2026.",
                     code=r.code))
 
+    @api.constrains("grant_id", "budget_line_id")
+    def _check_budget_line_matches_grant(self):
+        for p in self.filtered(lambda x: x.grant_id and x.budget_line_id):
+            if p.budget_line_id.grant_id != p.grant_id:
+                raise ValidationError(_(
+                    "Budget Line '%(line)s' does not belong to the selected Grant "
+                    "'%(grant)s'. Pick a budget line under that grant, or clear the "
+                    "Grant first.", line=p.budget_line_id.name, grant=p.grant_id.name))
+
+    @api.constrains("planned_cost")
+    def _check_planned_cost_non_negative(self):
+        for p in self:
+            if p.planned_cost < 0:
+                raise ValidationError(_("Planned Cost cannot be negative."))
+
     @api.constrains("planned_cost", "budget_line_id")
     def _check_planned_within_budget_line(self):
         for p in self.filtered("budget_line_id"):
@@ -174,10 +216,33 @@ class ArcsProgram(models.Model):
         self.invalidate_recordset(["committed_amount", "actual_amount", "available_amount"])
         return self.available_amount
 
+    @api.depends("project_ids")
+    def _compute_project_count(self):
+        for p in self:
+            p.project_count = len(p.project_ids)
+
+    def action_view_projects(self):
+        """Smart-button target: every Project rolled up under this Program.
+        Read-only navigation only - does not create, write, or touch any
+        other model."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Projects"),
+            "res_model": "arcs.project",
+            "view_mode": "tree,form",
+            "domain": [("program_id", "=", self.id)],
+            "context": {"default_program_id": self.id},
+        }
+
     def action_activate(self):
         for p in self:
             if p.state != "draft":
                 raise UserError(_("Only draft programs can be activated."))
+            if p.planned_cost <= 0:
+                raise UserError(_(
+                    "'%(name)s' cannot be activated with a Planned Cost of zero. "
+                    "Set a Planned Cost first.", name=p.name))
         self.write({"state": "active"})
 
     def action_close(self):

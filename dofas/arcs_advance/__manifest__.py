@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Advances & Liquidation",
-    "version": "17.0.1.9.0",
+    "version": "17.0.1.11.0",
     "summary": "Region/employee cash advances with a mandatory Lock (accrual, holder debited) "
                "step before real-journal disbursement and settlement (return or "
                "reimbursement), liquidation, and outstanding tracking by employee/department/position.",
@@ -26,7 +26,7 @@
     "category": "Accounting/ARCS Donor Management",
     "license": "LGPL-3",
     "author": "ARCS",
-    "depends": ["arcs_zone", "arcs_grant", "arcs_expense", "hr", "account"],
+    "depends": ["arcs_zone", "arcs_grant", "arcs_expense", "arcs_program", "hr", "account"],
     "data": [
         "security/ir.model.access.csv",
         "security/arcs_advance_rules.xml",
@@ -36,6 +36,7 @@
         "views/hr_employee_views.xml",
         "views/res_config_settings_views.xml",
         "views/menus.xml",
+        "report/advance_summary_report.xml",
         "wizards/arcs_advance_settlement_wizard_views.xml",
         "wizards/arcs_advance_disbursement_wizard_views.xml",
     ],

@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Fund Program Allocation",
-    "version": "17.0.1.2.0",
+    "version": "17.0.1.4.0",
     "category": "Accounting",
     "summary": "Auto-generates a Program -> Project -> Activity breakdown (each with its own "
                "Planned Cost) for every Donor Fund Receipt, straight from the grant's own "

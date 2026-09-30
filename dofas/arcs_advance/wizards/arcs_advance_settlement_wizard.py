@@ -100,6 +100,7 @@ class ArcsAdvanceSettlementWizard(models.TransientModel):
             raise UserError(_("Select the bank/cash journal the cash moves through."))
 
         move = self._create_settlement_move(live_direction)
+        advance.settlement_move_ids = [(4, move.id)]
         if live_direction == "return":
             advance.returned_amount += self.settlement_amount
         else:
@@ -136,6 +137,7 @@ class ArcsAdvanceSettlementWizard(models.TransientModel):
                 "The journal '%s' has no default account set.") % self.journal_id.name)
         amount = advance._company_amount(self.settlement_amount)
         partner = advance.partner_id
+        analytic = advance._advance_analytic_distribution()
         if direction == "return":
             ref = _("Advance return: %s") % advance.name
             debit_account, credit_account = cash_account, adv_account
@@ -153,11 +155,13 @@ class ArcsAdvanceSettlementWizard(models.TransientModel):
                     "name": ref, "account_id": debit_account.id,
                     "partner_id": partner.id if partner else False,
                     "debit": amount, "credit": 0.0,
+                    "analytic_distribution": analytic,
                 }),
                 (0, 0, {
                     "name": ref, "account_id": credit_account.id,
                     "partner_id": partner.id if partner else False,
                     "debit": 0.0, "credit": amount,
+                    "analytic_distribution": analytic,
                 }),
             ],
         })

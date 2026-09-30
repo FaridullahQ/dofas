@@ -159,3 +159,17 @@ class ArcsActivity(models.Model):
 
     def action_close(self):
         return self._transition("closed", "close")
+
+    def action_view_project(self):
+        """Smart-button target: the parent Project this activity belongs to.
+        project_id is required, so the button is unconditionally available
+        once the record is saved; read-only navigation only."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Project"),
+            "res_model": "arcs.project",
+            "res_id": self.project_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }

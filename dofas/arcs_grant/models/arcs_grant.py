@@ -152,7 +152,36 @@ class ArcsGrant(models.Model):
         for g in self:
             if g.state != "active":
                 raise UserError(_("Only active grants can be closed."))
+            g._funding_model_check_closure_allowed()
         return self._transition("closed", "close")
+
+    # ------------------------------------------------------------------
+    # Funding-model extension hooks
+    #
+    # These are deliberately neutral, model-agnostic extension points, not
+    # revolving-fund-specific code: a funding-model add-on module (e.g.
+    # arcs_fund_revolving) overrides one or both, checks its own
+    # funding_model value, and falls back to super() for every other model.
+    # This keeps funding-model-specific conditionals out of arcs_grant and
+    # arcs_expense entirely - core only ever calls these two hooks once,
+    # from one place each, and never needs editing again as new funding
+    # models are added as separate modules.
+    # ------------------------------------------------------------------
+    def _funding_model_check_expense_availability(self, expense):
+        """Called by arcs_expense.action_approve() for every expense before
+        the budget-line hard stop. Default: no extra restriction. A
+        funding-model module may raise a UserError here to block approval
+        (e.g. a Revolving Fund cycle's per-tranche cash ceiling)."""
+        self.ensure_one()
+        return True
+
+    def _funding_model_check_closure_allowed(self):
+        """Called by action_close() above before an active grant is closed.
+        Default: always allowed. A funding-model module may raise a
+        UserError here to keep a grant open until its own workflow (e.g. an
+        open Revolving Fund cycle) is properly closed first."""
+        self.ensure_one()
+        return True
 
     def action_reopen(self):
         for g in self:

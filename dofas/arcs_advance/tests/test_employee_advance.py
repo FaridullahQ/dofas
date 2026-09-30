@@ -331,3 +331,296 @@ class TestArcsEmployeeAdvance(TransactionCase):
         issued_advance = self._issued_advance(400.0)  # already fully issued
         with self.assertRaises(UserError):
             issued_advance.action_open_disbursement_wizard()
+
+
+@tagged("post_install", "-at_install", "arcs")
+class TestArcsAdvanceSummaryVoucher(TestArcsEmployeeAdvance):
+    """The printable Advance Summary - for physical review/signature before
+    Issue Advance - reuses arcs_base's shared voucher renderer, exactly
+    like the Expense/Fund/Asset vouchers already do. Before Issue there is
+    no disbursement move yet, so it must preview the entry that Issue is
+    about to post (Dr Payable/Clearing, Cr the intended bank/cash account)
+    rather than come up empty."""
+
+    def test_title_and_subtitle(self):
+        advance = self._draft_advance()
+        self.assertEqual(advance._voucher_title(), "Cash Advance Summary")
+        self.assertTrue(advance._voucher_subtitle())
+
+    def test_employee_party_label_and_name(self):
+        advance = self._draft_advance()
+        self.assertEqual(advance._voucher_party_label(), "Employee")
+        name = advance._voucher_party_name()
+        self.assertIn(self.employee.name, name)
+        self.assertIn(self.employee.employee_code, name)
+        self.assertIn(self.job.name, name)
+        self.assertIn(self.department.name, name)
+
+    def test_zone_party_label_and_name(self):
+        zone = self.env["arcs.zone"].create({"name": "Central Region", "code": "ADV-ZN"})
+        advance = self.env["arcs.advance"].create({
+            "advance_type": "zone", "zone_id": zone.id,
+            "grant_id": self.grant.id, "budget_line_id": self.line.id,
+            "currency_id": self.company.currency_id.id, "amount": 300.0,
+        })
+        self.assertEqual(advance._voucher_party_label(), "Region / Province")
+        self.assertEqual(advance._voucher_party_name(), "Central Region")
+
+    def test_context_line_includes_purpose_and_funding(self):
+        advance = self._draft_advance()
+        advance.note = "Field visit fuel and lodging"
+        line = advance._voucher_context_line()
+        self.assertIn("Field visit fuel and lodging", line)
+        self.assertIn(self.grant.name, line)
+        self.assertIn(self.line.name, line)
+
+    def test_context_line_false_when_nothing_to_show(self):
+        advance = self.env["arcs.advance"].create({
+            "advance_type": "employee", "employee_id": self.employee.id,
+            "currency_id": self.company.currency_id.id, "amount": 100.0,
+        })
+        self.assertFalse(advance._voucher_context_line())
+
+    def test_voucher_lines_preview_before_issue_uses_company_defaults(self):
+        """No disbursement_journal_id chosen yet - falls back to the
+        company's configured Advance Journal/Cash Account, exactly what
+        action_issue() itself would fall back to."""
+        advance = self._draft_advance(750.0)
+        advance.action_lock()
+        self.assertFalse(advance.move_id)
+        lines = advance._voucher_lines()
+        self.assertEqual(len(lines), 2)
+        debit_line = next(l for l in lines if l["debit"])
+        credit_line = next(l for l in lines if l["credit"])
+        self.assertEqual(debit_line["debit"], 750.0)
+        self.assertEqual(credit_line["credit"], 750.0)
+        self.assertEqual(debit_line["account"], self.payable_account.display_name)
+        self.assertFalse(advance._voucher_is_posted())
+
+    def test_voucher_lines_preview_uses_chosen_disbursement_journal(self):
+        advance = self._draft_advance(750.0)
+        advance.disbursement_journal_id = self.cash_journal
+        advance.action_lock()
+        lines = advance._voucher_lines()
+        credit_line = next(l for l in lines if l["credit"])
+        self.assertEqual(credit_line["account"], self.cash_journal.default_account_id.display_name)
+        self.assertIn(self.cash_journal.name, credit_line["description"])
+
+    def test_disbursement_account_follows_journal(self):
+        advance = self._draft_advance()
+        self.assertFalse(advance.disbursement_account_id)
+        advance.disbursement_journal_id = self.cash_journal
+        self.assertEqual(advance.disbursement_account_id, self.cash_journal.default_account_id)
+
+    def test_voucher_lines_reflect_real_move_once_issued(self):
+        """Once actually disbursed, reprinting must show the real posted
+        entry - not the pre-issue preview anymore."""
+        advance = self._draft_advance(750.0)
+        advance.disbursement_journal_id = self.cash_journal
+        advance.action_lock()
+        advance.action_issue(journal_id=self.cash_journal.id)
+        self.assertTrue(advance._voucher_is_posted())
+        lines = advance._voucher_lines()
+        self.assertEqual({l["account"] for l in lines},
+                         {self.payable_account.display_name,
+                          self.cash_journal.default_account_id.display_name})
+
+    def test_action_print_voucher_returns_report_action(self):
+        advance = self._draft_advance()
+        action = advance.action_print_voucher()
+        self.assertEqual(action["type"], "ir.actions.report")
+        self.assertEqual(action["report_name"], "arcs_advance.report_advance_summary")
+
+    def test_wizard_prefills_journal_from_advance(self):
+        advance = self._draft_advance(500.0)
+        advance.disbursement_journal_id = self.cash_journal
+        advance.action_lock()
+        action = advance.action_open_disbursement_wizard()
+        wizard = self.env["arcs.advance.disbursement.wizard"].with_context(
+            action["context"]).create({})
+        self.assertEqual(wizard.journal_id, self.cash_journal)
+
+    def test_wizard_journal_stays_required_when_not_pre_chosen(self):
+        """No disbursement_journal_id set on the advance - the wizard's
+        journal is simply left blank (still required to confirm), exactly
+        the pre-existing behaviour, unaffected by this feature."""
+        advance = self._draft_advance(500.0)
+        advance.action_lock()
+        action = advance.action_open_disbursement_wizard()
+        wizard = self.env["arcs.advance.disbursement.wizard"].with_context(
+            action["context"]).create({})
+        self.assertFalse(wizard.journal_id)
+
+
+@tagged("post_install", "-at_install", "arcs")
+class TestArcsAdvanceExpenseAndSettlementTracking(TestArcsEmployeeAdvance):
+    """Requirement: the expense(s) justified against an advance and every
+    settlement journal entry must be reachable from the advance record
+    itself via smart buttons, and every one of the advance's own journal
+    entries (Lock, Issue, Liquidation, Settlement) should carry the same
+    analytic tag as the funding Budget Line, so by-fund analytic reports
+    pick advances up correctly."""
+
+    def test_expenses_smart_button_aggregates_across_liquidations(self):
+        advance = self._issued_advance(1000.0)
+        expense_a = self._posted_expense(300.0)
+        liq_a = self.env["arcs.advance.liquidation"].create({
+            "advance_id": advance.id, "expense_ids": [(6, 0, expense_a.ids)]})
+        liq_a.action_submit(); liq_a.action_approve(); liq_a.action_post()
+        expense_b = self._posted_expense(200.0)
+        liq_b = self.env["arcs.advance.liquidation"].create({
+            "advance_id": advance.id, "expense_ids": [(6, 0, expense_b.ids)]})
+        liq_b.action_submit(); liq_b.action_approve(); liq_b.action_post()
+
+        advance.invalidate_recordset()
+        self.assertEqual(advance.expense_count, 2)
+        self.assertEqual(set(advance.expense_ids.ids), {expense_a.id, expense_b.id})
+        action = advance.action_view_expenses()
+        self.assertEqual(action["domain"], [("id", "in", advance.expense_ids.ids)])
+
+    def test_expenses_smart_button_empty_with_no_liquidations(self):
+        advance = self._issued_advance(500.0)
+        self.assertEqual(advance.expense_count, 0)
+        self.assertFalse(advance.expense_ids)
+
+    def test_settlement_move_tracked_and_viewable(self):
+        advance = self._issued_advance(1000.0)
+        expense = self._posted_expense(700.0)
+        liq = self.env["arcs.advance.liquidation"].create({
+            "advance_id": advance.id, "expense_ids": [(6, 0, expense.ids)]})
+        liq.action_submit(); liq.action_approve(); liq.action_post()
+
+        wizard = self.env["arcs.advance.settlement.wizard"].with_context(
+            default_advance_id=advance.id).create({})
+        wizard.journal_id = self.cash_journal.id
+        wizard.attachment_ids = [(6, 0, self._attachment().ids)]
+        wizard.action_confirm()
+
+        advance.invalidate_recordset()
+        self.assertEqual(advance.settlement_move_count, 1)
+        move = advance.settlement_move_ids
+        self.assertEqual(move.state, "posted")
+        action = advance.action_view_settlement_moves()
+        self.assertEqual(action["domain"], [("id", "in", move.ids)])
+
+    def test_multiple_partial_settlements_all_tracked(self):
+        """Partial settlements can happen more than once - every one of
+        them must accumulate in settlement_move_ids, not just the last."""
+        advance = self._issued_advance(1000.0)
+        expense = self._posted_expense(400.0)
+        liq = self.env["arcs.advance.liquidation"].create({
+            "advance_id": advance.id, "expense_ids": [(6, 0, expense.ids)]})
+        liq.action_submit(); liq.action_approve(); liq.action_post()
+        advance.invalidate_recordset()  # outstanding = 600.0
+
+        for partial in (200.0, 400.0):
+            wizard = self.env["arcs.advance.settlement.wizard"].with_context(
+                default_advance_id=advance.id).create({})
+            wizard.settlement_amount = partial
+            wizard.journal_id = self.cash_journal.id
+            wizard.attachment_ids = [(6, 0, self._attachment().ids)]
+            wizard.action_confirm()
+            advance.invalidate_recordset()
+
+        self.assertEqual(advance.settlement_move_count, 2)
+        self.assertEqual(advance.state, "closed")
+
+    def test_lock_and_issue_moves_carry_analytic_distribution(self):
+        advance = self._issued_advance(1000.0)
+        analytic_id = str(self.grant.analytic_account_id.id)
+        for move in (advance.lock_move_id, advance.move_id):
+            for line in move.line_ids:
+                self.assertIn(analytic_id, line.analytic_distribution or {})
+
+    def test_liquidation_move_carries_analytic_distribution(self):
+        advance = self._issued_advance(1000.0)
+        expense = self._posted_expense(300.0)
+        liq = self.env["arcs.advance.liquidation"].create({
+            "advance_id": advance.id, "expense_ids": [(6, 0, expense.ids)]})
+        liq.action_submit(); liq.action_approve(); liq.action_post()
+        analytic_id = str(self.grant.analytic_account_id.id)
+        for line in liq.move_id.line_ids:
+            self.assertIn(analytic_id, line.analytic_distribution or {})
+
+    def test_settlement_move_carries_analytic_distribution(self):
+        advance = self._issued_advance(1000.0)
+        expense = self._posted_expense(700.0)
+        liq = self.env["arcs.advance.liquidation"].create({
+            "advance_id": advance.id, "expense_ids": [(6, 0, expense.ids)]})
+        liq.action_submit(); liq.action_approve(); liq.action_post()
+        wizard = self.env["arcs.advance.settlement.wizard"].with_context(
+            default_advance_id=advance.id).create({})
+        wizard.journal_id = self.cash_journal.id
+        wizard.attachment_ids = [(6, 0, self._attachment().ids)]
+        wizard.action_confirm()
+        advance.invalidate_recordset()
+        analytic_id = str(self.grant.analytic_account_id.id)
+        for line in advance.settlement_move_ids.line_ids:
+            self.assertIn(analytic_id, line.analytic_distribution or {})
+
+    def test_no_analytic_distribution_when_no_budget_line(self):
+        """An advance is allowed to have no Budget Line at all - its moves
+        must still post fine, simply without an analytic tag."""
+        advance = self.env["arcs.advance"].create({
+            "advance_type": "employee", "employee_id": self.employee.id,
+            "currency_id": self.company.currency_id.id, "amount": 200.0,
+        })
+        self.assertEqual(advance._advance_analytic_distribution(), {})
+        advance.action_lock()
+        for line in advance.lock_move_id.line_ids:
+            self.assertFalse(line.analytic_distribution)
+
+
+@tagged("post_install", "-at_install", "arcs")
+class TestArcsAdvanceOutstandingWarning(TestArcsEmployeeAdvance):
+    """Requirement: issuing a new advance to an employee who still has an
+    unsettled one should notify whoever is issuing it - a non-blocking
+    heads-up, not a hard stop, since a second concurrent advance can be
+    entirely legitimate."""
+
+    def test_onchange_warns_when_employee_has_outstanding_advance(self):
+        self._issued_advance(1000.0)  # left fully outstanding, untouched
+        new_advance = self.env["arcs.advance"].new({"advance_type": "employee"})
+        new_advance.employee_id = self.employee
+        result = new_advance._onchange_employee()
+        self.assertTrue(result and result.get("warning"))
+        self.assertIn(self.employee.name, result["warning"]["message"])
+
+    def test_onchange_silent_when_no_outstanding_advance(self):
+        new_advance = self.env["arcs.advance"].new({"advance_type": "employee"})
+        new_advance.employee_id = self.employee
+        result = new_advance._onchange_employee()
+        self.assertFalse(result)
+
+    def test_onchange_silent_once_prior_advance_fully_settled(self):
+        prior = self._issued_advance(500.0)
+        expense = self._posted_expense(500.0)
+        liq = self.env["arcs.advance.liquidation"].create({
+            "advance_id": prior.id, "expense_ids": [(6, 0, expense.ids)]})
+        liq.action_submit(); liq.action_approve(); liq.action_post()
+        prior.invalidate_recordset()
+        self.assertEqual(prior.outstanding_amount, 0.0)
+
+        new_advance = self.env["arcs.advance"].new({"advance_type": "employee"})
+        new_advance.employee_id = self.employee
+        result = new_advance._onchange_employee()
+        self.assertFalse(result)
+
+    def test_lock_posts_chatter_note_when_employee_has_outstanding_advance(self):
+        """Belt-and-suspenders: even an advance created without ever going
+        through the onchange (e.g. programmatically, from an approved
+        Acquisition request) leaves an audit trail at Lock time."""
+        self._issued_advance(1000.0)
+        second = self._draft_advance(400.0)
+        messages_before = len(second.message_ids)
+        second.action_lock()
+        self.assertGreater(len(second.message_ids), messages_before)
+        self.assertTrue(any(
+            self.employee.name in (m.body or "") and "unsettled" in (m.body or "")
+            for m in second.message_ids))
+
+    def test_lock_silent_when_no_other_outstanding_advance(self):
+        advance = self._draft_advance(400.0)
+        advance.action_lock()
+        self.assertFalse(any(
+            "unsettled" in (m.body or "") for m in advance.message_ids))

@@ -139,6 +139,114 @@ class TestArcsFundReceiptProgramAllocation(TransactionCase):
         self.assertIn(self.activity.name, html)
         self.assertIn(self.project_b.name, html)
 
+    def test_allocation_email_html_includes_grant_total(self):
+        """The email body must show a correct, non-duplicating Total
+        Planned Cost - for an untouched, full Program -> Project -> Activity
+        hierarchy this equals just the Program-level figure (same as
+        program_planned_total), never the naive sum of every row (which
+        would triple-count this fixture's own money as 30000+18000+7000+12000)."""
+        receipt = self._draft_receipt()
+        receipt.action_refresh_program_allocation()
+        html = receipt._allocation_email_html()
+        self.assertIn("Total Planned", html)
+        self.assertIn("30,000.00", html)
+
+    def test_allocation_email_html_no_total_when_no_allocation(self):
+        receipt = self._draft_receipt(grant=self.other_grant)
+        self.assertFalse(receipt.allocation_ids)  # never refreshed - stays empty
+        self.assertEqual(receipt._allocation_email_html(), "")
+
+    def test_thanks_letter_report_includes_grant_total(self):
+        """Same total must appear in the printed/PDF Thank-You letter, not
+        just the email - this is the 'Print Thank-You Letter' output."""
+        receipt = self._draft_receipt()
+        receipt.action_refresh_program_allocation()
+        html = self.env["ir.qweb"]._render("arcs_fund.report_fund_thanks", {"docs": receipt})
+        self.assertIn("Total Planned", html)
+
+    def test_thanks_letter_report_omits_allocation_block_when_empty(self):
+        receipt = self._draft_receipt(grant=self.other_grant)
+        self.assertFalse(receipt.allocation_ids)  # never refreshed - stays empty
+        html = self.env["ir.qweb"]._render("arcs_fund.report_fund_thanks", {"docs": receipt})
+        self.assertNotIn("Total Planned", html)
+        self.assertNotIn("Program Allocation", html)
+
+    def test_send_wizard_email_body_includes_grant_total(self):
+        """End-to-end: the actual 'Send Email' wizard body - what a user
+        clicking Send Email really sees and sends - carries the total,
+        not just the raw helper method in isolation."""
+        receipt = self._draft_receipt()
+        receipt.action_refresh_program_allocation()
+        wizard = self.env["arcs.fund.receipt.send.wizard"].with_context(
+            default_fund_receipt_id=receipt.id).create({})
+        self.assertIn("Total Planned", wizard.body)
+        self.assertIn("30,000.00", wizard.body)
+
+    def test_rows_total_matches_program_total_for_untouched_hierarchy(self):
+        receipt = self._draft_receipt()
+        receipt.action_refresh_program_allocation()
+        self.assertEqual(receipt._allocation_rows_total(), receipt.program_planned_total)
+        self.assertEqual(receipt._allocation_rows_total(), 30000.0)
+
+    def test_rows_total_ignores_child_row_kept_alongside_its_parent(self):
+        """Removing the Program row but leaving a Project row AND that same
+        Project's own child Activity row both in place (exactly the
+        screenshot scenario reported): the Activity is a duplicate of
+        money already counted in its visible parent Project row, so it
+        must NOT be added a second time."""
+        receipt = self._draft_receipt()
+        receipt.action_refresh_program_allocation()
+        # Drop the Program-level row and the second project's own row,
+        # keeping project_a's row AND its child activity row together.
+        receipt.allocation_ids.filtered(
+            lambda l: l.level == "program" or l.project_id == self.project_b).unlink()
+        remaining = receipt.allocation_ids
+        self.assertEqual(set(remaining.mapped("level")), {"project", "activity"})
+        # Naive sum (what the tree's own footer shows) would be 18000+7000=25000.
+        self.assertEqual(sum(remaining.mapped("amount")), 25000.0)
+        # The real, non-duplicating total only counts the Project row -
+        # its child Activity is already included in it.
+        self.assertEqual(receipt._allocation_rows_total(), 18000.0)
+
+    def test_rows_total_counts_a_branch_pruned_down_to_activity_only(self):
+        """A branch with NEITHER its Program NOR its Project row left -
+        just the Activity itself - has nothing left to double it against,
+        so the Activity's own amount is the correct total for that branch."""
+        receipt = self._draft_receipt()
+        receipt.action_refresh_program_allocation()
+        receipt.allocation_ids.filtered(
+            lambda l: l.level in ("program", "project")).unlink()
+        remaining = receipt.allocation_ids
+        self.assertEqual(remaining.mapped("level"), ["activity"])
+        self.assertEqual(receipt._allocation_rows_total(), 7000.0)
+
+    def test_rows_total_reproduces_reported_scenario(self):
+        """The exact combination reported: Program row removed; one
+        Project kept together with its own child Activity (duplicate,
+        must not double-count); a second Project's row removed but its
+        child Activity kept (nothing left to duplicate it against, must
+        count in full)."""
+        receipt = self._draft_receipt()
+        receipt.action_refresh_program_allocation()
+        second_activity = self.env["arcs.activity"].create({
+            "name": "Second Activity", "project_id": self.project_b.id,
+            "date_start": "2026-01-01", "date_end": "2026-06-30",
+            "planned_cost": 12000.0})
+        receipt.action_refresh_program_allocation()
+        receipt.allocation_ids.filtered(
+            lambda l: l.level == "program"
+            or (l.level == "project" and l.project_id == self.project_b)
+        ).unlink()
+        remaining = receipt.allocation_ids
+        # Naive sum (the tree's own raw footer) double-counts project_a's
+        # branch: 18000 (project_a) + 7000 (its own activity) + 12000
+        # (project_b's activity) = 37000.
+        self.assertEqual(sum(remaining.mapped("amount")), 37000.0)
+        # Real total: project_a's row already includes its activity's
+        # 7000, so only 18000 + 12000 (project_b's activity, nothing left
+        # to duplicate it against) = 30000.
+        self.assertEqual(receipt._allocation_rows_total(), 30000.0)
+
     def test_activity_must_belong_to_its_row_project(self):
         other_project = self.env["arcs.project"].create({
             "name": "Other Project", "code": "ALLOC-PJ-C", "grant_id": self.grant.id,

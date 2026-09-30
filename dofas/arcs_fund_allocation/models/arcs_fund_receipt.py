@@ -106,6 +106,38 @@ class ArcsFundReceipt(models.Model):
             self.env["arcs.fund.receipt.allocation"].sudo().create(vals_list)
 
     # ---------------- donor acknowledgement email: allocation section ----------------
+    def _allocation_rows_total(self):
+        """Non-duplicating total of whatever is currently in Program
+        Allocation, at whatever granularity each branch has been pruned to.
+        A row only counts if its own parent branch isn't ALSO present in
+        the same list - a Project row is skipped if its Program row is
+        still there, an Activity row is skipped if its own Project row is
+        still there. So an untouched, full Program -> Project -> Activity
+        hierarchy correctly reduces to just the Program-level figure
+        (same number as program_planned_total above), while a branch
+        that's been pruned down to just its Project or Activity row(s)
+        correctly counts THOSE instead - with nothing left over to
+        double-count. This is NOT the same as the tree's own native
+        'sum' column footer, which adds every row up literally and so
+        double-counts a kept parent+child pair (e.g. a Project row and
+        its own child Activity row both left in place, as in this
+        receipt) - that footer is a raw arithmetic check, this is the
+        real total intended for anything donor-facing."""
+        self.ensure_one()
+        lines = self.allocation_ids
+        programs_shown = set(
+            lines.filtered(lambda l: l.level == "program").mapped("program_id").ids)
+        projects_shown = set(
+            lines.filtered(lambda l: l.level == "project").mapped("project_id").ids)
+        total = 0.0
+        for line in lines:
+            if line.level == "project" and line.program_id.id in programs_shown:
+                continue
+            if line.level == "activity" and line.project_id.id in projects_shown:
+                continue
+            total += line.amount
+        return total
+
     def _allocation_email_html(self):
         """HTML fragment listing the Program -> Project -> Activity
         breakdown, hierarchically indented, for splicing into the donor
@@ -137,11 +169,20 @@ class ArcsFundReceipt(models.Model):
                 }
             )
         return (
-            "<p>%s</p>"
+            "<p>%(intro)s</p>"
             "<table style=\"width:100%%;border-collapse:collapse;font-size:13px;margin:8px 0;\">"
-            "%s"
+            "%(rows)s"
+            "<tr>"
+            "<td style=\"padding:6px 8px;border-top:2px solid #1F3A5F;font-weight:bold;\">%(total_label)s</td>"
+            "<td style=\"padding:6px 8px;border-top:2px solid #1F3A5F;text-align:right;font-weight:bold;\">%(total_amount)s</td>"
+            "</tr>"
             "</table>"
-        ) % (_(
-            "Your contribution is being directed to the following programs, "
-            "projects and activities under this grant:"
-        ), "".join(rows))
+        ) % {
+            "intro": _(
+                "Your contribution is being directed to the following programs, "
+                "projects and activities under this grant:"
+            ),
+            "rows": "".join(rows),
+            "total_label": _("Total Planned Cost"),
+            "total_amount": "{:,.2f} {}".format(self._allocation_rows_total(), currency),
+        }

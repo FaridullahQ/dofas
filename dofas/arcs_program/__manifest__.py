@@ -1,6 +1,6 @@
 {
     "name": "ARCS Donor Mgmt - Program & Projects",
-    "version": "17.0.1.6.0",
+    "version": "17.0.1.8.0",
     "summary": "Program -> Project -> Activity hierarchy, each level's Planned Cost ceiling "
                "correctly shared among siblings (two programs on one budget line, two "
                "projects on one program, two activities on one project can never together "

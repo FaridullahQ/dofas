@@ -58,6 +58,9 @@
                             invisible="state != 'locked'"
                             groups="arcs_base.group_finance_manager"
                             help="Physically disburse cash to the holder through a chosen bank/cash journal, with a required disbursement voucher/acknowledgement attached. Only available once the advance is Locked."/>
+                    <button name="action_print_voucher" string="Print Advance Summary" type="object"
+                            invisible="state in ('draft', 'cancelled')"
+                            help="Print a summary of this advance - who it's for, its purpose and funding, and which bank/cash account it will be paid from - for physical review and signature before Issue Advance. Once signed, attach the scanned copy in the Disbursement wizard."/>
                     <button name="action_close" string="Close" type="object"
                             invisible="state != 'issued'"
                             groups="arcs_base.group_finance_manager"
@@ -99,6 +102,18 @@
                                 invisible="liquidation_count == 0"
                                 help="View all liquidations submitted against this advance.">
                             <field name="liquidation_count" widget="statinfo" string="Liquidations"/>
+                        </button>
+                        <button name="action_view_expenses" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="expense_count == 0"
+                                help="Every posted expense justified against this advance, across all its liquidations - one place to review and track them alongside this advance's own entries.">
+                            <field name="expense_count" widget="statinfo" string="Expenses"/>
+                        </button>
+                        <button name="action_view_settlement_moves" type="object"
+                                class="oe_stat_button" icon="fa-exchange"
+                                invisible="settlement_move_count == 0"
+                                help="Every journal entry posted by Settle Advance against this advance (cash returned or reimbursed) - can be more than one for partial settlements.">
+                            <field name="settlement_move_count" widget="statinfo" string="Settlements"/>
                         </button>
                     </div>
 
@@ -161,6 +176,12 @@
                                    placeholder="Select a budget line within the grant…"
                                    help="The specific budget line to charge. Only lines belonging to the selected grant are available."
                                    readonly="state != 'draft'"/>
+                            <field name="project_id"
+                                   placeholder="Optional: tag a project…"
+                                   readonly="state != 'draft'"/>
+                            <field name="activity_id"
+                                   placeholder="Optional: tag a specific activity…"
+                                   readonly="state != 'draft'"/>
                             <field name="currency_id"
                                    help="Currency in which cash is disbursed. The system converts to the company currency when posting journal entries."
                                    readonly="state != 'draft'"/>
@@ -168,6 +189,15 @@
                                    help="Total cash amount handed to the holder. Must be greater than zero to issue the advance."
                                    readonly="state != 'draft'"/>
                         </group>
+                    </group>
+
+                    <!-- Intended Disbursement -->
+                    <group string="Disbursement"
+                           help="Which bank/cash account this advance is intended to be paid out from - shown on the printed Advance Summary and pre-selected (but still changeable) when you Issue Advance.">
+                        <field name="disbursement_journal_id"
+                               placeholder="Select the bank/cash journal…"
+                               readonly="state not in ('draft', 'locked')"/>
+                        <field name="disbursement_account_id" readonly="1"/>
                     </group>
 
                     <!-- Tracking Summary -->

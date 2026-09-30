@@ -55,6 +55,12 @@ class ArcsAdvanceDisbursementWizard(models.TransientModel):
         advance = self.env["arcs.advance"].browse(advance_id)
         if advance.exists():
             res["advance_id"] = advance.id
+            if advance.disbursement_journal_id and "journal_id" in fields_list:
+                # What was printed on the Advance Summary and physically
+                # signed is what should actually post - pre-selected here,
+                # but still changeable if the finance manager deliberately
+                # needs a different journal at the point of disbursing.
+                res["journal_id"] = advance.disbursement_journal_id.id
         return res
 
     def action_confirm(self):

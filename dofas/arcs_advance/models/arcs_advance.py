@@ -5,7 +5,7 @@ from odoo.exceptions import UserError, ValidationError
 class ArcsAdvance(models.Model):
     _name = "arcs.advance"
     _description = "Cash Advance"
-    _inherit = ["arcs.approval.mixin", "mail.thread", "mail.activity.mixin"]
+    _inherit = ["arcs.approval.mixin", "arcs.voucher.mixin", "mail.thread", "mail.activity.mixin"]
     _order = "date desc, id desc"
 
     name = fields.Char(
@@ -83,6 +83,16 @@ class ArcsAdvance(models.Model):
              "Only budget lines on an Approved budget version, belonging to the selected grant, "
              "are shown.",
     )
+    project_id = fields.Many2one(
+        "arcs.project", string="Project", domain="[('grant_id', '=', grant_id)]",
+        help="Optional: the project this advance is funding. Purely a tag for traceability "
+             "and reporting - it does not reserve anything against the project's own ceiling; "
+             "the actual budget consumption still happens when the expenses justifying this "
+             "advance are recorded.")
+    activity_id = fields.Many2one(
+        "arcs.activity", string="Activity", domain="[('project_id', '=', project_id)]",
+        help="Optional: the specific activity this advance is funding, for the same "
+             "traceability purpose as Project above.")
     company_id = fields.Many2one(
         "res.company",
         default=lambda s: s.env.company,
@@ -110,6 +120,24 @@ class ArcsAdvance(models.Model):
     reference = fields.Char(
         help="External reference such as a payment voucher number, cheque number, or "
              "bank transfer reference. Used for reconciliation and audit trail purposes.",
+    )
+    disbursement_journal_id = fields.Many2one(
+        "account.journal",
+        string="Bank/Cash Journal",
+        domain="[('type', 'in', ('bank', 'cash'))]",
+        tracking=True,
+        help="The bank or cash journal this advance is intended to be paid out through. "
+             "Shown on the printed Advance Summary so the reviewer/signer can see exactly "
+             "which account the money will leave from, and pre-selected (but still "
+             "changeable) when you actually issue the advance through the Disbursement "
+             "wizard - so what was printed and signed is what actually gets posted unless "
+             "someone deliberately changes it there.",
+    )
+    disbursement_account_id = fields.Many2one(
+        related="disbursement_journal_id.default_account_id",
+        string="Disbursement Account", readonly=True,
+        help="The journal's own default account - the account the cash will actually be "
+             "credited from once issued.",
     )
     note = fields.Text(
         help="Free-text remarks about this advance — e.g. purpose, conditions, or instructions "
@@ -153,6 +181,14 @@ class ArcsAdvance(models.Model):
              "(if ledger booking is enabled in settings, for the legacy direct-issue "
              "path - always posted when going through the Disbursement wizard).",
     )
+    settlement_move_ids = fields.Many2many(
+        "account.move", "arcs_advance_settlement_move_rel", "advance_id", "move_id",
+        string="Settlement Entries", readonly=True, copy=False,
+        help="Every journal entry posted by Settle Advance against this advance - a cash "
+             "return or a reimbursement can happen more than once (partial settlements), "
+             "so this can hold several entries over the advance's life.",
+    )
+    settlement_move_count = fields.Integer(compute="_compute_settlement_move_count")
     liquidation_ids = fields.One2many(
         "arcs.advance.liquidation",
         "advance_id",
@@ -160,6 +196,13 @@ class ArcsAdvance(models.Model):
         help="Liquidation records submitted by the holder to justify expenses against this advance.",
     )
     liquidation_count = fields.Integer(compute="_compute_liquidation_count")
+    expense_ids = fields.Many2many(
+        "arcs.expense", compute="_compute_expense_ids", string="Justified Expenses",
+        help="Every posted expense justified against this advance, across all of its "
+             "liquidations - the same expenses, in one place, whichever liquidation they "
+             "were reported on.",
+    )
+    expense_count = fields.Integer(compute="_compute_expense_ids")
     reported_amount = fields.Monetary(
         compute="_compute_amounts",
         store=True,
@@ -257,6 +300,35 @@ class ArcsAdvance(models.Model):
             partner = self._derive_employee_partner(self.employee_id)
             if partner:
                 self.partner_id = partner
+            outstanding = self._outstanding_advances_for_employee(self.employee_id)
+            if outstanding:
+                lines = "\n".join(
+                    "• %s: %.2f %s still outstanding" % (
+                        a.name, a.outstanding_amount, a.currency_id.name or "")
+                    for a in outstanding)
+                return {"warning": {
+                    "title": _("This employee already has an unsettled advance"),
+                    "message": _(
+                        "%(emp)s already has %(count)d issued advance(s) not yet "
+                        "fully settled:\n\n%(lines)s\n\n"
+                        "You can still continue if this additional advance is "
+                        "legitimate - just make sure it's intended."
+                    ) % {"emp": self.employee_id.name, "count": len(outstanding), "lines": lines},
+                }}
+
+    def _outstanding_advances_for_employee(self, employee):
+        """Every other Issued advance for this employee that still has a
+        non-zero Outstanding balance (i.e. not yet fully liquidated/settled).
+        Used both for the onchange pop-up (data-entry time) and the Lock-time
+        chatter note (belt-and-suspenders for advances created without going
+        through the form, e.g. from an approved Acquisition request)."""
+        others = self.search([
+            ("employee_id", "=", employee.id),
+            ("state", "=", "issued"),
+            ("id", "!=", self._origin.id if self._origin else False),
+        ])
+        return others.filtered(
+            lambda a: a.currency_id.compare_amounts(a.outstanding_amount, 0.0) != 0)
 
     def _derive_employee_partner(self, employee):
         """Best-effort debtor Partner for an employee advance. Prefers the
@@ -388,6 +460,18 @@ class ArcsAdvance(models.Model):
                 raise UserError(_(
                     "Please set the Advance To (Partner) before locking an employee advance."
                 ))
+            if a.advance_type == "employee" and a.employee_id:
+                outstanding = a._outstanding_advances_for_employee(a.employee_id)
+                if outstanding:
+                    a.message_post(body=_(
+                        "Note: %(emp)s already had %(count)d unsettled issued advance(s) "
+                        "totalling %(total).2f %(cur)s outstanding when this advance was "
+                        "locked."
+                    ) % {
+                        "emp": a.employee_id.name, "count": len(outstanding),
+                        "total": sum(outstanding.mapped("outstanding_amount")),
+                        "cur": a.currency_id.name or "",
+                    })
             a.lock_move_id = a._create_lock_move().id
         return self._transition("locked", "lock")
 
@@ -492,6 +576,17 @@ class ArcsAdvance(models.Model):
             )
         return amount
 
+    def _advance_analytic_distribution(self):
+        """Best-effort analytic tag from the selected Budget Line's own
+        analytic account, exactly like arcs.expense already does - so an
+        advance's Lock/Issue/Settlement entries show up correctly against
+        the same grant/budget-line in analytic (by-fund) reporting. Empty
+        when no Budget Line is set - Budget Line is optional on an advance,
+        unlike on arcs.expense, so this is never enforced as a requirement."""
+        self.ensure_one()
+        analytic = self.budget_line_id.analytic_account_id
+        return {str(analytic.id): 100} if analytic else {}
+
     def _create_lock_move(self):
         """The accrual leg, posted by action_lock(): Dr Advance (Receivable)
         Account / Cr Advances Payable / Clearing Account. Always uses the
@@ -510,6 +605,7 @@ class ArcsAdvance(models.Model):
             ))
         amount = self._company_amount(self.amount)
         ref = _("Advance locked (accrual): %s") % self.name
+        analytic = self._advance_analytic_distribution()
         move_vals = {
             "move_type": "entry",
             "journal_id": journal.id,
@@ -523,6 +619,7 @@ class ArcsAdvance(models.Model):
                     "partner_id": self.partner_id.id if self.partner_id else False,
                     "debit": amount,
                     "credit": 0.0,
+                    "analytic_distribution": analytic,
                 }),
                 (0, 0, {
                     "name": ref,
@@ -530,6 +627,7 @@ class ArcsAdvance(models.Model):
                     "partner_id": self.partner_id.id if self.partner_id else False,
                     "debit": 0.0,
                     "credit": amount,
+                    "analytic_distribution": analytic,
                 }),
             ],
         }
@@ -574,6 +672,7 @@ class ArcsAdvance(models.Model):
                 ))
         amount = self._company_amount(self.amount)
         ref = _("Advance disbursed: %s") % self.name
+        analytic = self._advance_analytic_distribution()
         move_vals = {
             "move_type": "entry",
             "journal_id": journal.id,
@@ -587,6 +686,7 @@ class ArcsAdvance(models.Model):
                     "partner_id": self.partner_id.id if self.partner_id else False,
                     "debit": amount,
                     "credit": 0.0,
+                    "analytic_distribution": analytic,
                 }),
                 (0, 0, {
                     "name": ref,
@@ -594,6 +694,7 @@ class ArcsAdvance(models.Model):
                     "partner_id": self.partner_id.id if self.partner_id else False,
                     "debit": 0.0,
                     "credit": amount,
+                    "analytic_distribution": analytic,
                 }),
             ],
         }
@@ -619,9 +720,108 @@ class ArcsAdvance(models.Model):
             "view_mode": "form",
         }
 
+    # ---------------- voucher printing ----------------
+    def _voucher_title(self):
+        return _("Cash Advance Summary")
+
+    def _voucher_subtitle(self):
+        return _("For review, signature, and issuance")
+
+    def _voucher_party_label(self):
+        return _("Employee") if self.advance_type == "employee" else _("Region / Province")
+
+    def _voucher_party_name(self):
+        self.ensure_one()
+        if self.advance_type == "employee":
+            parts = [self.employee_id.name]
+            if self.employee_code:
+                parts.append("(%s)" % self.employee_code)
+            if self.job_id:
+                parts.append("- %s" % self.job_id.name)
+            if self.department_id:
+                parts.append("- %s" % self.department_id.name)
+            return " ".join(p for p in parts if p)
+        return self.zone_id.name or ""
+
+    def _voucher_context_line(self):
+        self.ensure_one()
+        parts = []
+        if self.note:
+            parts.append(_("Purpose: %s") % self.note)
+        funding = " / ".join(p for p in (self.grant_id.name, self.budget_line_id.name) if p)
+        if funding:
+            parts.append(_("Funding: %s") % funding)
+        return " | ".join(parts) if parts else False
+
+    def _voucher_lines(self):
+        """Once actually disbursed (move_id posted), fall back to the real
+        entry - the mixin default already does exactly that. Before that -
+        still Locked, printed for physical review/signature ahead of
+        issuing - there is no disbursement entry yet, so this previews
+        precisely the entry Issue Advance is about to post: Dr the
+        Advances Payable/Clearing Account (clearing the liability booked
+        at Lock) / Cr the intended Bank/Cash journal's own account. This
+        is what lets the signer see exactly which account the cash will
+        leave from before it actually happens."""
+        self.ensure_one()
+        if self.move_id:
+            return super()._voucher_lines()
+        payable = self.company_id.arcs_advance_payable_account_id
+        cash = self.disbursement_account_id or self.company_id.arcs_advance_cash_account_id
+        journal = self.disbursement_journal_id or self.company_id.arcs_advance_journal_id
+        return [
+            {"account": payable.display_name if payable else _("Advances Payable / Clearing - not configured"),
+             "description": _("Advance to %(who)s: %(name)s") % {
+                 "who": self._voucher_party_name(), "name": self.name},
+             "debit": self.amount, "credit": 0.0},
+            {"account": cash.display_name if cash else _("Select a Bank/Cash Journal above"),
+             "description": journal.name if journal else _("Journal not yet selected"),
+             "debit": 0.0, "credit": self.amount},
+        ]
+
+    def action_print_voucher(self):
+        self.ensure_one()
+        return self.env.ref("arcs_advance.action_report_advance_summary").report_action(self)
+
     def _compute_liquidation_count(self):
         for a in self:
             a.liquidation_count = len(a.liquidation_ids)
+
+    @api.depends("liquidation_ids.expense_ids")
+    def _compute_expense_ids(self):
+        for a in self:
+            expenses = a.liquidation_ids.mapped("expense_ids")
+            a.expense_ids = [(6, 0, expenses.ids)]
+            a.expense_count = len(expenses)
+
+    @api.depends("settlement_move_ids")
+    def _compute_settlement_move_count(self):
+        for a in self:
+            a.settlement_move_count = len(a.settlement_move_ids)
+
+    def action_view_expenses(self):
+        """Smart-button target: every posted expense justified against this
+        advance, across all its liquidations - each still opens to its own
+        Journal Entry via its own 'View Move' action from there, so the
+        expense and its own posting stay one click apart, same as always."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Justified Expenses"),
+            "res_model": "arcs.expense",
+            "view_mode": "tree,form",
+            "domain": [("id", "in", self.expense_ids.ids)],
+        }
+
+    def action_view_settlement_moves(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Settlement Entries"),
+            "res_model": "account.move",
+            "view_mode": "tree,form",
+            "domain": [("id", "in", self.settlement_move_ids.ids)],
+        }
 
     def action_create_liquidation(self):
         self.ensure_one()

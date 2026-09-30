@@ -342,6 +342,7 @@ class ArcsAdvanceLiquidation(models.Model):
         amount = self.advance_id._company_amount(self.amount)
         ref = _("Liquidation: %s — Advance: %s") % (self.name, self.advance_id.name)
         partner = self.partner_id or self.advance_id.partner_id
+        analytic = self.advance_id._advance_analytic_distribution()
 
         move = self.env["account.move"].sudo().create({
             "move_type": "entry",
@@ -357,6 +358,7 @@ class ArcsAdvanceLiquidation(models.Model):
                     "partner_id": partner.id if partner else False,
                     "debit": amount,
                     "credit": 0.0,
+                    "analytic_distribution": analytic,
                 }),
                 # Cr Advance Receivable — MUST carry partner to reconcile with issuance entry
                 (0, 0, {
@@ -365,6 +367,7 @@ class ArcsAdvanceLiquidation(models.Model):
                     "partner_id": partner.id if partner else False,
                     "debit": 0.0,
                     "credit": amount,
+                    "analytic_distribution": analytic,
                 }),
             ],
         })
